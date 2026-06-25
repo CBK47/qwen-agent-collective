@@ -13,6 +13,7 @@ Global AI Hackathon with Qwen Cloud - 2026
 | Date | Update |
 |---|---|
 | 2026-05-26 | Repo scaffold created |
+| 2026-06-25 | Brain assembled (schema, DashScope env, manifest); orchestrator port plan + per-agent kickoff plans committed |
 | _ongoing_ | Log entries here through 2026-07-09 |
 
 **Deployment Proof:** _link to be added_
@@ -30,6 +31,7 @@ Global AI Hackathon with Qwen Cloud - 2026
 | Date | Update |
 |---|---|
 | 2026-05-26 | Repo scaffold created |
+| 2026-06-25 | Brain assembled (schema, DashScope env, manifest); orchestrator port plan + per-agent kickoff plans committed |
 | _ongoing_ | Log entries here through 2026-07-09 |
 
 **Deployment Proof:** _link to be added_
@@ -47,6 +49,7 @@ Global AI Hackathon with Qwen Cloud - 2026
 | Date | Update |
 |---|---|
 | 2026-05-26 | Repo scaffold created |
+| 2026-06-25 | Brain assembled (schema, DashScope env, manifest); orchestrator port plan + per-agent kickoff plans committed |
 | _ongoing_ | Log entries here through 2026-07-09 |
 
 **Deployment Proof:** _link to be added_
@@ -64,6 +67,7 @@ Global AI Hackathon with Qwen Cloud - 2026
 | Date | Update |
 |---|---|
 | 2026-05-26 | Repo scaffold created |
+| 2026-06-25 | Brain assembled (schema, DashScope env, manifest); orchestrator port plan + per-agent kickoff plans committed |
 | _ongoing_ | Log entries here through 2026-07-09 |
 
 **Deployment Proof:** _link to be added_
@@ -81,6 +85,7 @@ Global AI Hackathon with Qwen Cloud - 2026
 | Date | Update |
 |---|---|
 | 2026-05-26 | Repo scaffold created |
+| 2026-06-25 | Brain assembled (schema, DashScope env, manifest); orchestrator port plan + per-agent kickoff plans committed |
 | _ongoing_ | Log entries here through 2026-07-09 |
 
 **Deployment Proof:** _link to be added_
