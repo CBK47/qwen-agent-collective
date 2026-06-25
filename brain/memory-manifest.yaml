@@ -1,0 +1,76 @@
+# ============================================================================
+# qwen-agent-collective :: shared brain :: memory manifest
+#
+# The access contract every agent obeys. Reconstructed from the namespace
+# spec; keep in sync with brain/db/postgres-init.sql (agent seeds) and each
+# agents/<name>/PLAN.md.
+# ============================================================================
+
+version: 1
+
+embeddings:
+  provider: dashscope                 # Alibaba Cloud Model Studio, OpenAI-compatible
+  model: text-embedding-v3            # QWEN_EMBED_MODEL
+  dimension: 1024                     # must match text-embedding-v3
+  distance: cosine
+
+# --- Access rules ----------------------------------------------------------
+# Private : agent_id = '<agent>',  memory_namespace = 'private'
+#           -> only the owning agent WRITES its own private namespace.
+# Shared  : agent_id = 'shared',   memory_namespace = code-conventions
+#                                                    | glossary
+#                                                    | architecture
+#                                                    | projects | people
+#           -> all agents READ any shared.* namespace.
+#           -> all agents WRITE shared.* ONLY via memory_review_queue approval.
+rules:
+  private_write: owner_only
+  shared_read: all_agents
+  shared_write: review_queue_only      # memory_review_queue -> approved
+
+shared_namespaces:
+  - code-conventions     # primary writer: git-committer
+  - glossary             # primary writer: open-translate
+  - architecture
+  - projects
+  - people
+
+# --- Agents ----------------------------------------------------------------
+agents:
+  echo:                  # Track 1 — MemoryAgent
+    private_namespace: private
+    shared_read: ["*"]
+    qdrant_collections: [echo_private, echo_chat_chunks, echo_docs]
+
+  git-committer:         # Track 3 — Agent Society
+    private_namespace: private
+    shared_read: ["*"]
+    shared_write: [code-conventions]   # via review queue
+    qdrant_collections: [git-committer_private]
+
+  open-translate:        # Track 4 — Autopilot
+    private_namespace: private
+    shared_read: ["*"]
+    shared_write: [glossary]           # via review queue
+    qdrant_collections: [open-translate_private]
+
+  skippy:                # Track 5 — EdgeAgent
+    private_namespace: private
+    shared_read: ["*"]
+    structured_scopes: [devices]       # Postgres devices table (agent_scope='skippy')
+    qdrant_collections: [skippy_private, skippy_device_manuals]
+
+  showrunner:            # Track 2 — AI Showrunner
+    private_namespace: private
+    shared_read: ["*"]
+    event_sources: [memory_events]     # dramatizes brain events
+    qdrant_collections: [showrunner_private]
+
+# --- Qdrant collections to create (all dim 1024) ---------------------------
+qdrant_collections:
+  - echo_chat_chunks
+  - echo_docs
+  - skippy_device_manuals
+  - shared_reference
+  - shared_policies
+  # plus <agent>_private for each agent above
