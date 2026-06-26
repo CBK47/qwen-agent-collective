@@ -98,6 +98,48 @@ class NullMemoryStore:
         return None
 
 
+class BrainMemoryStore:
+    """File-based memory store using /home/cbk/shared_drive/brain."""
+
+    def __init__(self, base_path: str = "/home/cbk/shared_drive/brain"):
+        self.base_path = base_path
+
+    def _get_file_path(self, namespace: str) -> str:
+        return f"{self.base_path}/{namespace}.txt"
+
+    def read(self, spec: AgentSpec, task: AgentTask) -> MemoryBundle:
+        import shared.namespaces as ns
+        import os
+        bundle = MemoryBundle()
+        facts, conventions, notes = [], [], []
+
+        private_ns = getattr(ns, f"{spec.agent_id.upper()}_PRIVATE", None)
+        if private_ns:
+            path = self._get_file_path(private_ns)
+            if os.path.exists(path):
+                with open(path, "r") as f:
+                    notes.append(f.read())
+
+        if spec.agent_id == "git-committer" or "shared" in spec.role.lower():
+            path = self._get_file_path(ns.SHARED_CODE_CONVENTIONS)
+            if os.path.exists(path):
+                with open(path, "r") as f:
+                    conventions.append(f.read())
+
+        return MemoryBundle(facts=facts, conventions=tuple(conventions), working_notes=tuple(notes))
+
+    def write(self, spec: AgentSpec, task: AgentTask, result: AgentResult) -> None:
+        import shared.namespaces as ns
+        import os
+        private_ns = getattr(ns, f"{spec.agent_id.upper()}_PRIVATE", None)
+        if not private_ns:
+            return
+        path = self._get_file_path(private_ns)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "a") as f:
+            f.write(f"\n--- Session {result.session_id} ---\n{result.output}\n")
+
+
 class BaseAgent:
     """Template method implementation of the collective agent lifecycle."""
 
