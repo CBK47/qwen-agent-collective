@@ -55,3 +55,7 @@ def synthesize_reviews(diff, pedant_review, arch_review, skeptic_review):
     return "Synthesis not yet implemented"
 def run_debate():
     # TODO: Implement synthesis step using Synthesizer persona to generate final commit message
+def synthesize_reviews(pedant_review: str, arch_review: str, skeptic_review: str) -> str:
+    """Synthesizes reviews into a final commit message."""
+    # TODO: Implement synthesis logic using Synthesizer persona
+    return "feat: stubbed synthesis"
