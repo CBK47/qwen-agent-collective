@@ -1,0 +1,15 @@
+{
+  "name": "brain-explorer",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Dark-themed explorer for the qwen-agent-collective shared brain (namespaces + grounded recall).",
+  "scripts": {
+    "start": "node server.mjs",
+    "dev": "node --watch server.mjs"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "dotenv": "^17.2.3"
+  }
+}
