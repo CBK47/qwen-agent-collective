@@ -4,3 +4,7 @@ def synthesize_reviews(pedant_review: str, arch_review: str, skeptic_review: str
     synthesis = chat(synthesizer_prompt)
     print(f"SYNTHESIZER: {synthesis}\n")
     return synthesis
+def synthesize_reviews(pedant_review: str, arch_review: str, skeptic_review: str) -> str:
+    """Synthesizes reviews into a final commit message."""
+    # TODO: Implement synthesis logic using Synthesizer persona
+    return "commit message"
