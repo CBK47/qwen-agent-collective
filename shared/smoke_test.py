@@ -5,7 +5,10 @@ Run once the DASHSCOPE_API_KEY is set:
     python shared/smoke_test.py
 """
 
-from dashscope import chat, embed
+try:
+    from shared.dashscope import chat, embed
+except ModuleNotFoundError:  # supports `python shared/smoke_test.py`
+    from dashscope import chat, embed
 
 
 def main() -> None:

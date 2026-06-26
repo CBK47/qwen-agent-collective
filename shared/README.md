@@ -2,10 +2,24 @@
 
 Common utilities and contracts used by all agents.
 
-## Contents (to be implemented)
+## Contents
 
-- **DashScope client** - thin wrapper around the DashScope HTTP API for chat, embeddings, vision, and audio calls. All agents import from here; keeps auth and retry logic in one place.
+- **DashScope client** - shared Qwen/DashScope interface for chat, embeddings, streaming, diagnostics, retries, timeouts, structured logs, and model selection.
+- **Agent template** - `shared.agent.BaseAgent` defines the default lifecycle: receive task, read memory/conventions, generate work, self-review, validate, iterate, write memory, return result.
 - **Namespace contract** - defines every Qdrant collection name and Postgres schema prefix. Agents must use these constants rather than hard-coded strings.
+
+## Commands
+
+```sh
+python -m shared.dashscope doctor       # live credential + chat/embed check
+python -m shared.dashscope doctor --no-network
+python shared/smoke_test.py
+python shared/probe.py
+```
+
+All agents should use `shared.dashscope.DashScopeClient` or the compatibility
+helpers `chat()` and `embed()`. Do not create new direct DashScope/OpenAI clients
+inside agent implementations.
 
 ## Namespace Reference
 
