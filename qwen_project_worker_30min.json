@@ -1,0 +1,4 @@
+{
+  "security_scan": "SECURITY_HITS=$(find . -type f -exec grep -nE 'DASHSCOPE_API_KEY=[a-zA-Z0-9_-]{30,}' {} + 2>/dev/null)",
+  ... other parts of the JSON ...
+}

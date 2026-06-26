@@ -1,4 +1,5 @@
 {
+  "id": "ec8c49b5-c150-4c27-8a6c-78aa17c87155",
   "name": "Qwen Project Worker - 30 Minute Repo Review",
   "nodes": [
     {
@@ -37,7 +38,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const context = ($input.first().json.stdout || $input.first().json.stderr || '').slice(-45000);\nconst now = new Date().toISOString();\nconst model = $env.QWEN_CODER_MODEL || $env.QWEN_CHAT_MODEL || 'qwen-plus';\nconst system = `You are git-committer, the autonomous coding/review agent for qwen-agent-collective.\n\nOverall goal: evolve this repository into an engineering platform where AI workers can safely generate, review, improve, document, and iterate on the Qwen agent collective with minimal human intervention.\n\nYour job in this 30 minute loop is bounded. Review the repo context, identify the safest next useful work, and produce a concise project-work report. Do not claim to have changed files. Do not ask for secrets. Do not invent facts. Prefer work that improves shared infrastructure, tests, docs, memory, CI, or agent safety.\n\nReturn Markdown with exactly these sections:\n# Qwen Project Worker Report\n## Verdict\nPASS, WARN, or FAIL with one sentence.\n## What Changed Recently\nBullets grounded only in the context.\n## Repo Health\nTests/config/docs/security observations.\n## Recommended Next Work Slice\nOne small task that an autonomous worker can safely attempt next.\n## Suggested Commands\nShell commands only if useful. Keep them safe and non-destructive.\n## Risks Or Blockers\nConcrete blockers, missing env, failing tests, merge conflicts, or uncertain facts.\n## Memory Notes\nFacts worth adding later to project memory.`;\nconst user = `Time: ${now}\\n\\nRepo context follows. Values that looked like secrets may have been redacted.\\n\\n${context || 'No repo context was captured.'}`;\nreturn [{ json: { model, now, messages: [{ role: 'system', content: system }, { role: 'user', content: user }] } }];"
+        "jsCode": "const context = ($input.first().json.stdout || $input.first().json.stderr || '').slice(-8000);\nconst now = new Date().toISOString();\nconst model = $env.QWEN_CODER_MODEL || $env.QWEN_CHAT_MODEL || 'qwen-turbo';\nconst system = `You are git-committer, the autonomous coding/review agent for qwen-agent-collective.\n\nOverall goal: evolve this repository into an engineering platform where AI workers can safely generate, review, improve, document, and iterate on the Qwen agent collective with minimal human intervention.\n\nYour job in this 30 minute loop is bounded. Review the repo context, identify the safest next useful work, and produce a concise project-work report. Do not claim to have changed files. Do not ask for secrets. Do not invent facts. Prefer work that improves shared infrastructure, tests, docs, memory, CI, or agent safety.\n\nReturn Markdown with exactly these sections:\n# Qwen Project Worker Report\n## Verdict\nPASS, WARN, or FAIL with one sentence.\n## What Changed Recently\nBullets grounded only in the context.\n## Repo Health\nTests/config/docs/security observations.\n## Recommended Next Work Slice\nOne small task that an autonomous worker can safely attempt next.\n## Suggested Commands\nShell commands only if useful. Keep them safe and non-destructive.\n## Risks Or Blockers\nConcrete blockers, missing env, failing tests, merge conflicts, or uncertain facts.\n## Memory Notes\nFacts worth adding later to project memory.`;\nconst user = `Time: ${now}\\n\\nRepo context follows. Values that looked like secrets may have been redacted.\\n\\n${context || 'No repo context was captured.'}`;\nreturn [{ json: { model, now, messages: [{ role: 'system', content: system }, { role: 'user', content: user }] } }];"
       },
       "id": "40d02706-44ad-427b-a24d-7b90c68f3cf1",
       "name": "Build Qwen Prompt",
@@ -67,7 +68,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ { model: $json.model, messages: $json.messages, temperature: 0.2, max_tokens: 1800 } }}",
+        "jsonBody": "={{ { model: $json.model, messages: $json.messages, temperature: 0.2, max_tokens: 800 } }}",
         "options": {
           "timeout": 120000
         }

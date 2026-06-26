@@ -43,3 +43,6 @@ if __name__ == "__main__":
 +     return float(price * (1 + tax))
     """
     run_debate(sample_diff)
+        skeptic_prompt = f"{PERSONAS['Skeptic']}\n\nDiff:\n{diff}\n\nPedant says: {pedant_review}\n\nArchitect says: {arch_review}\n\nProvide your skeptical review."
+        skeptic_review = chat(skeptic_prompt)
+        print(f"SKEPTIC: {skeptic_review}\n")

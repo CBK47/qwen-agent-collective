@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Brain Explorer</title>
   <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script src="https://unpkg.com/3d-force-graph"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -826,23 +827,7 @@
         { "source_lang": "en", "target_lang": "de", "source_text": "New message from Marcus.", "target_text": "Neue Nachricht von Marcus.", "context": "Messaging app." },
         { "source_lang": "en", "target_lang": "ja", "source_text": "Memory spliced successfully.", "target_text": "メモリのスプライスに成功しました。", "context": "Fiction-specific action." }
       ],
-      "git-committer.private": [
-        { "hash": "a1b2c3d", "message": "feat(core): implement snake_case in user routes", "files_changed": ["routes/user.py", "models/user.py"], "diff_summary": "Renamed camelCase functions to follow PEP 8.", "convention_tags": ["PY-01"] },
-        { "hash": "e5f6g7h", "message": "fix(auth): replace unwrap with match pattern", "files_changed": ["src/auth/session.rs"], "diff_summary": "Fixed potential panic in session handling.", "convention_tags": ["RS-01"] },
-        { "hash": "i9j0k1l", "message": "chore: switch from let to const for app config", "files_changed": ["config/app.js"], "diff_summary": "Ensuring immutable config objects.", "convention_tags": ["JS-01"] },
-        { "hash": "m2n3o4p", "message": "docs: add docstrings to data processing scripts", "files_changed": ["scripts/process.py"], "diff_summary": "Improved code documentation.", "convention_tags": ["PY-02"] },
-        { "hash": "q5r6s7t", "message": "style: apply BEM naming to navigation menu", "files_changed": ["styles/nav.css"], "diff_summary": "Cleaned up CSS classes.", "convention_tags": ["CSS-01"] },
-        { "hash": "u8v9w0x", "message": "refactor: use interface injection for DB repository", "files_changed": ["services/UserService.java"], "diff_summary": "Decoupled database implementation.", "convention_tags": ["JV-01"] },
-        { "hash": "y1z2a3b", "message": "fix(net): use strict equality in packet validation", "files_changed": ["lib/net/parser.js"], "diff_summary": "Prevents type coercion bugs in headers.", "convention_tags": ["JS-02"] },
-        { "hash": "c4d5e6f", "message": "perf: use list comprehension for batch filtering", "files_changed": ["utils/filters.py"], "diff_summary": "Optimized loop performance.", "convention_tags": ["PY-03"] },
-        { "hash": "g7h8i9j", "message": "feat(api): add auth endpoint and update docs", "files_changed": ["api/v1/auth.py", "README.md"], "diff_summary": "New auth route with proper documentation.", "convention_tags": ["PY-01", "MD-01"] },
-        { "hash": "k0l1m2n", "message": "fix(db): capitalize SQL keywords in migrations", "files_changed": ["migrations/001_initial.sql"], "diff_summary": "Aligned with SQL style guide.", "convention_tags": ["SQL-01"] },
-        { "hash": "o3p4q5r", "message": "feat(sys): implement RAII for mutex locks", "files_changed": ["src/sys/mutex.cpp"], "diff_summary": "Prevented resource leaks on early return.", "convention_tags": ["CPP-01"] },
-        { "hash": "s6t7u8v", "message": "refactor: move auth logic to submodule", "files_changed": ["src/main.rs", "src/auth/mod.rs"], "diff_summary": "Organized Rust code into modules.", "convention_tags": ["RS-02"] },
-        { "hash": "w9x0y1z", "message": "fix(ui): remove 'any' type from event handlers", "files_changed": ["src/ui/Button.ts"], "diff_summary": "Added proper type definitions for events.", "convention_tags": ["TS-01"] },
-        { "hash": "a2b3c4d", "message": "fix: add error checking for file read operations", "files_changed": ["internal/io/reader.go"], "diff_summary": "Handled nil error return values.", "convention_tags": ["GO-01"] },
-        { "hash": "e5f6g7h", "message": "feat(deploy): add docker-compose for staging", "files_changed": ["docker-compose.yml"], "diff_summary": "Initial deployment configuration.", "convention_tags": ["GIT-01"] }
-      ]
+      "git-committer.private": []
     };
 
     // Agent Descriptions and allowed cognitive boundaries
@@ -1702,53 +1687,101 @@
       container.innerHTML = html;
     }
 
-    // 8. git-committer.private
-    function renderGit(container) {
-      const items = seedData["git-committer.private"];
-      const filtered = items.filter(item => {
-        const query = state.dbSearchQuery;
-        if (!query) return true;
-        return safeMatch(item.hash, query) ||
-               safeMatch(item.message, query) ||
-               safeMatch(item.diff_summary, query) ||
-               item.files_changed.some(f => safeMatch(f, query)) ||
-               item.convention_tags.some(tag => safeMatch(tag, query));
-      });
+    // 8. git-committer.private — live data from /api/git-log + /api/latest-report
+    async function renderGit(container) {
+      container.innerHTML = `<div style="padding:2rem;text-align:center;color:var(--text-muted);font-family:'JetBrains Mono',monospace;font-size:0.8rem;">Loading live agent data…</div>`;
 
-      if (filtered.length === 0) {
-        container.innerHTML = `<div style="padding: 2rem; text-align: center; color: var(--text-muted);">No commit records match query.</div>`;
-        return;
+      let commits = [];
+      let report = { content: '', path: '' };
+      let liveOk = false;
+
+      try {
+        const [gitRes, repRes] = await Promise.all([
+          fetch('/api/git-log').then(r => r.json()),
+          fetch('/api/latest-report').then(r => r.json())
+        ]);
+        commits = gitRes.commits || [];
+        report  = repRes;
+        liveOk  = true;
+      } catch (_) {
+        // file:// or server offline — show offline notice
       }
 
-      let html = `<div style="display: flex; flex-direction: column; gap: 0.75rem;">`;
-      filtered.forEach(item => {
-        const query = state.dbSearchQuery;
-        
-        let tagsHtml = `<div class="git-tags">`;
-        item.convention_tags.forEach(tag => {
-          tagsHtml += `<span class="git-tag" onclick="jumpToConvention('${tag}')" title="Inspect Rule convention">[${highlight(tag, query)}]</span>`;
-        });
-        tagsHtml += `</div>`;
+      const q = state.dbSearchQuery || '';
 
-        html += `
-          <div class="git-item">
-            <div class="git-header">
-              <div>
-                <span class="git-hash">[${highlight(item.hash, query)}]</span>
-                <span class="git-msg">${highlight(item.message, query)}</span>
+      // filter commits by search
+      const filtered = commits.filter(c =>
+        !q || [c.shortHash, c.message, c.author].some(v => safeMatch(v, q))
+      );
+
+      let html = '';
+
+      // ── Live commits ──────────────────────────────────────────────────────
+      html += `
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem;">
+          <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1rem;color:var(--text);">
+            Live Commits
+            <span style="font-size:0.65rem;font-weight:400;color:var(--text-muted);font-family:'JetBrains Mono',monospace;margin-left:0.5rem;">${liveOk ? filtered.length + ' commits' : 'server offline — open via http://localhost:3000'}</span>
+          </div>
+          <button onclick="renderGit(document.getElementById('db-content-area'))" style="background:var(--bg-card);border:1px solid var(--border);color:var(--text-muted);border-radius:6px;padding:0.3rem 0.75rem;font-size:0.7rem;cursor:pointer;font-family:'JetBrains Mono',monospace;transition:all 0.2s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">↻ Refresh</button>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:0.5rem;margin-bottom:2rem;">`;
+
+      if (!liveOk) {
+        html += `<div class="git-item" style="color:var(--amber);">Start the server: <code>cd brain/explorer && node server.mjs</code></div>`;
+      } else if (filtered.length === 0) {
+        html += `<div class="git-item" style="color:var(--text-muted);">No commits match the current search.</div>`;
+      } else {
+        filtered.forEach(c => {
+          const isAgent = /qwen-coding-agent|local-loop-agent|local-coding-agent/i.test(c.author);
+          const authorColor = isAgent ? 'var(--cyan)' : 'var(--text-muted)';
+          const authorBadge = isAgent
+            ? `<span style="font-size:0.6rem;background:rgba(56,189,248,0.1);color:var(--cyan);border:1px solid rgba(56,189,248,0.2);border-radius:4px;padding:0.1rem 0.35rem;font-family:'JetBrains Mono',monospace;">🤖 agent</span>`
+            : '';
+          html += `
+            <div class="git-item">
+              <div class="git-header">
+                <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
+                  <span class="git-hash">[${highlight(c.shortHash, q)}]</span>
+                  <span class="git-msg">${highlight(c.message, q)}</span>
+                  ${authorBadge}
+                </div>
+                <span style="color:${authorColor};font-size:0.65rem;white-space:nowrap;">${c.when}</span>
               </div>
-              ${tagsHtml}
-            </div>
-            <div class="git-files">
-              <strong style="font-size: 0.65rem;">Modified:</strong> ${item.files_changed.map(f => highlight(f, query)).join(', ')}
-            </div>
-            <div class="git-diff">
-              <span style="color: var(--cyan); font-weight: bold; font-size: 0.65rem; text-transform: uppercase;">Change Vector:</span> ${highlight(item.diff_summary, query)}
-            </div>
-          </div>`;
-      });
+              <div style="color:var(--text-muted);font-size:0.65rem;">${highlight(c.author, q)}</div>
+            </div>`;
+        });
+      }
       html += `</div>`;
+
+      // ── Latest Report ─────────────────────────────────────────────────────
+      html += `
+        <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1rem;color:var(--text);margin-bottom:0.75rem;">
+          Latest Agent Report
+          <span style="font-size:0.65rem;font-weight:400;color:var(--text-muted);font-family:'JetBrains Mono',monospace;margin-left:0.5rem;">${report.path || 'none'}</span>
+        </div>`;
+
+      if (report.content) {
+        // strip HTML comments at top
+        const md = report.content.replace(/<!--[\s\S]*?-->/g, '').trim();
+        html += `
+          <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:1.5rem;line-height:1.7;font-size:0.85rem;" id="report-md-box">
+            ${typeof marked !== 'undefined' ? marked.parse(md) : '<pre style="white-space:pre-wrap;color:var(--text);">' + md + '</pre>'}
+          </div>`;
+      } else if (liveOk) {
+        html += `<div class="git-item" style="color:var(--text-muted);">No reports found yet — waiting for the first loop cycle.</div>`;
+      }
+
       container.innerHTML = html;
+
+      // apply marked after innerHTML if it was unavailable inline
+      if (report.content && typeof marked !== 'undefined') {
+        const box = container.querySelector('#report-md-box');
+        if (box && !box.querySelector('h1,h2,h3,p')) {
+          const md = report.content.replace(/<!--[\s\S]*?-->/g, '').trim();
+          box.innerHTML = marked.parse(md);
+        }
+      }
     }
 
     // Git tag link utility

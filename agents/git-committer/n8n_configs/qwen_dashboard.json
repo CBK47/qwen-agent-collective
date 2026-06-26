@@ -1,0 +1,75 @@
+{
+  "id": "4b6569f2-c9f5-46da-a9d4-f62101b36adb",
+  "name": "Qwen Agent Dashboard",
+  "nodes": [
+    {
+      "id": "dash-1",
+      "name": "Dashboard Request",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [-600, 0],
+      "parameters": {
+        "path": "qwen-dashboard",
+        "httpMethod": "GET",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "webhookId": "qwen-dashboard"
+    },
+    {
+      "id": "dash-2",
+      "name": "Gather Data",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [-360, 0],
+      "continueOnFail": true,
+      "parameters": {
+        "command": "sh -c 'REPO=\"/home/cbk/qwen-agent-collective\"\ncd \"$REPO\" || { echo \"=COMMITS=\"; echo; echo \"=REPORT=\"; echo \"Repo not found.\"; exit 0; }\nprintf \"=COMMITS=\\n\"\ngit log --pretty=format:\"%h|%ar|%s|%an\" -20\nprintf \"\\n=REPORT=\\n\"\nLATEST=$(find reports/qwen-worker reports/local-worker -name \"*.md\" 2>/dev/null | sort | tail -1)\n[ -n \"$LATEST\" ] && cat \"$LATEST\" || echo \"No reports yet.\"'"
+      }
+    },
+    {
+      "id": "dash-3",
+      "name": "Build HTML",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-120, 0],
+      "parameters": {
+        "jsCode": "var out = $input.first().json.stdout || '';\nvar si = out.indexOf('\\n=REPORT=\\n');\nvar commitSection = (si > -1 ? out.slice(0, si) : out).replace('=COMMITS=\\n', '');\nvar reportMd = si > -1 ? out.slice(si + 10).trim() : 'No report yet.';\n\nvar commits = [];\ncommitSection.trim().split('\\n').forEach(function(l) {\n  l = l.trim(); if (!l) return;\n  var c = l.split('|');\n  if (c.length >= 3) commits.push([c[0], c[1], c[2], c[3] || '']);\n});\n\nvar rows = commits.map(function(c) {\n  return '<tr><td class=h>' + c[0] + '</td><td class=w>' + c[1] + '</td><td>' + c[2] + '</td><td class=a>' + c[3] + '</td></tr>';\n}).join('');\n\nvar table = commits.length\n  ? '<table><thead><tr><th>Hash</th><th>When</th><th>Message</th><th>Author</th></tr></thead><tbody>' + rows + '</tbody></table>'\n  : '<p class=m>No commits yet.</p>';\n\nvar rj = JSON.stringify(reportMd).replace(/<\\//g, '<\\/');\n\nvar html = [\n  '<!doctype html><html><head><meta charset=utf-8><title>Qwen Dashboard</title>',\n  '<' + 'script src=https://cdn.jsdelivr.net/npm/marked/marked.min.js></' + 'script>',\n  '<style>',\n  ':root{--bg:#0b0d12;--p:#12151c;--b:#222733;--t:#e6e9ef;--m:#8b93a7;--a:#7c6cf5}',\n  '*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--t);font:15px/1.6 system-ui,sans-serif;padding:2rem 3rem;max-width:980px}',\n  'h1{color:var(--a);margin:0 0 .3rem}p.sub{color:var(--m);margin:0 0 1.2rem}',\n  'h2{border-bottom:1px solid var(--b);padding-bottom:.3rem;margin-top:2rem}',\n  'table{border-collapse:collapse;width:100%;margin:1rem 0}',\n  'th,td{border:1px solid var(--b);padding:.4rem .7rem;text-align:left;font-size:.87rem}',\n  'th{background:#1b202b;color:var(--m)}.h{font-family:monospace;color:var(--a)}.w,.a{color:var(--m);white-space:nowrap}.m{color:var(--m)}',\n  '.box{background:var(--p);border:1px solid var(--b);border-radius:8px;padding:1.5rem;margin-top:1rem}',\n  '.box code{background:#1b202b;padding:.15em .4em;border-radius:4px;font-size:.85em}',\n  '.box pre{background:#1b202b;padding:1rem;border-radius:6px;overflow:auto}',\n  'button{background:var(--a);color:#fff;border:none;padding:.5rem 1.2rem;border-radius:6px;cursor:pointer;font-size:.9rem}',\n  'button:hover{opacity:.85}#st{margin-left:1rem;font-size:.85rem;color:var(--m)}',\n  '</style></head><body>',\n  '<h1>Qwen Agent Dashboard</h1>',\n  '<p class=sub>qwen-agent-collective \\u2014 autonomous coding loop</p>',\n  '<button onclick=run()>\\u25b6 Run Coder Now</button><span id=st></span>',\n  '<h2>Recent Commits</h2>',\n  table,\n  '<h2>Latest Report</h2><div class=box id=rpt></div>',\n  '<' + 'script>',\n  'var R=' + rj + ';',\n  'document.getElementById(\"rpt\").innerHTML=marked.parse(R);',\n  'function run(){',\n  '  var s=document.getElementById(\"st\");',\n  '  s.textContent=\"Running\\u2026\";',\n  '  fetch(\"/webhook/qwen-coder\",{method:\"POST\",headers:{\"Content-Type\":\"application/json\"},body:\"{}\"})',\n  '  .then(function(r){return r.json()})',\n  '  .then(function(d){s.textContent=JSON.stringify(d);setTimeout(function(){location.reload()},3000)})',\n  '  .catch(function(e){s.textContent=\"Error: \"+e});',\n  '}',\n  '</' + 'script></body></html>'\n].join('');\n\nreturn [{ json: { html: html } }];"
+      }
+    },
+    {
+      "id": "dash-4",
+      "name": "Serve HTML",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [120, 0],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.html }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              { "name": "Content-Type", "value": "text/html; charset=utf-8" }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Dashboard Request": { "main": [[{ "node": "Gather Data",  "type": "main", "index": 0 }]] },
+    "Gather Data":       { "main": [[{ "node": "Build HTML",   "type": "main", "index": 0 }]] },
+    "Build HTML":        { "main": [[{ "node": "Serve HTML",   "type": "main", "index": 0 }]] }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "timezone": "Europe/London"
+  },
+  "active": false,
+  "tags": [
+    { "name": "qwen-agent-collective" },
+    { "name": "dashboard" }
+  ]
+}

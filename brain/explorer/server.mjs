@@ -3,6 +3,8 @@
 import express from "express";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { execSync } from "node:child_process";
+import fs from "node:fs";
 import dotenv from "dotenv";
 import { createDashScopeClient } from "../../shared/dashscope.mjs";
 
@@ -10,7 +12,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // Key/models live in the repo-root .env (shared with the Python spine).
 dotenv.config({ path: path.resolve(__dirname, "../../.env") });
 
-const PORT = 3000;
+const PORT = 3456;
 const qwen = createDashScopeClient();
 
 const app = express();
@@ -56,6 +58,40 @@ Guidelines:
   } catch (err) {
     console.error("Qwen search error:", err);
     res.status(500).json({ error: err.message || "Internal server error" });
+  }
+});
+
+const REPO = path.resolve(__dirname, "../..");
+
+app.get("/api/git-log", (_req, res) => {
+  try {
+    const raw = execSync(
+      'git log --pretty=format:"%H|%h|%ar|%s|%an" -30',
+      { cwd: REPO }
+    ).toString().trim();
+    const commits = raw.split("\n").filter(Boolean).map(l => {
+      const [hash, shortHash, when, ...rest] = l.split("|");
+      const author = rest.pop() || "";
+      const message = rest.join("|");
+      return { hash, shortHash, when, message, author };
+    });
+    res.json({ commits });
+  } catch (e) {
+    res.json({ commits: [], error: e.message });
+  }
+});
+
+app.get("/api/latest-report", (_req, res) => {
+  try {
+    const raw = execSync(
+      'find reports/qwen-worker reports/local-worker -name "*.md" 2>/dev/null | sort | tail -1',
+      { cwd: REPO }
+    ).toString().trim();
+    if (!raw) return res.json({ content: "", path: "" });
+    const content = fs.readFileSync(path.join(REPO, raw), "utf8");
+    res.json({ content, path: raw });
+  } catch (e) {
+    res.json({ content: "", path: "", error: e.message });
   }
 });
 

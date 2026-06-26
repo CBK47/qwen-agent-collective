@@ -1,0 +1,286 @@
+{
+  "id": "820f9614-5023-48f4-b225-2d1b05098038",
+  "name": "Local Loop - Review and Code (15 min)",
+  "nodes": [
+    {
+      "id": "ll-1",
+      "name": "Every 5 Minutes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [-1200, 0],
+      "parameters": {
+        "rule": { "interval": [{ "field": "minutes", "minutesInterval": 15 }] }
+      }
+    },
+    {
+      "id": "ll-2",
+      "name": "Collect Repo Context",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [-960, 0],
+      "continueOnFail": true,
+      "parameters": {
+        "command": "sh -c 'REPO=\"/home/cbk/qwen-agent-collective\"\ncd \"$REPO\" || { echo \"REPO not found\"; exit 0; }\nprintf \"# Repo Context\\ngenerated_at: %s\\n\" \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"\nprintf \"branch: \"; git branch --show-current || true\nprintf \"\\n## Git Status\\n\"; git status --short --branch || true\nprintf \"\\n## Recent Commits\\n\"\ngit log --oneline -10 || true\nprintf \"\\n## Diff Stat\\n\"; git diff --stat || true\nprintf \"\\n## Security Scan\\n\"\nHITS=\"$(git ls-files | xargs grep -nE \"(API_KEY=sk-|OPENAI_API_KEY=|ANTHROPIC_API_KEY=)\" 2>/dev/null || true)\"\n[ -z \"$HITS\" ] && echo \"PASS: no secret patterns\" || printf \"%s\\n\" \"$HITS\" | sed -E \"s/(=)[^[:space:]]+/=REDACTED/g\" | head -10'"
+      }
+    },
+    {
+      "id": "ll-3",
+      "name": "Build Review Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-720, 0],
+      "parameters": {
+        "jsCode": "const ctx = ($input.first().json.stdout || '').slice(-8000);\nconst now = new Date().toISOString();\nconst model = $env.OLLAMA_CHAT_MODEL || 'qwen3-next-cbk:latest';\nconst system = 'You are a local autonomous review agent for qwen-agent-collective.\\n\\nReturn Markdown with EXACTLY these sections:\\n# Local Loop Report\\n## Verdict\\nPASS, WARN, or FAIL with one sentence.\\n## What Changed Recently\\nBullets grounded only in the context.\\n## Repo Health\\nTests/config/docs/security observations.\\n## Recommended Next Work Slice\\nONE micro-task under 20 shell lines: add a docstring, type hint, TODO comment, stub function, or README line. Name the exact file and function. NEVER recommend building complex features.\\n## Risks Or Blockers\\nConcrete blockers or uncertain facts.';\nreturn [{ json: { model, now, messages: [{ role: 'system', content: system }, { role: 'user', content: 'Time: ' + now + '\\n\\nRepo context:\\n\\n' + (ctx || 'No context captured.') }] } }];"
+      }
+    },
+    {
+      "id": "ll-4",
+      "name": "Ask Ollama For Review",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-480, 0],
+      "continueOnFail": true,
+      "parameters": {
+        "method": "POST",
+        "url": "http://172.20.0.1:11434/api/chat",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "Bearer ollama" },
+            { "name": "Content-Type",  "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { model: $json.model, messages: $json.messages, think: false, stream: false, options: { temperature: 0.2, num_predict: 4000 } } }}",
+        "options": { "timeout": 180000 }
+      }
+    },
+    {
+      "id": "ll-5",
+      "name": "Normalize Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-240, 0],
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nconst iso = new Date().toISOString();\nconst stamp = iso.replace(/[:.]/g, '-');\nconst date = iso.slice(0, 10);\nlet raw = item.message ? (item.message.content || '') : '';\n// Strip </think> blocks (native Ollama thinking model)\nlet content = raw.includes('</think>') ? raw.split('</think>').pop().trim() : raw.trim();\n// Fallback: if result doesn't start with a markdown heading, find first '# '\nif (content && !content.startsWith('#')) {\n  const hIdx = content.search(/(?:^|\\n)# /);\n  if (hIdx !== -1) content = content.slice(content[hIdx] === '\\n' ? hIdx + 1 : hIdx).trim();\n}\nif (!content) content = '# Local Loop Report\\n\\n## Verdict\\nFAIL: Ollama returned no completion.\\n\\n```json\\n' + JSON.stringify(item).slice(0, 2000) + '\\n```';\nconst report = '<!-- local-loop-5min -->\\n<!-- generated_at: ' + iso + ' -->\\n\\n' + content.trim() + '\\n';\nconst report_path = 'reports/local-worker/' + date + '/' + stamp + '.md';\nreturn [{ json: { report, report_base64: Buffer.from(report, 'utf8').toString('base64'), report_path, content, iso } }];"
+      }
+    },
+    {
+      "id": "ll-6",
+      "name": "Write Report",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [0, 0],
+      "parameters": {
+        "command": "=sh -c 'mkdir -p \"/home/cbk/qwen-agent-collective/$(dirname \"{{$json.report_path}}\")\"\nprintf %s \"{{$json.report_base64}}\" | base64 -d > \"/home/cbk/qwen-agent-collective/{{$json.report_path}}\"\nprintf \"wrote %s\\n\" \"{{$json.report_path}}\"'"
+      }
+    },
+    {
+      "id": "ll-7",
+      "name": "Read Source Files",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [240, 0],
+      "continueOnFail": true,
+      "parameters": {
+        "command": "sh -c 'cd /home/cbk/qwen-agent-collective || exit 0\nfor f in $(find . -type f -name \"*.py\" ! -path \"./venv/*\" ! -path \"./.git/*\" | sort | head -15); do\n  printf \"\\n### %s ###\\n\" \"$f\"\n  head -80 \"$f\"\ndone'"
+      }
+    },
+    {
+      "id": "ll-8",
+      "name": "Build Coding Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 0],
+      "parameters": {
+        "jsCode": "var fences = '```';\nvar repoCtx  = ($('Collect Repo Context').item.json.stdout || '').slice(-4000);\nvar report   = ($('Normalize Report').item.json.content || '').slice(-3000);\nvar sources  = ($input.first().json.stdout || '').slice(-4000);\nvar model    = $env.OLLAMA_CODE_MODEL || $env.OLLAMA_CHAT_MODEL || 'qwen3-next-cbk:latest';\nvar system = 'You are local-coder, an autonomous coding agent for qwen-agent-collective.\\n\\n'\n  + 'Implement ONE small improvement from \"Recommended Next Work Slice\" in the report.\\n\\n'\n  + 'OUTPUT: ONLY a POSIX sh script fenced in ' + fences + 'sh ... ' + fences + '.\\n'\n  + 'Rules: POSIX sh only. Allowed: cat, printf, mkdir -p, cp, mv.\\n'\n  + 'FORBIDDEN: rm, git push, git reset, git commit, pip install, apt-get, curl, wget.\\n'\n  + 'Max 1-3 file changes, no deletions. Paths must stay inside /home/cbk/qwen-agent-collective.\\n'\n  + 'If nothing safe to do, output: ' + fences + 'sh\\n# no-op\\n' + fences;\nvar user = '=== REVIEW REPORT ===\\n' + report\n  + '\\n\\n=== REPO CONTEXT ===\\n' + repoCtx\n  + '\\n\\n=== SOURCE FILES ===\\n' + sources\n  + '\\n\\nOutput ONLY the sh script.';\nreturn [{ json: { model, messages: [{ role: 'system', content: system }, { role: 'user', content: user }] } }];"
+      }
+    },
+    {
+      "id": "ll-9",
+      "name": "Ask Ollama to Code",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [720, 0],
+      "continueOnFail": true,
+      "parameters": {
+        "method": "POST",
+        "url": "http://172.20.0.1:11434/api/chat",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "Bearer ollama" },
+            { "name": "Content-Type",  "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { model: $json.model, messages: $json.messages, think: false, stream: false, options: { temperature: 0.1, num_predict: 4000 } } }}",
+        "options": { "timeout": 300000 }
+      }
+    },
+    {
+      "id": "ll-10",
+      "name": "Parse And Safety Check",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [960, 0],
+      "parameters": {
+        "jsCode": "var full = $input.first().json.message ? ($input.first().json.message.content || '') : '';\nvar raw = full.includes('</think>') ? full.split('</think>').pop().trim() : full.trim();\n// Try code fence first\nvar allFences = [];\nvar fenceRe = /```(?:sh|bash|shell)?\\n?([\\s\\S]*?)```/g;\nvar fm;\nwhile ((fm = fenceRe.exec(raw)) !== null) allFences.push(fm[1].trim());\nvar script = allFences.length ? allFences[allFences.length - 1] : '';\n// Fallback: look for shebang line\nif (!script) {\n  var sIdx = raw.indexOf('#!/');\n  if (sIdx !== -1) script = raw.slice(sIdx).trim();\n}\nif (!script || /^#\\s*no.?op\\s*$/im.test(script)) {\n  return [{ json: { script: '', script_b64: '', safe: true, noop: true, reason: 'no-op', raw: raw.slice(0,500) } }];\n}\n// Must start with shebang\nif (!script.startsWith('#!/')) {\n  return [{ json: { script: '', script_b64: '', safe: true, noop: true, reason: 'no shebang', raw: raw.slice(0,500) } }];\n}\nvar blocked = ['rm -rf','rm -r',' rm ','git push','git reset','git commit','apt-get','pip install','> /etc/','> /usr/','> /bin/',':(){','mkfs'];\nvar hit = blocked.find(function(b){ return script.indexOf(b) !== -1; }) || '';\nif (hit) return [{ json: { script: '', script_b64: '', safe: false, noop: true, reason: 'blocked: ' + hit, raw: raw.slice(0,500) } }];\nif (script.indexOf('/home/') !== -1 && script.indexOf('/home/cbk/qwen-agent-collective') === -1) {\n  return [{ json: { script: '', script_b64: '', safe: false, noop: true, reason: 'path outside repo', raw: raw.slice(0,500) } }];\n}\nreturn [{ json: { script, script_b64: Buffer.from(script,'utf8').toString('base64'), safe: true, noop: false, reason: 'ok', raw: raw.slice(0,500) } }];"
+      }
+    },
+    {
+      "id": "ll-11",
+      "name": "IF Runnable",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1200, 0],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": false, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [{ "leftValue": "={{ String($json.noop) }}", "rightValue": "false", "operator": { "type": "string", "operation": "equals" } }],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "ll-12",
+      "name": "Execute Script",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1440, -140],
+      "continueOnFail": true,
+      "parameters": {
+        "command": "=sh -c 'printf \"%s\" \"{{$json.script_b64}}\" | base64 -d > /tmp/local-loop.sh && cd /home/cbk/qwen-agent-collective && sh /tmp/local-loop.sh'"
+      }
+    },
+    {
+      "id": "ll-13",
+      "name": "Git Stage And Diff",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1680, -140],
+      "continueOnFail": true,
+      "parameters": {
+        "command": "sh -c 'cd /home/cbk/qwen-agent-collective && git add -u && git diff --staged --stat && printf \"\\n\" && git diff --staged'"
+      }
+    },
+    {
+      "id": "ll-14",
+      "name": "IF Has Changes",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1920, -140],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": false, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [{ "leftValue": "={{ ($json.stdout || '').trim() }}", "rightValue": "", "operator": { "type": "string", "operation": "notEquals" } }],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "ll-15",
+      "name": "Ask Ollama Commit Message",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2160, -260],
+      "continueOnFail": true,
+      "parameters": {
+        "method": "POST",
+        "url": "http://172.20.0.1:11434/api/chat",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "Bearer ollama" },
+            { "name": "Content-Type",  "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { model: ($env.OLLAMA_CHAT_MODEL || 'qwen3-next-cbk:latest'), messages: [{ role: 'system', content: 'Output ONLY a git commit message. One line, max 60 chars, Conventional Commits format (feat/fix/docs/chore/refactor: description), imperative mood. Nothing else — no explanation, no preamble, no quotes. ONLY the commit message line.' }, { role: 'user', content: 'Git diff:\\n' + String($json.stdout || '').slice(0, 3000) }], think: false, stream: false, options: { temperature: 0, num_predict: 1000 } } }}",
+        "options": { "timeout": 120000 }
+      }
+    },
+    {
+      "id": "ll-16",
+      "name": "Encode Commit Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2400, -260],
+      "parameters": {
+        "jsCode": "var full = $input.first().json.message ? ($input.first().json.message.content || '') : '';\nvar raw = full.includes('</think>') ? full.split('</think>').pop().trim() : full.trim();\nif (!raw) raw = 'chore: automated improvement by local-loop';\nvar lines = raw.trim().split('\\n').map(function(l){ return l.trim(); }).filter(function(l){ return l; });\nvar thinkLeaks = ['okay,', \"let's\", 'i need', 'the user', \"here's\", 'first,', 'so,', 'alright', 'sure,', 'well,'];\nvar first = lines.find(function(l){ return !thinkLeaks.some(function(t){ return l.toLowerCase().startsWith(t); }); }) || lines[0] || 'chore: automated improvement by local-loop';\nfirst = first.replace(/^[\\'\"]+|[\\'\"]+$/g, '').slice(0, 72);\nif (!first || first.length < 5) first = 'chore: automated improvement by local-loop';\nvar msg = first + '\\n\\nCo-authored-by: local-loop-agent <n8n@local>';\nreturn [{ json: { msg_b64: Buffer.from(msg,'utf8').toString('base64'), commit_message: first } }];"
+      }
+    },
+    {
+      "id": "ll-17",
+      "name": "Git Commit",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [2640, -260],
+      "continueOnFail": true,
+      "parameters": {
+        "command": "=sh -c 'cd /home/cbk/qwen-agent-collective && printf \"%s\" \"{{$json.msg_b64}}\" | base64 -d > /tmp/local-loop-commit.txt && git commit -F /tmp/local-loop-commit.txt'"
+      }
+    },
+    {
+      "id": "ll-18",
+      "name": "Done",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2880, -260],
+      "parameters": {
+        "jsCode": "return [{ json: { result: 'committed', commit_message: $('Encode Commit Message').item.json.commit_message || '', git_output: $input.first().json.stdout || '' } }];"
+      }
+    },
+    {
+      "id": "ll-19",
+      "name": "No Changes",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2400, -20],
+      "parameters": {
+        "jsCode": "return [{ json: { result: 'no_changes' } }];"
+      }
+    },
+    {
+      "id": "ll-20",
+      "name": "Skipped",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1440, 140],
+      "parameters": {
+        "jsCode": "return [{ json: { result: $json.safe ? 'no_op' : 'blocked', reason: $json.reason } }];"
+      }
+    }
+  ],
+  "connections": {
+    "Every 5 Minutes":       { "main": [[{ "node": "Collect Repo Context",    "type": "main", "index": 0 }]] },
+    "Collect Repo Context":  { "main": [[{ "node": "Build Review Prompt",     "type": "main", "index": 0 }]] },
+    "Build Review Prompt":   { "main": [[{ "node": "Ask Ollama For Review",   "type": "main", "index": 0 }]] },
+    "Ask Ollama For Review": { "main": [[{ "node": "Normalize Report",        "type": "main", "index": 0 }]] },
+    "Normalize Report":      { "main": [[{ "node": "Write Report",            "type": "main", "index": 0 }]] },
+    "Write Report":          { "main": [[{ "node": "Read Source Files",       "type": "main", "index": 0 }]] },
+    "Read Source Files":     { "main": [[{ "node": "Build Coding Prompt",     "type": "main", "index": 0 }]] },
+    "Build Coding Prompt":   { "main": [[{ "node": "Ask Ollama to Code",      "type": "main", "index": 0 }]] },
+    "Ask Ollama to Code":    { "main": [[{ "node": "Parse And Safety Check",  "type": "main", "index": 0 }]] },
+    "Parse And Safety Check":{ "main": [[{ "node": "IF Runnable",             "type": "main", "index": 0 }]] },
+    "IF Runnable": { "main": [
+      [{ "node": "Execute Script",  "type": "main", "index": 0 }],
+      [{ "node": "Skipped",         "type": "main", "index": 0 }]
+    ]},
+    "Execute Script":        { "main": [[{ "node": "Git Stage And Diff",      "type": "main", "index": 0 }]] },
+    "Git Stage And Diff":    { "main": [[{ "node": "IF Has Changes",          "type": "main", "index": 0 }]] },
+    "IF Has Changes": { "main": [
+      [{ "node": "Ask Ollama Commit Message", "type": "main", "index": 0 }],
+      [{ "node": "No Changes",               "type": "main", "index": 0 }]
+    ]},
+    "Ask Ollama Commit Message": { "main": [[{ "node": "Encode Commit Message", "type": "main", "index": 0 }]] },
+    "Encode Commit Message":     { "main": [[{ "node": "Git Commit",            "type": "main", "index": 0 }]] },
+    "Git Commit":                { "main": [[{ "node": "Done",                  "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1", "saveManualExecutions": true, "timezone": "Europe/London" },
+  "active": false,
+  "tags": [{ "name": "qwen-agent-collective" }, { "name": "local-ollama" }, { "name": "automation" }]
+}
