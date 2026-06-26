@@ -20,7 +20,7 @@
       "position": [-160, 0],
       "continueOnFail": true,
       "parameters": {
-        "command": "cd /home/cbk/qwen-agent-collective && OLLAMA_CODE_MODEL=qwen3-next-cbk:latest python3 agents/local_loop/run.py 2>&1"
+        "command": "cd /home/cbk/qwen-agent-collective && OLLAMA_CODE_MODEL=qwen3-next-cbk:latest node agents/local_loop/run.mjs 2>&1"
       }
     },
     {
