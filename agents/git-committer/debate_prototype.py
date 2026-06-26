@@ -46,3 +46,10 @@ if __name__ == "__main__":
         skeptic_prompt = f"{PERSONAS['Skeptic']}\n\nDiff:\n{diff}\n\nPedant says: {pedant_review}\n\nArchitect says: {arch_review}\n\nProvide your skeptical review."
         skeptic_review = chat(skeptic_prompt)
         print(f"SKEPTIC: {skeptic_review}\n")
+def synthesize_reviews(diff, pedant_review, arch_review, skeptic_review):
+    \"\"\"Synthesizes reviews from Pedant, Architect, and Skeptic to produce a final verdict.
+
+    TODO: Implement the actual synthesis logic using the chat function with the appropriate prompt.
+    \"\"\"
+    # TODO: Implement the synthesis logic
+    return "Synthesis not yet implemented"
