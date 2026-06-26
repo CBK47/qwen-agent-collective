@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Five Agents, One Brain — Build Journal</title>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <!-- ponytail: render the markdown brain client-side via marked CDN, no build step -->
+  <script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
+  <style>
+    :root {
+      --bg:#050505; --panel:#0a0a0c; --line:rgba(212,175,55,0.18);
+      --gold:#D4AF37; --gold2:#e8c75a; --text:#F5F5F5; --dim:#8a8a86;
+      --mono:'Share Tech Mono', monospace; --font:'Inter', system-ui, sans-serif;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+    body { background:var(--bg); color:var(--text); font-family:var(--font); min-height:100vh; overflow-x:hidden; }
+
+    /* cyber-rain canvas sits behind everything */
+    #rain { position:fixed; inset:0; z-index:0; opacity:0.11; }
+    body::after {
+      content:''; position:fixed; inset:0; z-index:1; pointer-events:none;
+      background:radial-gradient(ellipse 70% 60% at 50% 40%, rgba(5,5,5,0) 0%, rgba(5,5,5,0.72) 70%, rgba(5,5,5,0.92) 100%);
+    }
+    body::before {
+      content:''; position:fixed; inset:0; z-index:2; pointer-events:none;
+      background:repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.06) 2px, rgba(0,0,0,0.06) 3px);
+    }
+    .container { max-width:780px; margin:0 auto; padding:0 24px 88px; position:relative; z-index:3; }
+
+    /* ── ASCII-MOON HEADER (ported from the Kimi moon template) ── */
+    .moonhead {
+      position:relative; height:clamp(300px, 46vh, 440px); margin:0 -24px 36px;
+      background:#070707; overflow:hidden; border-bottom:1px solid var(--line);
+    }
+    #moon { position:absolute; inset:0; display:block; }
+    /* darken the left so the title stays readable over the moonlit field */
+    .moonhead::after {
+      content:''; position:absolute; inset:0; pointer-events:none;
+      background:linear-gradient(90deg, rgba(7,7,7,0.92) 0%, rgba(7,7,7,0.55) 38%, rgba(7,7,7,0) 64%),
+                 linear-gradient(0deg, #050505 0%, rgba(5,5,5,0) 22%);
+    }
+    .head-overlay { position:absolute; left:max(24px, calc(50% - 366px)); right:24px; bottom:30px; z-index:2; }
+    .kicker { font-family:var(--mono); font-size:10.5px; color:var(--dim); letter-spacing:.18em; text-transform:uppercase; margin-bottom:14px; }
+    .kicker span { color:var(--gold); }
+
+    /* glitch-gremlin title: a brief chromatic jitter every few seconds */
+    .glitch {
+      position:relative; font-family:var(--mono); font-weight:400;
+      font-size:clamp(28px, 5vw, 46px); line-height:1; color:var(--text);
+      text-transform:uppercase; letter-spacing:.01em;
+    }
+    .glitch::before, .glitch::after {
+      content:attr(data-text); position:absolute; left:0; top:0; width:100%; opacity:.75;
+    }
+    .glitch::before { color:#ff3b5c; animation:gl1 6s infinite steps(1); }
+    .glitch::after  { color:var(--gold2); animation:gl2 6s infinite steps(1); }
+    @keyframes gl1 { 0%,92%,100%{transform:none;clip-path:inset(0 0 100% 0)} 93%{transform:translate(-2px,1px);clip-path:inset(10% 0 55% 0)} 96%{transform:translate(2px,-1px);clip-path:inset(60% 0 12% 0)} }
+    @keyframes gl2 { 0%,92%,100%{transform:none;clip-path:inset(0 0 100% 0)} 94%{transform:translate(2px,0);clip-path:inset(25% 0 40% 0)} 97%{transform:translate(-1px,1px);clip-path:inset(70% 0 5% 0)} }
+    .sub { font-family:var(--mono); font-size:11.5px; color:var(--dim); margin-top:14px; letter-spacing:.04em; }
+    .blink { color:var(--gold); animation:blinky 1.2s step-end infinite; }
+    @keyframes blinky { 0%,100%{opacity:1} 50%{opacity:0} }
+
+    /* ── ARTICLE = rendered markdown brain ── */
+    .article {
+      background:linear-gradient(180deg, rgba(10,10,12,0.92), rgba(10,10,12,0.86));
+      border:1px solid var(--line); border-radius:5px; padding:34px 38px; backdrop-filter:blur(2px);
+    }
+    .article h1 { font-size:27px; font-weight:700; color:var(--text); line-height:1.22; margin:0 0 6px; }
+    .article h1 + p { color:var(--dim); }
+    .article h2 {
+      font-family:var(--mono); font-size:11.5px; color:var(--gold); text-transform:uppercase; letter-spacing:.13em;
+      margin:36px 0 16px; display:flex; align-items:center; gap:14px; font-weight:400;
+    }
+    .article h2::after { content:''; flex:1; height:1px; background:var(--line); }
+    .article h3 { font-size:16px; color:var(--gold2); margin:26px 0 10px; }
+    .article p { font-size:15px; line-height:1.78; margin:0 0 15px; color:var(--text); }
+    .article ul, .article ol { margin:0 0 15px; padding-left:22px; }
+    .article li { font-size:15px; line-height:1.72; margin-bottom:7px; }
+    .article li::marker { color:var(--gold); }
+    .article strong { color:var(--gold2); font-weight:600; }
+    .article em { color:var(--text); font-style:italic; }
+    .article a { color:var(--gold); text-decoration:none; border-bottom:1px solid rgba(212,175,55,0.35); }
+    .article a:hover { color:var(--gold2); border-color:var(--gold2); }
+    .article code { font-family:var(--mono); font-size:.88em; color:var(--gold2); background:rgba(212,175,55,0.08); padding:1px 6px; border-radius:3px; }
+    .article pre { background:#000; border:1px solid var(--line); border-radius:6px; padding:16px 20px; margin:18px 0; overflow-x:auto; }
+    .article pre code { color:var(--text); background:none; padding:0; }
+    .article blockquote { border-left:2px solid var(--gold); padding:2px 0 2px 18px; margin:0 0 18px; color:var(--dim); font-style:italic; font-size:14px; }
+    .article img { max-width:100%; border-radius:6px; border:1px solid var(--line); margin:14px 0; }
+    .article hr { border:none; border-top:1px solid var(--line); margin:30px 0; }
+
+    .loading { font-family:var(--mono); color:var(--dim); font-size:13px; }
+    .error { font-family:var(--mono); color:var(--gold2); font-size:13px; line-height:1.7; }
+
+    footer {
+      margin-top:52px; border-top:1px solid var(--line); padding-top:20px;
+      font-family:var(--mono); font-size:10.5px; color:var(--dim); letter-spacing:.06em;
+      display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .glitch::before, .glitch::after, .blink { animation:none; }
+      .glitch::before, .glitch::after { display:none; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="rain"></canvas>
+<div class="container">
+
+  <header class="moonhead">
+    <canvas id="moon"></canvas>
+    <div class="head-overlay">
+      <div class="kicker">INCOMING TRANSMISSION — <span>SKIPPY-1 // BUILD JOURNAL</span> — STATUS: ONGOING</div>
+      <div class="glitch" data-text="Five Agents, One Brain">Five Agents, One Brain</div>
+      <div class="sub">SOURCE: blog-draft.md (the brain) // RENDERED LIVE <span class="blink">█</span></div>
+    </div>
+  </header>
+
+  <article class="article" id="post">
+    <p class="loading">Pulling the journal from the brain...</p>
+  </article>
+
+  <footer>
+    <span>SKIPPY-1 // BUILD JOURNAL // qwen-agent-collective</span>
+    <span>Rendered from markdown <span class="blink">█</span></span>
+  </footer>
+
+</div>
+
+<script>
+  // ── the markdown file IS the source of truth; this page is just the face ──
+  fetch('blog-draft.md')
+    .then(r => { if (!r.ok) throw new Error(r.status); return r.text(); })
+    .then(md => { document.getElementById('post').innerHTML = marked.parse(md); })
+    .catch(() => {
+      document.getElementById('post').innerHTML =
+        '<p class="error">Could not load blog-draft.md.<br>' +
+        'Browsers block file:// fetches, so serve it: <code>python -m http.server</code> ' +
+        'from docs/submission-kit/, then open <code>http://localhost:8000/blog.html</code>.</p>';
+    });
+
+  // ── Cyber Rain: matrix-style fall of maths/Greek glyphs, gold-tinted ──
+  (function () {
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const cv = document.getElementById('rain'), ctx = cv.getContext('2d');
+    const glyphs = '√∂∑β∫πψΔΩλμσθ∇≈≠≤≥×÷±∞∈∀∃∮∝⊥⌀0123456789';
+    const dpr = Math.min(devicePixelRatio || 1, 1.5);
+    let cols, drops, size = 15;
+    function resize() {
+      cv.width = innerWidth * dpr; cv.height = innerHeight * dpr;
+      cv.style.width = innerWidth + 'px'; cv.style.height = innerHeight + 'px';
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      cols = Math.ceil(innerWidth / size);
+      drops = Array.from({ length: cols }, () => Math.random() * -50);
+    }
+    function frame() {
+      ctx.fillStyle = 'rgba(5,5,5,0.12)'; ctx.fillRect(0, 0, innerWidth, innerHeight);
+      ctx.font = size + "px 'Share Tech Mono', monospace";
+      for (let i = 0; i < cols; i++) {
+        const g = glyphs[(Math.random() * glyphs.length) | 0], y = drops[i] * size;
+        ctx.fillStyle = Math.random() > 0.975 ? '#fff7e0' : '#D4AF37';
+        ctx.fillText(g, i * size, y);
+        if (y > innerHeight && Math.random() > 0.975) drops[i] = 0;
+        drops[i] += 0.55;
+      }
+    }
+    let raf;
+    const run = () => { frame(); raf = requestAnimationFrame(run); };
+    const start = () => { if (!raf) run(); }, stop = () => { cancelAnimationFrame(raf); raf = 0; };
+    resize(); addEventListener('resize', resize);
+    if (reduce) frame();
+    else { start(); document.addEventListener('visibilitychange', () => document.hidden ? stop() : start()); }
+  })();
+
+  // ── ASCII Moon header: ported from the Kimi "ascii moon" template ──
+  // ponytail: same noise/shading maths, vanilla canvas. Pauses offscreen + on hidden tab.
+  (function () {
+    const MOON = " `.-':_,^=;><+!rc*/z?sLTv)J7(|Fi{C}fI31tlu[neoZ5Yxjya]2ESwqkP6h9d4VpOGbUAKXHm8RD#$Bg0MNWQ%&@";
+    const FIELD = '  ..::--==++**##@@'.split('');
+    const hash = (x, y) => { const s = Math.sin(x*127.1 + y*311.7) * 43758.5453123; return s - Math.floor(s); };
+    const sm = t => t*t*(3-2*t);
+    const noise = (x, y) => {
+      const ix=Math.floor(x), iy=Math.floor(y), fx=x-ix, fy=y-iy;
+      const a=hash(ix,iy), b=hash(ix+1,iy), c=hash(ix,iy+1), d=hash(ix+1,iy+1), ux=sm(fx), uy=sm(fy);
+      return a*(1-ux)*(1-uy) + b*ux*(1-uy) + c*(1-ux)*uy + d*ux*uy;
+    };
+    const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const cv = document.getElementById('moon'), ctx = cv.getContext('2d');
+    const dpr = Math.min(devicePixelRatio || 1, 1.5);
+    const mouse = { x:-1000, y:-1000 };
+    let w=0, h=0, cols=0, rows=0, time=0, raf=0;
+
+    function resize() {
+      w = cv.parentElement.offsetWidth; h = cv.parentElement.offsetHeight;
+      cv.width = w*dpr; cv.height = h*dpr;
+      ctx.setTransform(dpr,0,0,dpr,0,0);
+      cols = w < 768 ? 80 : 132;
+      rows = Math.ceil(h / ((w/cols)*1.18));
+    }
+    function draw() {
+      ctx.fillStyle = '#070707'; ctx.fillRect(0,0,w,h);
+      time += 0.012;
+      const cw = w/cols, ch = cw*1.18;
+      const mx = w*0.7, my = h*0.5, mr = Math.min(w,h)*0.46;
+      ctx.font = `${ch*0.84}px ${ "'Share Tech Mono', monospace" }`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      let lx=1, ly=0.15, lz=-0.6; const ll=Math.hypot(lx,ly,lz); lx/=ll; ly/=ll; lz/=ll;
+      for (let r=0; r<rows; r++) {
+        const ry = r*ch + ch/2;
+        for (let c=0; c<cols; c++) {
+          const x = c*cw + cw/2, y = ry;
+          const dx = x-mx, dy = y-my, dist = Math.hypot(dx,dy), nm = dist/mr, ang = Math.atan2(dy,dx);
+          const mf = Math.exp(-Math.hypot(x-mouse.x, y-mouse.y)*0.0038);
+          let ch_='', op=0, drawX=x, drawY=y, gold=false;
+          if (nm < 1.0) {
+            const localX=dx/mr, localY=-(y-my)/mr, lr2=localX*localX+localY*localY, z=Math.sqrt(Math.max(0,1-lr2));
+            const a=time*0.32, px=localX*Math.cos(a)-z*Math.sin(a), py=localY, pz=localX*Math.sin(a)+z*Math.cos(a);
+            let diff=Math.max(0, px*lx+py*ly+pz*lz);
+            const maria = noise(px*2.6+4.2, py*2.6-1.7)*0.6 + noise(pz*3.4-8.1, py*3.4+5.4)*0.4;
+            const crat = noise(px*12+py*6+30, pz*12-px*4-20)*0.65 + noise(px*20-11, py*20+7)*0.35;
+            const alb = clamp(0.76 + crat*0.14 - maria*0.18, 0.52, 0.92);
+            if (diff>0 && diff<0.15) diff = Math.max(0, diff + Math.sin(px*50+py*50)*0.03);
+            const inten = 0.015 + diff*alb*1.3;
+            ch_ = MOON[clamp(Math.floor(inten*(MOON.length-1)), 0, MOON.length-1)];
+            op = clamp(0.2 + inten*0.82, 0.2, 1);
+            const bend = Math.exp(-Math.abs(nm-1)*8)*4;
+            drawX += -Math.sin(ang)*bend; drawY += Math.cos(ang)*bend*0.4;
+            drawX += Math.sin(time*3.6 + r*0.32 + c*0.11)*mf*16; drawY += Math.cos(time*2.8 + c*0.24)*mf*5;
+          } else {
+            const sx = c*0.085 - time*4.6 + Math.sin(time*4.2 + r*0.28 + c*0.08)*mf*1.8;
+            const sy = r*0.11 + Math.sin(c*0.025 + time*1.2)*0.6 + Math.cos(time*3.4 + c*0.2)*mf*1.1;
+            const fa = noise(sx,sy), fb = noise(sx*1.7+20, sy*0.8-14);
+            const wave = Math.sin(sx*1.9 + (ry/h)*14)*0.5 + Math.cos(sy*2.4 - time*2.1)*0.5;
+            let den = fa*0.42 + fb*0.28 + (wave*0.5+0.5)*0.3;
+            den += Math.exp(-Math.pow((nm-1.12)*5.5,2))*0.16;
+            if (den > 0.38) {
+              ch_ = FIELD[clamp(Math.floor(den*(FIELD.length-1)), 0, FIELD.length-1)];
+              op = 0.035 + den*0.24; gold = true;
+              drawX += (8 + fb*16) % (cw*3); drawY += Math.sin(sx*2.2 + time + (ry/h)*8)*1.8;
+              const sw = Math.exp(-Math.pow((nm-1.12)*5.5,2))*10;
+              drawX += -Math.sin(ang)*sw; drawY += Math.cos(ang)*sw*0.6;
+              drawX += Math.sin(time*4.8 + r*0.35 + c*0.1)*mf*18; drawY += Math.cos(time*3.2 + c*0.25)*mf*6;
+            }
+          }
+          if (!ch_ || op <= 0.02) continue;
+          ctx.fillStyle = gold ? `rgba(212,175,55,${op})` : `rgba(240,236,224,${op})`;
+          ctx.fillText(ch_, drawX, drawY);
+        }
+      }
+      raf = requestAnimationFrame(draw);
+    }
+    const start = () => { if (!raf) draw(); }, stop = () => { cancelAnimationFrame(raf); raf = 0; };
+    cv.parentElement.addEventListener('mousemove', e => {
+      const rect = cv.getBoundingClientRect(); mouse.x = e.clientX-rect.left; mouse.y = e.clientY-rect.top;
+    });
+    (document.fonts ? document.fonts.ready : Promise.resolve()).then(() => {
+      resize(); addEventListener('resize', resize);
+      if (reduce) { draw(); stop(); return; }  // one static frame
+      // pause when the header scrolls out of view, and when the tab is hidden
+      new IntersectionObserver(es => es[0].isIntersecting && !document.hidden ? start() : stop())
+        .observe(cv.parentElement);
+      document.addEventListener('visibilitychange', () => document.hidden ? stop() : start());
+    });
+  })();
+</script>
+</body>
+</html>

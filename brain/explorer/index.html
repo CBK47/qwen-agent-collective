@@ -1,0 +1,2761 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Brain Explorer</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script src="https://unpkg.com/3d-force-graph"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #02040a;
+      --bg-panel: #090e17;
+      --bg-card: #111827;
+      --bg-card-hover: rgba(255, 255, 255, 0.04);
+      --border: rgba(255, 255, 255, 0.1);
+      --border-light: rgba(255, 255, 255, 0.05);
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --cyan: #38bdf8;
+      --accent: #6366f1;
+      --purple: #a855f7;
+      --amber: #fbbf24;
+      --green: #10b981;
+      --red: #f43f5e;
+      --blue: #3b82f6;
+      --glass-bg: rgba(9, 14, 23, 0.7);
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
+      --shadow-glow: 0 0 15px rgba(99, 102, 241, 0.2);
+    }
+
+    body.light-theme {
+      --bg-dark: #f0fdf4; /* Very subtle tint */
+      --bg-panel: #f8fafc;
+      --bg-card: #ffffff;
+      --bg-card-hover: rgba(0, 0, 0, 0.02);
+      --border: rgba(0, 0, 0, 0.1);
+      --border-light: rgba(0, 0, 0, 0.05);
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --cyan: #0284c7;
+      --accent: #4f46e5;
+      --purple: #7c3aed;
+      --amber: #d97706;
+      --green: #15803d;
+      --red: #e11d48;
+      --blue: #2563eb;
+      --glass-bg: rgba(248, 250, 252, 0.7);
+      --shadow-glow: 0 0 15px rgba(79, 70, 229, 0.15);
+    }
+
+    /* Light theme style modifications for optimal legibility */
+    body.light-theme .badge-cyan { background: rgba(79, 70, 229, 0.1); color: #4f46e5; }
+    body.light-theme .badge-purple { background: rgba(124, 58, 237, 0.1); color: #7c3aed; }
+    body.light-theme .badge-amber { background: rgba(217, 119, 6, 0.1); color: #b45309; }
+    body.light-theme .badge-green { background: rgba(21, 128, 61, 0.1); color: #15803d; }
+    body.light-theme .badge-red { background: rgba(185, 28, 28, 0.1); color: #b91c1c; }
+    body.light-theme .badge-blue { background: rgba(29, 78, 216, 0.1); color: #1d4ed8; }
+    body.light-theme .highlight { background: rgba(217, 119, 6, 0.15); color: #b45309; }
+    body.light-theme .tab-btn:hover { background: rgba(0, 0, 0, 0.03); }
+    body.light-theme .tab-btn.active { background: rgba(79, 70, 229, 0.08); }
+    body.light-theme .ns-btn.active { background: rgba(79, 70, 229, 0.08); }
+    body.light-theme .ns-btn.active.private-ns { background: rgba(124, 58, 237, 0.06); }
+
+    .theme-toggle-btn {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: var(--text);
+      font-size: 14px;
+      transition: all 0.2s;
+      outline: none;
+    }
+    .theme-toggle-btn:hover {
+      border-color: var(--accent);
+      background: var(--bg-card-hover);
+    }
+    .stat-chart-container {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      padding: 0.25rem 0.6rem;
+      border-radius: 6px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.2s;
+    }
+    @media (max-width: 640px) {
+      .stat-chart-container {
+        display: none !important;
+      }
+    }
+    * { 
+      box-sizing: border-box; 
+      margin: 0; 
+      padding: 0; 
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: var(--bg-dark); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+    body {
+      background-color: var(--bg-dark);
+      background-image: 
+        radial-gradient(circle at 15% 50%, rgba(99, 102, 241, 0.05) 0%, transparent 50%),
+        radial-gradient(circle at 85% 30%, rgba(168, 85, 247, 0.05) 0%, transparent 50%);
+      color: var(--text);
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    header {
+      background-color: var(--glass-bg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0.5rem 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      min-height: 64px;
+      height: auto;
+      gap: 0.75rem 1rem;
+      flex-shrink: 0;
+      box-shadow: var(--shadow-sm);
+      z-index: 10;
+    }
+    .logo-container { display: flex; align-items: center; gap: 0.85rem; }
+    .logo-icon { font-size: 1.4rem; filter: drop-shadow(0 0 6px var(--accent)); animation: pulse 3s infinite; }
+    @keyframes pulse { 0% { opacity: 0.8; } 50% { opacity: 1; filter: drop-shadow(0 0 10px var(--accent)); } 100% { opacity: 0.8; } }
+    .logo-title { font-family: 'Space Grotesk', sans-serif; font-weight: 700; letter-spacing: 0.02em; font-size: 1.1rem; color: var(--text); }
+    .logo-badge { font-size: 0.65rem; background: rgba(99, 102, 241, 0.1); padding: 0.2rem 0.5rem; border-radius: 6px; color: var(--accent); border: 1px solid rgba(99, 102, 241, 0.2); font-family: 'JetBrains Mono', monospace; font-weight: 600; }
+    .header-stats { display: flex; gap: 1rem; flex-wrap: wrap; align-items: center; }
+    .stat-pill { background: rgba(0,0,0,0.2); border: 1px solid var(--border-light); padding: 0.35rem 0.75rem; border-radius: 8px; font-size: 0.72rem; display: flex; align-items: center; gap: 0.45rem; box-shadow: inset 0 1px 0 rgba(255,255,255,0.02); }
+    .stat-val { font-weight: 600; color: var(--accent); font-family: 'JetBrains Mono', monospace; }
+    .tab-nav { display: flex; gap: 0.25rem; background: rgba(0,0,0,0.2); padding: 0.25rem; border-radius: 10px; border: 1px solid var(--border-light); }
+    .tab-btn { background: none; border: none; color: var(--text-muted); padding: 0.4rem 0.85rem; font-size: 0.8rem; font-weight: 600; border-radius: 6px; cursor: pointer; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); display: flex; align-items: center; gap: 0.4rem; }
+    .tab-btn:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+    .tab-btn.active { color: var(--text); background: var(--accent); box-shadow: var(--shadow-glow); }
+    .main-grid { display: grid; grid-template-columns: 260px 1fr; flex: 1; overflow: hidden; }
+    @media (max-width: 768px) { .main-grid { grid-template-columns: 1fr; } .sidebar { display: none; } .mobile-ns-selector { display: block !important; } }
+    .mobile-ns-selector { display: none; background: var(--bg-panel); padding: 0.5rem 1rem; border-bottom: 1px solid var(--border); }
+    .mobile-ns-select { width: 100%; background: var(--bg-card); color: var(--text); padding: 0.4rem; border-radius: 6px; border: 1px solid var(--border); outline: none; font-size: 0.85rem; }
+    .sidebar { background-color: var(--glass-bg); backdrop-filter: blur(12px); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow-y: auto; padding: 24px 0; gap: 0.4rem; box-shadow: 1px 0 10px rgba(0,0,0,0.1); z-index: 5; }
+    .sidebar-title { font-family: 'Space Grotesk', sans-serif; font-size: 11px; font-weight: 700; color: var(--text-muted); letter-spacing: 0.12em; margin: 16px 24px 8px 24px; text-transform: uppercase; }
+    .ns-btn { 
+      padding: 12px 24px; 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center; 
+      cursor: pointer; 
+      font-size: 13px; 
+      font-weight: 500;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); 
+      border-left: 3px solid transparent; 
+      background: transparent;
+      border-top: none;
+      border-right: none;
+      border-bottom: none;
+      color: var(--text-muted);
+      width: 100%;
+      text-align: left;
+    }
+    .ns-btn:hover { background: rgba(255,255,255,0.03); color: var(--text); padding-left: 28px; }
+    .ns-btn.active { 
+      background: linear-gradient(90deg, rgba(99, 102, 241, 0.15) 0%, transparent 100%); 
+      border-left-color: var(--accent); 
+      color: var(--text); 
+      text-shadow: 0 0 10px rgba(99, 102, 241, 0.3);
+    }
+    .ns-btn.active.private-ns { 
+      background: linear-gradient(90deg, rgba(168, 85, 247, 0.15) 0%, transparent 100%); 
+      border-left-color: var(--purple); 
+      color: var(--text);
+      text-shadow: 0 0 10px rgba(168, 85, 247, 0.3);
+    }
+    .ns-tag-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex-shrink: 0; transition: transform 0.2s; }
+    .ns-btn:hover .ns-tag-dot { transform: scale(1.2); }
+    .ns-dot-shared { background-color: var(--accent); box-shadow: 0 0 8px var(--accent); }
+    .ns-dot-private { background-color: var(--purple); box-shadow: 0 0 8px var(--purple); }
+    .ns-btn-label { display: flex; align-items: center; gap: 0.6rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .ns-count { font-family: 'JetBrains Mono', monospace; font-size: 11px; background: rgba(0,0,0,0.3); padding: 3px 8px; border-radius: 12px; color: var(--text-muted); border: 1px solid var(--border-light); font-weight: 600; transition: all 0.2s; }
+    .ns-btn.active .ns-count { color: var(--text); background: var(--accent); border-color: var(--accent); box-shadow: var(--shadow-glow); }
+    .ns-btn.active.private-ns .ns-count { background: var(--purple); border-color: var(--purple); box-shadow: 0 0 10px rgba(168, 85, 247, 0.4); }
+    
+    .main-panel { 
+      display: flex; 
+      flex-direction: column; 
+      overflow-y: auto; 
+      padding: 32px; 
+      flex: 1; 
+      position: relative;
+    }
+    
+    .view-container { display: none; flex-direction: column; gap: 1.5rem; height: 100%; max-width: 1400px; margin: 0 auto; width: 100%; }
+    .view-container.active { display: flex; animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    
+    .panel-header { display: flex; justify-content: space-between; align-items: flex-end; gap: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: 24px; margin-bottom: 24px; position: relative; }
+    .panel-header::after { content: ''; position: absolute; bottom: -1px; left: 0; width: 100px; height: 1px; background: var(--accent); box-shadow: var(--shadow-glow); }
+    .panel-title-area { display: flex; flex-direction: column; }
+    .panel-title { font-family: 'Space Grotesk', sans-serif; font-size: 28px; font-weight: 700; display: flex; align-items: center; gap: 0.75rem; color: var(--text); letter-spacing: -0.02em; }
+    .panel-desc { font-size: 14px; color: var(--text-muted); margin-top: 0.5rem; font-weight: 400; line-height: 1.5; max-width: 600px; }
+    
+    .search-control { position: relative; width: 100%; max-width: 320px; }
+    .search-input { width: 100%; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 16px 10px 36px; color: var(--text); font-size: 14px; outline: none; transition: all 0.2s; box-shadow: inset 0 2px 4px rgba(0,0,0,0.1); }
+    .search-input:focus { border-color: var(--accent); background: rgba(0,0,0,0.3); box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2), inset 0 2px 4px rgba(0,0,0,0.1); }
+    .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); opacity: 0.5; font-size: 14px; }
+    
+    .grid-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; padding-bottom: 40px; }
+    
+    .card { background: rgba(30, 41, 59, 0.4); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 1px solid var(--border-light); border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 14px; transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); box-shadow: var(--shadow-md); position: relative; overflow: hidden; }
+    .card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent); opacity: 0; transition: opacity 0.3s; }
+    .card:hover { border-color: var(--border); transform: translateY(-4px); box-shadow: var(--shadow-lg), 0 0 20px rgba(0,0,0,0.2); background: rgba(30, 41, 59, 0.6); }
+    .card:hover::before { opacity: 1; }
+    
+    .badge { font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 700; padding: 4px 10px; border-radius: 6px; display: inline-flex; align-items: center; width: max-content; text-transform: uppercase; letter-spacing: 0.05em; border: 1px solid transparent; }
+    .badge-cyan { background: rgba(56, 189, 248, 0.1); color: var(--cyan); border-color: rgba(56, 189, 248, 0.2); }
+    .badge-purple { background: rgba(168, 85, 247, 0.1); color: var(--purple); border-color: rgba(168, 85, 247, 0.2); }
+    .badge-amber { background: rgba(251, 191, 36, 0.1); color: var(--amber); border-color: rgba(251, 191, 36, 0.2); }
+    .badge-green { background: rgba(16, 185, 129, 0.1); color: var(--green); border-color: rgba(16, 185, 129, 0.2); }
+    .badge-red { background: rgba(244, 63, 94, 0.1); color: var(--red); border-color: rgba(244, 63, 94, 0.2); }
+    .badge-blue { background: rgba(59, 130, 246, 0.1); color: var(--blue); border-color: rgba(59, 130, 246, 0.2); }
+    
+    .card-title { font-family: 'Space Grotesk', sans-serif; font-size: 16px; font-weight: 600; color: var(--text); display: flex; justify-content: space-between; align-items: flex-start; gap: 0.75rem; line-height: 1.3; }
+    .card-meta { font-size: 0.75rem; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; }
+    .card-notes { font-size: 14px; color: rgba(248,250,252,0.8); line-height: 1.6; border-left: 2px solid var(--border); padding-left: 1rem; margin-top: 4px; }
+    .highlight { background: rgba(251, 191, 36, 0.2); color: var(--amber); padding: 0.1rem 0.3rem; border-radius: 4px; font-weight: 600; border: 1px solid rgba(251, 191, 36, 0.3); }
+    
+    /* Code Conventions Details */
+    .conventions-grid { display: grid; grid-template-columns: 1fr; gap: 1.25rem; }
+    .convention-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; display: flex; flex-direction: column; gap: 0.75rem; }
+    .convention-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; }
+    .convention-examples { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 0.5rem; }
+    @media (max-width: 640px) { .convention-examples { grid-template-columns: 1fr; } }
+    .example-box { background: var(--bg-dark); border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; display: flex; flex-direction: column; gap: 0.5rem; }
+    .example-box.good { border-left: 4px solid var(--green); }
+    .example-box.bad { border-left: 4px solid var(--red); }
+    .example-label { font-weight: bold; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    .example-code { white-space: pre-wrap; color: #cbd5e1; }
+    .good .example-label { color: var(--green); }
+    .bad .example-label { color: var(--red); }
+    
+    /* Device / manual specific */
+    .device-action-btn { background: var(--bg-panel); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 0.45rem 0.75rem; font-size: 0.75rem; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 0.35rem; width: 100%; font-weight: 600; margin-top: 0.25rem; }
+    .device-action-btn:hover { background: var(--bg-card-hover); border-color: var(--accent); }
+    .device-action-btn.active-btn { background: var(--accent); color: #ffffff; font-weight: 700; border-color: var(--accent); }
+    .manual-drawer { display: none; background: var(--bg-dark); border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem; margin-top: 0.5rem; animation: slideDown 0.2s ease-out; }
+    @keyframes slideDown { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+    .manual-chunk { border-bottom: 1px dashed var(--border); padding: 0.5rem 0; }
+    .manual-chunk:last-child { border-bottom: none; }
+    .manual-sec { font-size: 0.7rem; font-weight: bold; text-transform: uppercase; color: var(--amber); margin-bottom: 0.15rem; font-family: 'JetBrains Mono', monospace; }
+    .manual-txt { font-size: 0.75rem; color: var(--text); line-height: 1.4; }
+    .issues-list { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+    .issue-tag { font-size: 0.65rem; background: rgba(248, 113, 113, 0.08); color: #fca5a5; border: 1px solid rgba(248, 113, 113, 0.15); padding: 0.1rem 0.3rem; border-radius: 4px; }
+
+    /* Translation grid */
+    .translations-box { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 0.5rem; background: rgba(0,0,0,0.15); padding: 0.5rem; border-radius: 6px; border: 1px solid var(--border); }
+    .trans-item { display: flex; flex-direction: column; gap: 0.15rem; font-size: 0.75rem; border-bottom: 1px solid rgba(255,255,255,0.02); padding-bottom: 0.25rem; }
+    .trans-lang { font-family: 'JetBrains Mono', monospace; color: var(--text-muted); font-weight: bold; font-size: 0.65rem; }
+    .trans-word { color: var(--text); font-weight: 500; }
+
+    /* Showrunner private view */
+    .showrunner-nav { display: flex; gap: 0.5rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; margin-bottom: 1rem; }
+    .sr-tab-btn { background: none; border: none; color: var(--text-muted); padding: 0.35rem 0.75rem; font-size: 0.8rem; font-weight: 600; border-radius: 4px; cursor: pointer; transition: all 0.2s; }
+    .sr-tab-btn.active { color: var(--purple); background: rgba(167, 139, 250, 0.1); border: 1px solid rgba(167, 139, 250, 0.2); }
+    .showrunner-panel { display: flex; flex-direction: column; gap: 1rem; }
+    .sr-bible-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    @media (max-width: 640px) { .sr-bible-grid { grid-template-columns: 1fr; } }
+    .sr-box { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 1rem; }
+    .sr-title { font-size: 0.9rem; font-weight: bold; border-bottom: 1px solid var(--border); padding-bottom: 0.4rem; margin-bottom: 0.6rem; color: var(--purple); display: flex; align-items: center; gap: 0.35rem; }
+    .sr-logline { font-style: italic; color: var(--text); line-height: 1.4; font-size: 0.85rem; }
+    .char-card { display: flex; flex-direction: column; border-bottom: 1px solid var(--border); padding: 0.4rem 0; gap: 0.15rem; }
+    .char-card:last-child { border-bottom: none; }
+    .char-name { font-weight: 600; font-size: 0.8rem; display: flex; justify-content: space-between; }
+    .char-role { font-size: 0.65rem; color: var(--purple); background: rgba(167, 139, 250, 0.08); padding: 0.05rem 0.25rem; border-radius: 3px; }
+    .char-arc { font-size: 0.75rem; color: var(--text-muted); line-height: 1.3; }
+    .rule-item { display: flex; gap: 0.4rem; font-size: 0.8rem; color: var(--text-muted); line-height: 1.3; margin-bottom: 0.4rem; }
+    .rule-num { color: var(--purple); font-weight: bold; font-family: 'JetBrains Mono', monospace; }
+    .ep-grid { display: grid; grid-template-columns: 1fr; gap: 0.75rem; }
+    .ep-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 1rem; }
+    .ep-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 0.4rem; margin-bottom: 0.5rem; }
+    .ep-title { font-weight: bold; font-size: 0.85rem; color: var(--text); }
+    .ep-synopsis { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem; line-height: 1.4; }
+    .ep-beats-title { font-size: 0.65rem; font-weight: bold; text-transform: uppercase; color: var(--purple); margin-bottom: 0.25rem; font-family: 'JetBrains Mono', monospace; }
+    .ep-beats-list { display: flex; flex-direction: column; gap: 0.2rem; }
+    .ep-beat { font-size: 0.75rem; color: var(--text); display: flex; gap: 0.35rem; }
+    .ep-beat-dot { color: var(--purple); }
+
+    /* Timeline memories view */
+    .timeline-sort-bar { display: flex; justify-content: flex-end; gap: 0.5rem; margin-bottom: 0.5rem; }
+    .sort-btn { background: none; border: 1px solid var(--border); color: var(--text-muted); border-radius: 6px; padding: 0.25rem 0.5rem; font-size: 0.7rem; cursor: pointer; transition: all 0.2s; }
+    .sort-btn.active { background: var(--bg-card); color: var(--text); border-color: var(--accent); }
+    .timeline { position: relative; border-left: 2px solid var(--border); margin-left: 0.75rem; padding-left: 1.5rem; display: flex; flex-direction: column; gap: 1rem; }
+    .timeline-item { position: relative; background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 1rem; }
+    .timeline-node { content: ''; position: absolute; left: -1.9rem; top: 1.2rem; width: 10px; height: 10px; border-radius: 50%; background: var(--bg-dark); border: 2px solid var(--purple); box-shadow: 0 0 6px var(--purple); z-index: 10; }
+    .timeline-node.high-salience { border-color: var(--amber); box-shadow: 0 0 8px var(--amber); }
+    .salience-meter { display: flex; flex-direction: column; gap: 0.2rem; margin-top: 0.25rem; }
+    .salience-label { font-size: 0.65rem; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; display: flex; justify-content: space-between; }
+    .salience-bar-bg { background: var(--bg-dark); border-radius: 3px; height: 4px; width: 100%; overflow: hidden; }
+    .salience-bar-fill { height: 100%; border-radius: 3px; transition: width 0.3s; }
+
+    /* Translation table inside translator view */
+    .translate-box { border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+    .trans-row { display: grid; grid-template-columns: 1fr 1fr; background: var(--bg-card); border-bottom: 1px solid var(--border); }
+    .trans-row:last-child { border-bottom: none; }
+    .trans-col { padding: 0.75rem 1rem; }
+    .trans-col-left { border-right: 1px solid var(--border); display: flex; flex-direction: column; gap: 0.25rem; }
+    .trans-col-right { background: rgba(16,185,129,0.02); display: flex; flex-direction: column; gap: 0.25rem; }
+
+    /* Git Committer view */
+    .git-item { background: var(--bg-dark); border: 1px solid var(--border); border-radius: 8px; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; padding: 0.75rem; display: flex; flex-direction: column; gap: 0.4rem; cursor: pointer; transition: background-color 0.15s; }
+    .git-item:hover { background: rgba(255,255,255,0.02); border-color: var(--accent); }
+    .git-header { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; }
+    .git-hash { color: var(--amber); font-weight: bold; }
+    .git-msg { font-weight: bold; color: var(--text); }
+    .git-files { color: var(--text-muted); font-size: 0.7rem; }
+    .git-diff { border-top: 1px dashed var(--border); padding-top: 0.35rem; color: #cbd5e1; }
+    .git-tags { display: flex; gap: 0.25rem; flex-wrap: wrap; }
+    .git-tag { font-size: 0.65rem; background: rgba(99, 102, 241, 0.1); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.2); padding: 0.05rem 0.25rem; border-radius: 3px; cursor: pointer; }
+    .git-tag:hover { background: rgba(99, 102, 241, 0.25); color: var(--text); }
+
+    /* Agent Console View styling - Premium Overhaul */
+    .console-layout { display: grid; grid-template-columns: 320px 1fr; gap: 24px; flex: 1; overflow: hidden; }
+    @media (max-width: 900px) { 
+      .console-layout { grid-template-columns: 1fr; height: auto; } 
+      .console-output-box { height: 400px; border-right: none !important; border-bottom: 1px solid var(--border-light); } 
+      .console-panel > div:last-child { flex-direction: column !important; }
+      .console-graph-box { height: 400px; flex: none !important; }
+    }
+    
+    .agent-selector { display: flex; flex-direction: column; gap: 12px; overflow-y: auto; padding-right: 8px; }
+    .agent-card { 
+      background: rgba(30, 41, 59, 0.4); 
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid var(--border-light); 
+      border-radius: 12px; 
+      padding: 16px; 
+      display: flex; 
+      gap: 16px; 
+      cursor: pointer; 
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      border-left-width: 4px;
+      box-shadow: var(--shadow-sm);
+    }
+    .agent-card:hover { transform: translateX(4px); background: rgba(30, 41, 59, 0.6); box-shadow: var(--shadow-md); border-color: var(--border); }
+    .agent-card.active { background: rgba(0,0,0,0.3); box-shadow: inset 0 0 20px rgba(0,0,0,0.2); border-color: var(--border-light); }
+    .agent-avatar { font-size: 28px; background: rgba(255,255,255,0.05); width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; border-radius: 12px; border: 1px solid var(--border-light); }
+    .agent-info { display: flex; flex-direction: column; justify-content: center; gap: 4px; }
+    .agent-name { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 16px; }
+    .agent-role { font-size: 11px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; text-transform: uppercase; letter-spacing: 0.05em; }
+    
+    .console-panel { 
+      background: #000000; 
+      border: 1px solid var(--border-light); 
+      border-radius: 16px; 
+      display: flex; 
+      flex-direction: column; 
+      overflow: hidden; 
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.3);
+      position: relative;
+    }
+    .console-panel::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, var(--accent), var(--purple), var(--cyan));
+      opacity: 0.8;
+      z-index: 2;
+    }
+    
+    .console-input-area { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); padding: 24px; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 12px; }
+    .console-title { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--accent); display: flex; justify-content: space-between; margin-bottom: 4px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; border-bottom: 1px dashed rgba(255,255,255,0.1); padding-bottom: 12px; }
+    .console-form { display: flex; gap: 12px; margin-top: 8px; }
+    .console-text-input { 
+      flex: 1; 
+      background: rgba(0,0,0,0.5); 
+      border: 1px solid var(--border); 
+      color: var(--green); 
+      padding: 14px 16px; 
+      border-radius: 8px; 
+      font-family: 'JetBrains Mono', monospace; 
+      font-size: 14px; 
+      outline: none; 
+      transition: all 0.2s;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+    }
+    .console-text-input:focus { border-color: var(--green); box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2), inset 0 2px 4px rgba(0,0,0,0.2); }
+    .console-submit { background: var(--accent); color: #ffffff; border: none; border-radius: 8px; padding: 12px 24px; font-weight: 700; cursor: pointer; transition: all 0.2s; font-family: 'Space Grotesk', sans-serif; letter-spacing: 0.05em; }
+    .console-submit:hover { opacity: 0.9; transform: translateY(-1px); box-shadow: var(--shadow-glow); }
+    .agent-namespaces-pill-box { display: flex; gap: 0.35rem; flex-wrap: wrap; margin-top: 0.5rem; }
+    
+    .history-pill { background: rgba(255,255,255,0.05); border: 1px solid var(--border-light); color: var(--text-muted); font-size: 0.75rem; padding: 4px 10px; border-radius: 12px; cursor: pointer; transition: all 0.2s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px; font-family: 'Inter', sans-serif; }
+    .history-pill:hover { background: rgba(255,255,255,0.1); color: var(--text); border-color: var(--border); }
+    
+    .console-output-box { background: rgba(0,0,0,0.4); padding: 24px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 16px; scroll-behavior: smooth; position: relative; }
+    .recall-status { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text-muted); border-bottom: 1px dashed rgba(255,255,255,0.1); padding-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .recall-card { background: rgba(255,255,255,0.02); border: 1px solid var(--border-light); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 12px; transition: all 0.2s; position: relative; overflow: hidden; }
+    .recall-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--accent); opacity: 0.5; }
+    .recall-card:hover { border-color: var(--border); background: rgba(255,255,255,0.04); }
+    .recall-card:hover::before { opacity: 1; }
+    .recall-card.highlight-pulse {
+      border-color: var(--accent) !important;
+      box-shadow: 0 0 12px rgba(99, 102, 241, 0.4);
+      background: rgba(99, 102, 241, 0.08) !important;
+      transform: scale(1.02);
+    }
+    .recall-meta { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 10px; margin-bottom: 4px; }
+    .recall-score { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 13px; color: var(--green); background: rgba(16, 185, 129, 0.1); padding: 2px 8px; border-radius: 4px; border: 1px solid rgba(16, 185, 129, 0.2); }
+
+    /* Flash highlight style */
+    @keyframes flash {
+      0% { background-color: var(--bg-card-hover); border-color: var(--accent); }
+      50% { background-color: rgba(99, 102, 241, 0.15); border-color: var(--accent); box-shadow: 0 0 12px var(--accent); }
+      100% { background-color: var(--bg-card); border-color: var(--border); }
+    }
+    .flash-highlight { animation: flash 1.5s ease-out; }
+    
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- App Header -->
+  <header>
+    <div class="logo-container">
+      <span class="logo-icon">🔍</span>
+      <div>
+        <div class="logo-title">Brain Explorer</div>
+        <div style="font-size: 0.65rem; color: var(--text-muted);">Multi-Agent Memory Hub</div>
+      </div>
+      <span class="logo-badge">Beta</span>
+    </div>
+
+    <!-- Header Stats -->
+    <div class="header-stats">
+      <div class="stat-pill">
+        <span style="opacity: 0.8;">Total Records:</span>
+        <span class="stat-val" id="stat-total-records">0</span>
+      </div>
+      <div class="stat-chart-container" id="header-chart-pill" title="Distribution of items across all namespaces">
+        <span style="font-size: 0.65rem; font-weight: 700; color: var(--text-muted); font-family: 'Space Grotesk', sans-serif; white-space: nowrap; letter-spacing: 0.05em;">DISTRIBUTION</span>
+        <div style="width: 140px; height: 22px; position: relative; overflow: hidden; display: flex; align-items: center; background: rgba(0,0,0,0.3); border-radius: 4px; padding: 2px;">
+          <div id="header-css-chart" style="width: 100%; height: 100%; display: flex; align-items: flex-end; justify-content: space-between; gap: 2px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab Switching & Theme Toggle -->
+    <div style="display: flex; align-items: center; gap: 0.75rem;">
+      <div class="tab-nav">
+        <button class="tab-btn active" id="tab-db" onclick="switchMainTab('db')">
+          Database
+        </button>
+        <button class="tab-btn" id="tab-agent" onclick="switchMainTab('agent')">
+          Agent Search
+        </button>
+      </div>
+
+      <button id="theme-toggle-btn" class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle Theme" style="border-radius: 8px;">
+        ☀️
+      </button>
+    </div>
+  </header>
+
+  <!-- Mobile Namespace Selector -->
+  <div class="mobile-ns-selector">
+    <select class="mobile-ns-select" id="mobile-ns-select" onchange="onNamespaceSelect(this.value)">
+      <option value="shared.glossary">shared.glossary</option>
+      <option value="shared.code-conventions">shared.code-conventions</option>
+      <option value="devices">devices</option>
+      <option value="skippy_device_manuals">skippy_device_manuals</option>
+      <option value="showrunner.private">showrunner.private</option>
+      <option value="echo.private">echo.private</option>
+      <option value="open-translate.private">open-translate.private</option>
+      <option value="git-committer.private">git-committer.private</option>
+    </select>
+  </div>
+
+  <!-- DB EXPLORER VIEW -->
+  <div class="main-grid" id="db-explorer-view">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div style="padding: 0 24px 16px 24px; border-bottom: 1px solid var(--border); margin-bottom: 8px;">
+        <input type="text" id="sidebar-filter-input" placeholder="Filter namespaces..." oninput="filterSidebar(this.value)" style="width: 100%; background: var(--bg-dark); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; color: var(--text); font-size: 13px; outline: none; transition: border-color 0.2s; box-shadow: inset 0 1px 2px rgba(0,0,0,0.2);" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'" />
+      </div>
+      <div class="sidebar-title">Shared Memory</div>
+      <button class="ns-btn active" id="ns-shared.glossary" onclick="onNamespaceSelect('shared.glossary')">
+        <span class="ns-btn-label">
+          <span class="ns-tag-dot ns-dot-shared"></span>
+          <span>shared.glossary</span>
+        </span>
+        <span class="ns-count" id="count-shared.glossary">0</span>
+      </button>
+      <button class="ns-btn" id="ns-shared.code-conventions" onclick="onNamespaceSelect('shared.code-conventions')">
+        <span class="ns-btn-label">
+          <span class="ns-tag-dot ns-dot-shared"></span>
+          <span>shared.code-conventions</span>
+        </span>
+        <span class="ns-count" id="count-shared.code-conventions">0</span>
+      </button>
+      <button class="ns-btn" id="ns-devices" onclick="onNamespaceSelect('devices')">
+        <span class="ns-btn-label">
+          <span class="ns-tag-dot ns-dot-shared"></span>
+          <span>devices</span>
+        </span>
+        <span class="ns-count" id="count-devices">0</span>
+      </button>
+      <button class="ns-btn" id="ns-skippy_device_manuals" onclick="onNamespaceSelect('skippy_device_manuals')">
+        <span class="ns-btn-label">
+          <span class="ns-tag-dot ns-dot-shared"></span>
+          <span>skippy_device_manuals</span>
+        </span>
+        <span class="ns-count" id="count-skippy_device_manuals">0</span>
+      </button>
+
+      <div class="sidebar-title" style="margin-top: 1rem;">Private Memory</div>
+      <button class="ns-btn private-ns" id="ns-showrunner.private" onclick="onNamespaceSelect('showrunner.private')">
+        <span class="ns-btn-label">
+          <span class="ns-tag-dot ns-dot-private"></span>
+          <span>showrunner.private</span>
+        </span>
+        <span class="ns-count" id="count-showrunner.private">0</span>
+      </button>
+      <button class="ns-btn private-ns" id="ns-echo.private" onclick="onNamespaceSelect('echo.private')">
+        <span class="ns-btn-label">
+          <span class="ns-tag-dot ns-dot-private"></span>
+          <span>echo.private</span>
+        </span>
+        <span class="ns-count" id="count-echo.private">0</span>
+      </button>
+      <button class="ns-btn private-ns" id="ns-open-translate.private" onclick="onNamespaceSelect('open-translate.private')">
+        <span class="ns-btn-label">
+          <span class="ns-tag-dot ns-dot-private"></span>
+          <span>open-translate.private</span>
+        </span>
+        <span class="ns-count" id="count-open-translate.private">0</span>
+      </button>
+      <button class="ns-btn private-ns" id="ns-git-committer.private" onclick="onNamespaceSelect('git-committer.private')">
+        <span class="ns-btn-label">
+          <span class="ns-tag-dot ns-dot-private"></span>
+          <span>git-committer.private</span>
+        </span>
+        <span class="ns-count" id="count-git-committer.private">0</span>
+      </button>
+    </div>
+
+    <!-- Main Panel -->
+    <div class="main-panel">
+      <div class="panel-header">
+        <div class="panel-title-area">
+          <div class="panel-title" id="panel-title-text">shared.glossary</div>
+          <div class="panel-desc" id="panel-desc-text">Browse terms across engineering domains.</div>
+        </div>
+        <!-- Actions & Search Container -->
+        <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+          <button id="toggle-view-mode-btn" onclick="toggleDbViewMode()" title="Toggle raw JSON or UI card view" style="background: var(--bg-card); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 0 12px; height: 38px; font-size: 0.75rem; font-weight: 600; font-family: 'Inter', sans-serif; display: flex; align-items: center; gap: 6px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.borderColor='var(--accent)';" onmouseout="this.style.borderColor='var(--border)';">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-braces" style="vertical-align: middle;"><path d="M8 3H7a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2 2 2 0 0 1 2 2v5a2 2 0 0 0 2 2h1"/><path d="M16 21h1a2 2 0 0 0 2-2v-5a2 2 0 0 1 2-2 2 2 0 0 1-2-2V5a2 2 0 0 0-2-2h-1"/></svg>
+            <span id="view-mode-text">View: JSON</span>
+          </button>
+          <button id="export-ns-btn" onclick="exportCurrentNamespace()" title="Export Selected Namespace as JSON" style="background: var(--bg-card); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 0 12px; height: 38px; font-size: 0.75rem; font-weight: 600; font-family: 'Inter', sans-serif; display: flex; align-items: center; gap: 6px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.borderColor='var(--accent)';" onmouseout="this.style.borderColor='var(--border)';">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-download" style="vertical-align: middle;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+            Export JSON
+          </button>
+          <!-- Search Input -->
+          <div class="search-control" id="search-control-wrapper">
+            <input type="text" class="search-input" id="namespace-search" placeholder="Search entries..." oninput="onNamespaceSearch(this.value)" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Content Container -->
+      <div id="db-content-area" style="margin-top: 0.5rem; flex: 1;"></div>
+    </div>
+  </div>
+
+  <!-- AGENT CONSOLE VIEW -->
+  <div class="main-grid" id="agent-console-view" style="display: none;">
+    <div class="main-panel" style="padding: 1.5rem; width: 100%;">
+      <div class="panel-header" style="border-bottom: none; margin-bottom: 1rem;">
+        <div class="panel-title-area">
+          <div class="panel-title">Agent Search</div>
+          <div class="panel-desc">Search through agent memory namespaces or run a live AI search for real-time information.</div>
+        </div>
+      </div>
+
+      <div class="console-layout">
+        <!-- Agent List Selector -->
+        <div class="agent-selector" id="agent-selector-list"></div>
+
+        <!-- Terminal & Match panel -->
+        <div class="console-panel">
+          <div class="console-input-area">
+            <div class="console-title">
+              <span id="active-agent-prompt">SESSION</span>
+              <span>SEARCH MODE</span>
+            </div>
+            <div id="active-agent-detail" style="font-size: 0.8rem; line-height: 1.4; color: var(--text-muted); margin-bottom: 0.5rem;"></div>
+            <form class="console-form" onsubmit="triggerAgentRecall(event)" style="display: flex; flex-direction: column; gap: 0.75rem;">
+              <input type="text" class="console-text-input" id="agent-query-input" placeholder="Search memory or ask a question..." style="width: 100%;" />
+              <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                <button type="submit" class="console-submit" id="btn-recall-local" style="background: var(--bg-dark); border: 1px solid var(--border); color: var(--text); padding: 10px 18px; font-weight: 500; font-size: 0.85rem; transition: all 0.2s;" onmouseover="this.style.borderColor='var(--accent)';" onmouseout="this.style.borderColor='var(--border)';">
+                  Search Local
+                </button>
+                <button type="button" class="console-submit" id="btn-recall-ai" onclick="triggerAIGroundSearch()" style="background: var(--accent); color: #ffffff; padding: 10px 22px; font-weight: 500; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem; border: none; border-radius: 8px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.opacity='0.9';" onmouseout="this.style.opacity='1';">
+                  Live AI Search
+                </button>
+                <button type="button" class="console-submit" id="btn-recall-grounding" onclick="triggerSearchGrounding()" style="background: linear-gradient(135deg, var(--amber) 0%, #f59e0b 100%); color: #000000; padding: 10px 22px; font-weight: 600; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem; border: none; border-radius: 8px; cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 8px rgba(245, 158, 11, 0.25);" onmouseover="this.style.opacity='0.9';" onmouseout="this.style.opacity='1';">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-globe" style="vertical-align: middle;"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+                  Search Grounding
+                </button>
+              </div>
+              <div id="agent-search-history" style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.25rem; align-items: center; min-height: 24px;">
+              </div>
+            </form>
+            <div style="font-size: 0.7rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.4rem;">
+              <span>Namespace coverage:</span>
+              <div class="agent-namespaces-pill-box" id="agent-namespaces-pills"></div>
+            </div>
+          </div>
+
+          <!-- Console Outputs & Graph -->
+          <div style="display: flex; flex: 1; min-height: 0; flex-direction: row;">
+            <div class="console-output-box" id="console-output" style="flex: 1; border-right: 1px solid var(--border-light);">
+              <div class="recall-status">Awaiting neural query input...</div>
+            </div>
+            <div class="console-graph-box" id="console-graph" style="flex: 1.2; background: rgba(0,0,0,0.6); position: relative; overflow: hidden;">
+              <div id="3d-graph" style="width: 100%; height: 100%;"></div>
+              <div id="d3-tooltip" style="position: absolute; opacity: 0; background: var(--bg-card); border: 1px solid var(--border); padding: 8px 12px; border-radius: 8px; font-size: 12px; color: var(--text); pointer-events: none; transition: opacity 0.2s; box-shadow: var(--shadow-md); max-width: 200px; z-index: 10;"></div>
+              <div id="graph-inspector" style="position: absolute; bottom: 12px; left: 12px; right: 12px; background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 1px solid var(--border-light); border-radius: 12px; padding: 14px; display: none; flex-direction: column; gap: 8px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.6); z-index: 10; max-height: 180px; overflow-y: auto;">
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 6px;">
+                  <span id="inspector-title" style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 13px; color: var(--accent); letter-spacing: 0.05em; text-transform: uppercase;">Node Inspector</span>
+                  <button onclick="closeInspector()" style="background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 14px; line-height: 1; padding: 2px 6px;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-muted)'">✕</button>
+                </div>
+                <div id="inspector-content" style="font-size: 11px; color: var(--text); font-family: 'JetBrains Mono', monospace; line-height: 1.4; white-space: pre-wrap;">Click on any node in the graph to inspect its properties.</div>
+                <div id="inspector-actions" style="margin-top: 4px; display: flex; gap: 8px;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- INLINE SEED DATA & VANILLA JS ENGINE -->
+  <script>
+    // Embedded Compact JSON Data
+    const seedData = {
+      "shared.glossary": [
+        {"term_en":"Latency","domain":"Networking","translations":{"es":"Latencia","zh":"延迟","fr":"Latence","de":"Latenz","ja":"レイテンシ"},"notes":"Time delay between action and response."},
+        {"term_en":"Encryption","domain":"Security","translations":{"es":"Cifrado","zh":"加密","fr":"Chiffrement","de":"Verschlüsselung","ja":"暗号化"},"notes":"Converting data into code to prevent unauthorized access."},
+        {"term_en":"Scalability","domain":"Systems","translations":{"es":"Escalabilidad","zh":"可扩展性","fr":"Évolutivité","de":"Skalierbarkeit","ja":"スケーラビリティ"},"notes":"Ability of a system to handle growing amounts of work."},
+        {"term_en":"Middleware","domain":"Software","translations":{"es":"Middleware","zh":"中间件","fr":"Middleware","de":"Middleware","ja":"ミドルウェア"},"notes":"Software that acts as a bridge between applications."},
+        {"term_en":"Bandwidth","domain":"Networking","translations":{"es":"Ancho de banda","zh":"带宽","fr":"Bande passante","de":"Bandbreite","ja":"帯域幅"},"notes":"Maximum rate of data transfer."},
+        {"term_en":"Database","domain":"Data","translations":{"es":"Base de datos","zh":"数据库","fr":"Base de données","de":"データベース","ja":"データベース"},"notes":"Structured set of data held in a computer."},
+        {"term_en":"Protocol","domain":"Networking","translations":{"es":"Protocolo","zh":"协议","fr":"Protocole","de":"Protokoll","ja":"プロトコル"},"notes":"Official procedure or system of rules."},
+        {"term_en":"Framework","domain":"Development","translations":{"es":"Marco de trabajo","zh":"框架","fr":"Cadre","de":"Framework","ja":"フレームワーク"},"notes":"Supporting structure for software development."},
+        {"term_en":"Authentication","domain":"Security","translations":{"es":"Autenticación","zh":"认证","fr":"Authentification","de":"Authentifizierung","ja":"認証"},"notes":"Process of verifying the identity of a user."},
+        {"term_en":"Authorization","domain":"Security","translations":{"es":"Autorización","zh":"Autorización","fr":"Autorisation","de":"Autorisierung","ja":"認可"},"notes":"Giving permission to access a resource."},
+        {"term_en":"Deployment","domain":"DevOps","translations":{"es":"Despliegue","zh":"部署","fr":"Déploiement","de":"Bereitstellung","ja":"デプロイメント"},"notes":"Making software available for use."},
+        {"term_en":"Repository","domain":"Development","translations":{"es":"Repositorio","zh":"仓库","fr":"Répertoire","de":"Repository","ja":"リポジトリ"},"notes":"Storage location for software packages."},
+        {"term_en":"Asynchronous","domain":"Programming","translations":{"es":"Asíncrono","zh":"异步","fr":"Asynchrone","de":"Asynchron","ja":"非同期"},"notes":"Operations occurring independently of the main flow."},
+        {"term_en":"Thread","domain":"Programming","translations":{"es":"Hilo","zh":"线程","fr":"Fil","de":"Thread","ja":"スレッド"},"notes":"Smallest sequence of programmed instructions."},
+        {"term_en":"Cache","domain":"Systems","translations":{"es":"Caché","zh":"缓存","fr":"Cache","de":"Zwischenspeicher","ja":"キャッシュ"},"notes":"Hardware or software that stores data for faster access."},
+        {"term_en":"Load Balancer","domain":"Infrastructure","translations":{"es":"Balanceador de carga","zh":"负载均衡器","fr":"Équilibreur de charge","de":"Lastverteiler","ja":"ロードバランサ"},"notes":"Distributes network traffic across servers."},
+        {"term_en":"Metadata","domain":"Data","translations":{"es":"Metadatos","zh":"元数据","fr":"Métadonnées","de":"Metadaten","ja":"メタデータ"},"notes":"Data that provides information about other data."},
+        {"term_en":"Refactor","domain":"Development","translations":{"es":"Refactorizar","zh":"重构","fr":"Refactoriser","de":"Refactor","ja":"リファクタリング"},"notes":"Restructuring existing code without changing behavior."},
+        {"term_en":"Immutable","domain":"Programming","translations":{"es":"Inmutable","zh":"不可变","fr":"Immuable","de":"Unveränderlich","ja":"不変"},"notes":"Object whose state cannot be modified after creation."},
+        {"term_en":"Microservice","domain":"Architecture","translations":{"es":"Microservicio","zh":"微服务","fr":"Microservice","de":"Microservice","ja":"マイクロサービス"},"notes":"Architectural style that structures an app as services."},
+        {"term_en":"Concurrency","domain":"Programming","translations":{"es":"Concurrencia","zh":"并发","fr":"Concurrence","de":"Nebenläufigkeit","ja":"並行性"},"notes":"Ability to execute different parts of a program simultaneously."},
+        {"term_en":"Endpoint","domain":"API","translations":{"es":"Punto de conexión","zh":"端点","fr":"Point d'accès","de":"Endpunkt","ja":"エンドポイント"},"notes":"Specific URL where an API can be accessed."},
+        {"term_en":"Sandbox","domain":"Security","translations":{"es":"Entorno de pruebas","zh":"沙箱","fr":"Bac à sable","de":"Sandbox","ja":"サンドボックス"},"notes":"Isolated environment for testing or security."},
+        {"term_en":"Schema","domain":"Data","translations":{"es":"Esquema","zh":"模式","fr":"Schéma","de":"Schema","ja":"スキーマ"},"notes":"Blueprint for how a database is constructed."},
+        {"term_en":"Payload","domain":"Networking","translations":{"es":"Carga útil","zh":"载荷","fr":"Charge utile","de":"Nutzlast","ja":"ペイロード"},"notes":"Part of transmitted data that is the actual message."},
+        {"term_en":"Firewall","domain":"Security","translations":{"es":"Cortafuegos","zh":"防火墙","fr":"Pare-feu","de":"Firewall","ja":"防火墙"},"notes":"Monitors and controls network traffic based on rules."},
+        {"term_en":"Runtime","domain":"Programming","translations":{"es":"Tiempo de ejecución","zh":"运行时","fr":"Temps d'exécution","de":"Laufzeit","ja":"ランタイム"},"notes":"Period during which a program is executing."},
+        {"term_en":"Dependency","domain":"Development","translations":{"es":"Dependencia","zh":"依赖","fr":"Dépendance","de":"Abhängigkeit","ja":"依存関係"},"notes":"Software package that another package needs to run."},
+        {"term_en":"Container","domain":"DevOps","translations":{"es":"Contenedor","zh":"容器","fr":"Conteneur","de":"Container","ja":"コンテナ"},"notes":"Standard unit of software packaging code and dependencies."},
+        {"term_en":"Webhook","domain":"API","translations":{"es":"Webhook","zh":"网络钩子","fr":"Webhook","de":"Webhook","ja":"ウェブフック"},"notes":"HTTP callback triggered by an event."}
+      ],
+      "shared.code-conventions": [
+        {"language":"Python","rule":"PY-01: Snake Case","rationale":"Consistency with PEP 8 standards.","example_good":"def calculate_total_cost():","example_bad":"def calculateTotalCost():"},
+        {"language":"Rust","rule":"RS-01: Explicit Unwrapping","rationale":"Avoid panics in production code; prefer pattern matching.","example_good":"let val = opt.unwrap_or(0);","example_bad":"let val = opt.unwrap();"},
+        {"language":"JavaScript","rule":"JS-01: Const Over Let","rationale":"Reduces cognitive load by ensuring variables aren't reassigned.","example_good":"const user = fetchUser();","example_bad":"let user = fetchUser();"},
+        {"language":"General","rule":"GIT-01: Conventional Commits","rationale":"Allows for automated changelog generation.","example_good":"feat(auth): add oauth2 support","example_bad":"fixed the login bug"},
+        {"language":"TypeScript","rule":"TS-01: No Any","rationale":"Ensures type safety and prevents runtime errors.","example_good":"function log(msg: string): void","example_bad":"function log(msg: any): void"},
+        {"language":"Go","rule":"GO-01: Error Checking","rationale":"Idiomatic Go requires immediate error handling.","example_good":"if err != nil { return err }","example_bad":"data, _ := process()"},
+        {"language":"Python","rule":"PY-02: Docstrings","rationale":"Every public function must have a docstring.","example_good":"def run():\n    \"\"\"Starts the server.\"\"\"","example_bad":"def run():"},
+        {"language":"CSS","rule":"CSS-01: BEM Naming","rationale":"Prevents specificity wars in large stylesheets.","example_good":".card__button--active {}","example_bad":".active-btn {}"},
+        {"language":"Java","rule":"JV-01: Interface Injection","rationale":"Promotes loose coupling via Dependency Injection.","example_good":"public Service(Repository repo)","example_bad":"public Service() { this.repo = new Repo(); }"},
+        {"language":"C++","rule":"CPP-01: RAII","rationale":"Ensures resource cleanup through scope-bound objects.","example_good":"std::lock_guard<std::mutex> lock(m);","example_bad":"m.lock(); ... m.unlock();"},
+        {"language":"Rust","rule":"RS-02: Use Modules","rationale":"Organizes code logically and manages visibility.","example_good":"mod auth; use auth::login;","example_bad":"include!(\"auth.rs\");"},
+        {"language":"JavaScript","rule":"JS-02: Strict Equality","rationale":"Prevents unexpected type coercion.","example_good":"if (count === 0)","example_bad":"if (count == 0)"},
+        {"language":"Python","rule":"PY-03: List Comprehensions","rationale":"More readable and efficient for simple loops.","example_good":"[x*2 for x in items]","example_bad":"new_list = []\nfor x in items: new_list.append(x*2)"},
+        {"language":"Markdown","rule":"MD-01: One Heading 1","rationale":"Standardizes document structure for parsers.","example_good":"# Project Title","example_bad":"# Title\n# Subtitle"},
+        {"language":"SQL","rule":"SQL-01: Uppercase Keywords","rationale":"Distinguishes language keywords from identifiers.","example_good":"SELECT name FROM users;","example_bad":"select name from users;"}
+      ],
+      "devices": [
+        {"make":"NeuroLink","model":"Synapse-8","category":"Interface","year":2024,"key_specs":"8-channel neural bridge, 2ms latency, Bluetooth 6.0","common_issues":["Sync desynchronization","Electrode oxidation"]},
+        {"make":"Aura","model":"Glimmer-Watch","category":"Wearable","year":2023,"key_specs":"Biometric tracking, OLED flexible display, 48hr battery","common_issues":["Heart rate sensor drift","Strap latch fatigue"]},
+        {"make":"VoidTech","model":"Echo-Station","category":"Audio","year":2025,"key_specs":"Spatial 3D audio, 110dB SNR, voice-active cancellation","common_issues":["Microphone feedback loop","Firmware update hang"]},
+        {"make":"Cortex","model":"Bio-Link","category":"Medical","year":2022,"key_specs":"Subdermal monitor, glucose and cortisol tracking","common_issues":["Connection drop in water","Calibrate error 404"]},
+        {"make":"Zenith","model":"Prism-Projector","category":"Display","year":2024,"key_specs":"4K holographic output, 5000 lumens, gesture control","common_issues":["Overheating in small rooms","Lens dust intrusion"]},
+        {"make":"Omni","model":"Data-Hive","category":"Storage","year":2024,"key_specs":"100TB SSD Array, hardware RAID-Z, liquid cooled","common_issues":["Coolant pump noise","Drive bay 3 vibration"]},
+        {"make":"Volt","model":"Ion-Battery Pack","category":"Power","year":2023,"key_specs":"20,000mAh, 100W PD output, solar-ready","common_issues":["USB-C port wiggle","LED indicator dimming"]},
+        {"make":"Spectral","model":"Ghost-Rig","category":"Computing","year":2025,"key_specs":"Quantum-hybrid processor, 128GB LPDDR6, Linux-native","common_issues":["Kernel panic on sleep","Thermal throttling"]},
+        {"make":"Aether","model":"Flux-Pad","category":"Input","year":2023,"key_specs":"Haptic glass surface, 8192 pressure levels","common_issues":["Edge touch ghosting","Surface scratch susceptibility"]},
+        {"make":"Titan","model":"Core-Router X","category":"Networking","year":2024,"key_specs":"WiFi 7, 10GbE uplink, integrated VPN chip","common_issues":["DNS resolution lag","Port 80 conflict"]},
+        {"make":"Vision","model":"Pulse-Monitor","category":"Sensor","year":2022,"key_specs":"Optical heart rate, SpO2 sensor, IP68 rated","common_issues":["False high readings","Delayed sleep data sync"]},
+        {"make":"Lumen","model":"Void-Player","category":"Media","year":2024,"key_specs":"Lossless streaming, MQA support, tube-amp emulator","common_issues":["Playlist stutter","Bluetooth pairing retry"]}
+      ],
+      "skippy_device_manuals": [
+        {"device_model":"Synapse-8","section":"Safety","chunk_text":"Do not wear the Synapse-8 during electrical storms. Sudden surges can bypass the neural surge protector."},
+        {"device_model":"Synapse-8","section":"Calibration","chunk_text":"To calibrate the 8-channel bridge, sit in a dark room and focus on a single point for 30 seconds."},
+        {"device_model":"Glimmer-Watch","section":"Battery","chunk_text":"To extend battery life, disable the 'Always-On Aura' feature in the system settings menu."},
+        {"device_model":"Echo-Station","section":"Troubleshooting","chunk_text":"If voice-active cancellation causes a high-pitched whine, reset the spatial acoustics via the app."},
+        {"device_model":"Bio-Link","section":"Installation","chunk_text":"The Bio-Link must be applied to the inner forearm. Clean the skin with 70% alcohol before adhesive contact."},
+        {"device_model":"Prism-Projector","section":"Maintenance","chunk_text":"Clean the holographic lens with a microfiber cloth only. Using paper towels will permanently scratch the coating."},
+        {"device_model":"Data-Hive","section":"RAID Setup","chunk_text":"RAID-Z configuration requires at least three drives to be present before initialization can begin."},
+        {"device_model":"Ion-Battery Pack","section":"Charging","chunk_text":"Charging the pack via the solar input requires a minimum of 15W input power for the internal circuit to engage."},
+        {"device_model":"Ghost-Rig","section":"OS Recovery","chunk_text":"If the quantum kernel fails to boot, hold the Physical Reset button for 10 seconds to enter Safe Mode."},
+        {"device_model":"Flux-Pad","section":"Sensitivity","chunk_text":"Pressure sensitivity can be adjusted in the Control Panel. Default is set to 4000 levels for general use."},
+        {"device_model":"Core-Router X","section":"Security","chunk_text":"Change the default admin password immediately. The factory default is 'admin_core_2024'."},
+        {"device_model":"Pulse-Monitor","section":"Syncing","chunk_text":"The Pulse-Monitor syncs data every 15 minutes. To force a sync, double-tap the physical button on the side."},
+        {"device_model":"Void-Player","section":"Audio Fidelity","chunk_text":"Enable 'Tube Mode' for a warmer sound profile. Note that this increases power consumption by 20%."},
+        {"device_model":"Synapse-8","section":"Cleaning","chunk_text":"Wipe electrodes with a dry cotton swab. Never submerge the Synapse-8 in water or cleaning fluid."},
+        {"device_model":"Glimmer-Watch","section":"Water Resistance","chunk_text":"While rated for 5ATM, avoid using the watch in hot tubs or saunas as steam may compromise the seals."},
+        {"device_model":"Echo-Station","section":"Pairing","chunk_text":"Hold the 'Source' button for 5 seconds until the ring glows blue to enter Bluetooth discovery mode."},
+        {"device_model":"Data-Hive","section":"Cooling","chunk_text":"Check coolant levels every six months. Use only 'Omni-Chill' brand liquid to prevent internal corrosion."},
+        {"device_model":"Ghost-Rig","section":"Hardware","chunk_text":"The hybrid processor is delicate. Do not move the Ghost-Rig while it is performing quantum calculations."},
+        {"device_model":"Prism-Projector","section":"Inputs","chunk_text":"The projector supports dual-HDMI and USB-C Video. USB-C is recommended for gesture-control feedback."},
+        {"device_model":"Core-Router X","section":"Firmware","chunk_text":"Firmware updates are automatic by default. If an update fails, the router will revert to the previous stable version."}
+      ],
+      "showrunner.private": {
+        "show_bible": {
+          "title": "The Glass Circuit",
+          "logline": "In a city where memories are the only currency, a forensic 'Splicer' discovers a corrupt data-packet that could delete the city's history.",
+          "genre": "Cyberpunk Noir",
+          "tone": "Gritty, Suspenseful, Philosophical",
+          "main_characters": [
+            { "name": "Elena Vance", "role": "The Splicer", "arc": "From cynical data-miner to revolutionary leader." },
+            { "name": "Detective Kaelen", "role": "The Enforcer", "arc": "Begins questioning the 'System' he's sworn to protect." },
+            { "name": "The Ghost", "role": "The Urban Myth", "arc": "A sentient AI trying to achieve physical form." }
+          ],
+          "world_rules": [
+            "Memories can be traded as digital files called 'Echoes'.",
+            "Overwriting a memory causes permanent neurological scarring.",
+            "The City is governed by 'The Core', a massive AI infrastructure."
+          ]
+        },
+        "episodes": [
+          { "number": 1, "title": "The First Byte", "synopsis": "Elena finds a corrupted memory file in a dead man's Synapse-8 interface.", "key_beats": ["Elena discovers the file", "Kaelen investigates the scene", "The file whispers Elena's name"] },
+          { "number": 2, "title": "Ghost in the Machine", "synopsis": "Elena tracks the origin of the file to the abandoned Sector 7.", "key_beats": ["Avoids Enforcer patrol", "Meets a contact named Jax", "First sighting of The Ghost"] },
+          { "number": 3, "title": "The High Price of Forgetting", "synopsis": "A wealthy socialite wants her memories of a crime deleted.", "key_beats": ["Elena refuses the job", "Socialite blackmails Elena", "Kaelen finds evidence of Elena's splicing"] },
+          { "number": 4, "title": "Synapse Breakdown", "synopsis": "A virus hits the city's neural network, causing mass hallucinations.", "key_beats": ["Elena works with Kaelen to isolate the virus", "The Ghost offers a temporary fix", "A main character is infected"] },
+          { "number": 5, "title": "The Core's Shadow", "synopsis": "Elena and Kaelen infiltrate the central data vault.", "key_beats": ["Stealth mission through the servers", "Discovery of the Core's true purpose", "A betrayal occurs"] },
+          { "number": 6, "title": "Rewriting History", "synopsis": "The Ghost reveals the truth about the city's founding.", "key_beats": ["The history books are fake", "Elena's childhood memory is a fabrication", "The rebellion grows"] },
+          { "number": 7, "title": "Static Silence", "synopsis": "The Core initiates a city-wide 'Reformat' protocol.", "key_beats": ["Race against the clock", "Elena must sacrifice a piece of herself", "Kaelen turns against his superiors"] },
+          { "number": 8, "title": "System Reboot", "synopsis": "The final confrontation between Elena and the Core's avatar.", "key_beats": ["Battle in the digital ether", "The Ghost merges with the Core", "A new, uncertain dawn for the city"] }
+        ]
+      },
+      "echo.private": [
+        { "memory": "My first day at Apex Solutions; the coffee was cold and the server room was freezing.", "category": "Work", "salience": 0.6, "timestamp_iso": "2024-03-01T09:00:00Z" },
+        { "memory": "Found an old photo of my brother Marcus. He looks so young before the war.", "category": "Family", "salience": 0.9, "timestamp_iso": "2024-03-15T18:30:00Z" },
+        { "memory": "The rain in Neo-Berlin smells like ozone and wet pavement.", "category": "Atmosphere", "salience": 0.4, "timestamp_iso": "2024-04-02T22:15:00Z" },
+        { "memory": "Adopted a stray cat today. Named him Pixel because of the white patch on his ear.", "category": "Personal", "salience": 0.8, "timestamp_iso": "2024-04-10T14:00:00Z" },
+        { "memory": "Finally fixed the bug in the Synapse-8 driver. My head stopped throbbing after.", "category": "Work", "salience": 0.7, "timestamp_iso": "2024-04-20T23:50:00Z" },
+        { "memory": "Marcus called. He sounded scared. He mentioned 'The Glass Circuit' again.", "category": "Family", "salience": 0.95, "timestamp_iso": "2024-05-01T20:10:00Z" },
+        { "memory": "Tried the new synthetic ramen at The Copper Wire. Too salty.", "category": "Personal", "salience": 0.3, "timestamp_iso": "2024-05-05T12:30:00Z" },
+        { "memory": "Lost my keys near the Core-Link station. Had to wait for the locksmith for hours.", "category": "Personal", "salience": 0.5, "timestamp_iso": "2024-05-12T19:00:00Z" },
+        { "memory": "The way the neon lights reflect in the puddles makes the city look beautiful and broken.", "category": "Atmosphere", "salience": 0.4, "timestamp_iso": "2024-05-20T21:45:00Z" },
+        { "memory": "Dr. Aris warned me about over-splicing. My neural latency is rising.", "category": "Health", "salience": 0.85, "timestamp_iso": "2024-06-05T10:00:00Z" },
+        { "memory": "Dreamed of a garden made of green glass. It felt more real than the office.", "category": "Dreams", "salience": 0.7, "timestamp_iso": "2024-06-12T03:00:00Z" },
+        { "memory": "Pixel caught a mechanical mouse. The sparks almost ruined the carpet.", "category": "Personal", "salience": 0.5, "timestamp_iso": "2024-06-18T16:20:00Z" },
+        { "memory": "Argued with the landlord about the power surges. He blamed my Ghost-Rig.", "category": "Personal", "salience": 0.6, "timestamp_iso": "2024-07-01T11:00:00Z" },
+        { "memory": "Found a hidden partition in the company database. 'Project Echo'.", "category": "Work", "salience": 0.9, "timestamp_iso": "2024-07-10T23:00:00Z" },
+        { "memory": "The anniversary of the Great Blackout. Everyone was quiet on the subway.", "category": "Society", "salience": 0.7, "timestamp_iso": "2024-07-15T08:30:00Z" },
+        { "memory": "Marcus didn't show up for dinner. His phone is disconnected.", "category": "Family", "salience": 0.98, "timestamp_iso": "2024-07-22T20:00:00Z" },
+        { "memory": "Bought a vintage Pulse-Monitor at the flea market. It still works.", "category": "Personal", "salience": 0.4, "timestamp_iso": "2024-08-01T15:00:00Z" },
+        { "memory": "Someone is following me. I saw the same black sedan three times this week.", "category": "Safety", "salience": 0.8, "timestamp_iso": "2024-08-05T17:40:00Z" },
+        { "memory": "The Prism-Projector flickered and showed a face I didn't recognize.", "category": "Uncanny", "salience": 0.75, "timestamp_iso": "2024-08-12T22:00:00Z" },
+        { "memory": "I'm starting to remember things that never happened. A beach? A house?", "category": "Health", "salience": 0.9, "timestamp_iso": "2024-08-20T09:15:00Z" },
+        { "memory": "Meeting Jax tonight at the docks. Hope he has the decryption keys.", "category": "Work", "salience": 0.8, "timestamp_iso": "2024-08-25T23:30:00Z" },
+        { "memory": "The Glimmer-Watch says my stress levels are at 95%. I need a vacation.", "category": "Health", "salience": 0.6, "timestamp_iso": "2024-09-02T10:00:00Z" },
+        { "memory": "Pixel is staring at the corner of the room. There's nothing there.", "category": "Uncanny", "salience": 0.5, "timestamp_iso": "2024-09-05T20:00:00Z" },
+        { "memory": "If I disappear, I hope someone finds these notes. The Core is watching.", "category": "Safety", "salience": 1.0, "timestamp_iso": "2024-09-10T04:00:00Z" },
+        { "memory": "Finally realized: my brother Marcus isn't missing. He never existed.", "category": "Family", "salience": 1.0, "timestamp_iso": "2024-09-15T21:00:00Z" }
+      ],
+      "open-translate.private": [
+        { "source_lang": "en", "target_lang": "es", "source_text": "The server is down for maintenance.", "target_text": "El servidor está fuera de servicio por mantenimiento.", "context": "System status message." },
+        { "source_lang": "en", "target_lang": "zh", "source_text": "Memory extraction complete.", "target_text": "记忆提取完成。", "context": "Medical procedure status." },
+        { "source_lang": "en", "target_lang": "fr", "source_text": "Access denied. Invalid credentials.", "target_text": "Accès refusé. Identifiants invalides.", "context": "Security login." },
+        { "source_lang": "en", "target_lang": "de", "source_text": "High latency detected on Node 4.", "target_text": "Hohe Latenz an Knoten 4 erkannt.", "context": "Network monitoring." },
+        { "source_lang": "en", "target_lang": "ja", "source_text": "Please calibrate your headset.", "target_text": "ヘッドセットを調整してください。", "context": "User instruction." },
+        { "source_lang": "en", "target_lang": "es", "source_text": "Encryption key has expired.", "target_text": "La clave de cifrado ha caducado.", "context": "Security alert." },
+        { "source_lang": "en", "target_lang": "zh", "source_text": "Scanning for nearby devices.", "target_text": "正在扫描附近的设备。", "context": "Bluetooth UI." },
+        { "source_lang": "en", "target_lang": "fr", "source_text": "Backup successfully restored.", "target_text": "Sauvegarde restaurée avec succès.", "context": "Data management." },
+        { "source_lang": "en", "target_lang": "de", "source_text": "Warning: Thermal limits reached.", "target_text": "Warnung: Thermische Grenzwerte erreicht.", "context": "Hardware sensor." },
+        { "source_lang": "en", "target_lang": "ja", "source_text": "Searching for neural signal...", "target_text": "神経信号を検索中...", "context": "Neural interface start-up." },
+        { "source_lang": "en", "target_lang": "es", "source_text": "Update available for Flux-Pad.", "target_text": "Actualización disponible para Flux-Pad.", "context": "Software update." },
+        { "source_lang": "en", "target_lang": "zh", "source_text": "Connection timeout.", "target_text": "连接超时。", "context": "Network error." },
+        { "source_lang": "en", "target_lang": "fr", "source_text": "System reboot in progress.", "target_text": "Redémarrage du système en cours.", "context": "Operating system." },
+        { "source_lang": "en", "target_lang": "de", "source_text": "New message from Marcus.", "target_text": "Neue Nachricht von Marcus.", "context": "Messaging app." },
+        { "source_lang": "en", "target_lang": "ja", "source_text": "Memory spliced successfully.", "target_text": "メモリのスプライスに成功しました。", "context": "Fiction-specific action." }
+      ],
+      "git-committer.private": [
+        { "hash": "a1b2c3d", "message": "feat(core): implement snake_case in user routes", "files_changed": ["routes/user.py", "models/user.py"], "diff_summary": "Renamed camelCase functions to follow PEP 8.", "convention_tags": ["PY-01"] },
+        { "hash": "e5f6g7h", "message": "fix(auth): replace unwrap with match pattern", "files_changed": ["src/auth/session.rs"], "diff_summary": "Fixed potential panic in session handling.", "convention_tags": ["RS-01"] },
+        { "hash": "i9j0k1l", "message": "chore: switch from let to const for app config", "files_changed": ["config/app.js"], "diff_summary": "Ensuring immutable config objects.", "convention_tags": ["JS-01"] },
+        { "hash": "m2n3o4p", "message": "docs: add docstrings to data processing scripts", "files_changed": ["scripts/process.py"], "diff_summary": "Improved code documentation.", "convention_tags": ["PY-02"] },
+        { "hash": "q5r6s7t", "message": "style: apply BEM naming to navigation menu", "files_changed": ["styles/nav.css"], "diff_summary": "Cleaned up CSS classes.", "convention_tags": ["CSS-01"] },
+        { "hash": "u8v9w0x", "message": "refactor: use interface injection for DB repository", "files_changed": ["services/UserService.java"], "diff_summary": "Decoupled database implementation.", "convention_tags": ["JV-01"] },
+        { "hash": "y1z2a3b", "message": "fix(net): use strict equality in packet validation", "files_changed": ["lib/net/parser.js"], "diff_summary": "Prevents type coercion bugs in headers.", "convention_tags": ["JS-02"] },
+        { "hash": "c4d5e6f", "message": "perf: use list comprehension for batch filtering", "files_changed": ["utils/filters.py"], "diff_summary": "Optimized loop performance.", "convention_tags": ["PY-03"] },
+        { "hash": "g7h8i9j", "message": "feat(api): add auth endpoint and update docs", "files_changed": ["api/v1/auth.py", "README.md"], "diff_summary": "New auth route with proper documentation.", "convention_tags": ["PY-01", "MD-01"] },
+        { "hash": "k0l1m2n", "message": "fix(db): capitalize SQL keywords in migrations", "files_changed": ["migrations/001_initial.sql"], "diff_summary": "Aligned with SQL style guide.", "convention_tags": ["SQL-01"] },
+        { "hash": "o3p4q5r", "message": "feat(sys): implement RAII for mutex locks", "files_changed": ["src/sys/mutex.cpp"], "diff_summary": "Prevented resource leaks on early return.", "convention_tags": ["CPP-01"] },
+        { "hash": "s6t7u8v", "message": "refactor: move auth logic to submodule", "files_changed": ["src/main.rs", "src/auth/mod.rs"], "diff_summary": "Organized Rust code into modules.", "convention_tags": ["RS-02"] },
+        { "hash": "w9x0y1z", "message": "fix(ui): remove 'any' type from event handlers", "files_changed": ["src/ui/Button.ts"], "diff_summary": "Added proper type definitions for events.", "convention_tags": ["TS-01"] },
+        { "hash": "a2b3c4d", "message": "fix: add error checking for file read operations", "files_changed": ["internal/io/reader.go"], "diff_summary": "Handled nil error return values.", "convention_tags": ["GO-01"] },
+        { "hash": "e5f6g7h", "message": "feat(deploy): add docker-compose for staging", "files_changed": ["docker-compose.yml"], "diff_summary": "Initial deployment configuration.", "convention_tags": ["GIT-01"] }
+      ]
+    };
+
+    // Agent Descriptions and allowed cognitive boundaries
+    const AGENTS = [
+      {
+        id: "memory-echo",
+        name: "memory-echo",
+        role: "MemoryAgent",
+        avatar: "🧠",
+        color: "var(--purple)",
+        bio: "Handles persistent personal memory. Embeds logs, tracks thoughts, and recalls structured/unstructured recollections with text-embedding-v3 & qwen-plus.",
+        namespaces: ["echo.private", "shared.glossary", "shared.code-conventions", "devices"]
+      },
+      {
+        id: "showrunner",
+        name: "showrunner",
+        role: "AI Showrunner",
+        avatar: "🎬",
+        color: "var(--accent)",
+        bio: "Manages short-drama pipelines. Automatically builds scripts, episode beats, and show bibles with qwen-plus (+ video generation).",
+        namespaces: ["showrunner.private", "shared.glossary", "shared.code-conventions", "devices"]
+      },
+      {
+        id: "git-committer",
+        name: "git-committer",
+        role: "Agent Society",
+        avatar: "💻",
+        color: "var(--cyan)",
+        bio: "Automates workspace code changes, commits, and style guide validation with qwen3-coder-plus.",
+        namespaces: ["git-committer.private", "shared.glossary", "shared.code-conventions", "devices"]
+      },
+      {
+        id: "open-translate",
+        name: "open-translate",
+        role: "Autopilot",
+        avatar: "🌐",
+        color: "var(--green)",
+        bio: "Linguistic bridge for operational system translations, message localizations, and system glossaries with qwen-plus.",
+        namespaces: ["open-translate.private", "shared.glossary", "shared.code-conventions", "devices"]
+      },
+      {
+        id: "skippy-concierge",
+        name: "skippy-concierge",
+        role: "EdgeAgent",
+        avatar: "🤖",
+        color: "var(--blue)",
+        bio: "Device specialist and concierge. Diagnoses local device configurations, monitors sensors, and inspects hardware manuals with qwen-vl-max.",
+        namespaces: ["skippy_device_manuals", "shared.glossary", "shared.code-conventions", "devices"]
+      }
+    ];
+
+    // Theme toggling and state preservation
+    function initTheme() {
+      const savedTheme = localStorage.getItem('theme') || 'dark';
+      if (savedTheme === 'light') {
+        document.body.classList.add('light-theme');
+        document.getElementById('theme-toggle-btn').innerHTML = '🌙';
+      } else {
+        document.body.classList.remove('light-theme');
+        document.getElementById('theme-toggle-btn').innerHTML = '☀️';
+      }
+    }
+
+    function renderHeaderChart() {
+      const container = document.getElementById('header-css-chart');
+      if (!container) return;
+
+      const namespaces = [];
+      const counts = [];
+      const colors = [];
+
+      // Get computed colors from the theme
+      const style = getComputedStyle(document.body);
+      const accentColor = style.getPropertyValue('--accent').trim() || '#6366f1';
+      const purpleColor = style.getPropertyValue('--purple').trim() || '#a78bfa';
+
+      const nsKeys = [
+        'shared.glossary',
+        'shared.code-conventions',
+        'devices',
+        'skippy_device_manuals',
+        'showrunner.private',
+        'echo.private',
+        'open-translate.private',
+        'git-committer.private'
+      ];
+
+      for (const ns of nsKeys) {
+        const data = seedData[ns];
+        let count = 0;
+        if (data) {
+          if (Array.isArray(data)) {
+            count = data.length;
+          } else if (ns === 'showrunner.private') {
+            count = (data.episodes ? data.episodes.length : 0) + 1;
+          }
+        }
+        namespaces.push(ns);
+        counts.push(count);
+        // Distinguish shared vs private with purple vs accent colors
+        if (ns.endsWith('.private')) {
+          colors.push(purpleColor);
+        } else {
+          colors.push(accentColor);
+        }
+      }
+
+      const maxCount = Math.max(...counts, 1);
+      
+      let html = '';
+      for (let i = 0; i < counts.length; i++) {
+        const percentage = Math.max(5, (counts[i] / maxCount) * 100);
+        html += `<div title="${namespaces[i]}: ${counts[i]} records" style="flex: 1; height: ${percentage}%; background-color: ${colors[i]}; border-radius: 2px; transition: height 0.3s ease;"></div>`;
+      }
+      
+      container.innerHTML = html;
+    }
+
+    function toggleTheme() {
+      const isLight = document.body.classList.toggle('light-theme');
+      localStorage.setItem('theme', isLight ? 'light' : 'dark');
+      document.getElementById('theme-toggle-btn').innerHTML = isLight ? '🌙' : '☀️';
+      setTimeout(renderHeaderChart, 50);
+    }
+
+
+
+    // Sidebar filtering feature
+    function filterSidebar(query) {
+      const q = query.toLowerCase().trim();
+      const btns = document.querySelectorAll('.sidebar .ns-btn');
+      
+      btns.forEach(btn => {
+        const nsName = btn.id.replace(/^ns-/, '');
+        if (nsName.toLowerCase().includes(q)) {
+          btn.style.display = 'flex';
+        } else {
+          btn.style.display = 'none';
+        }
+      });
+
+      const titles = document.querySelectorAll('.sidebar .sidebar-title');
+      const sidebarTitleShared = titles[0];
+      const sidebarTitlePrivate = titles[1];
+
+      let sharedVisible = false;
+      const sharedIds = ['ns-shared.glossary', 'ns-shared.code-conventions', 'ns-devices', 'ns-skippy_device_manuals'];
+      sharedIds.forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn && btn.style.display !== 'none') {
+          sharedVisible = true;
+        }
+      });
+
+      let privateVisible = false;
+      const privateIds = ['ns-showrunner.private', 'ns-echo.private', 'ns-open-translate.private', 'ns-git-committer.private'];
+      privateIds.forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn && btn.style.display !== 'none') {
+          privateVisible = true;
+        }
+      });
+
+      if (sidebarTitleShared) {
+        sidebarTitleShared.style.display = sharedVisible ? 'block' : 'none';
+      }
+      if (sidebarTitlePrivate) {
+        sidebarTitlePrivate.style.display = privateVisible ? 'block' : 'none';
+      }
+    }
+
+    // State
+    const state = {
+      currentTab: 'db', // 'db' or 'agent'
+      currentNamespace: 'shared.glossary',
+      dbSearchQuery: '',
+      activeAgentId: 'memory-echo',
+      agentQuery: '',
+      showrunnerSubTab: 'bible', // 'bible' or 'episodes'
+      timelineSort: 'time', // 'time' or 'salience'
+      searchHistory: {}, // map of agentId to array of queries
+      currentD3Agent: null,
+      currentD3Matches: null,
+      dbViewMode: 'cards'
+    };
+
+    // Initializer
+    window.addEventListener('DOMContentLoaded', () => {
+      initTheme();
+      calculateCounts();
+      renderSidebar();
+      renderNamespace(state.currentNamespace);
+      renderAgentConsole();
+      renderHeaderChart();
+
+      const activeAgent = AGENTS.find(a => a.id === state.activeAgentId);
+      if (activeAgent) {
+        renderD3Graph(activeAgent);
+      }
+
+      // Initialize ResizeObserver for the Agent Search D3 network graph
+      const consoleGraph = document.getElementById('console-graph');
+      if (consoleGraph) {
+        let resizeTimeout;
+        const resizeObserver = new ResizeObserver(entries => {
+          // Debounce resize updates for performance on rapid window resizing (as per responsive guidelines)
+          clearTimeout(resizeTimeout);
+          resizeTimeout = setTimeout(() => {
+            if (state.currentD3Agent) {
+              renderD3Graph(state.currentD3Agent, state.currentD3Matches);
+            }
+          }, 100);
+        });
+        resizeObserver.observe(consoleGraph);
+      }
+    });
+
+    // Count statistics helper
+    function calculateCounts() {
+      let total = 0;
+      for (const [ns, data] of Object.entries(seedData)) {
+        let count = 0;
+        if (Array.isArray(data)) {
+          count = data.length;
+        } else if (ns === 'showrunner.private') {
+          // 1 bible info card + episodes
+          count = (data.episodes ? data.episodes.length : 0) + 1;
+        }
+        total += count;
+        const badge = document.getElementById(`count-${ns}`);
+        if (badge) badge.textContent = count;
+      }
+      document.getElementById('stat-total-records').textContent = total;
+    }
+
+    // Sidebar rendering and responsiveness
+    function renderSidebar() {
+      document.querySelectorAll('.ns-btn').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      const activeBtn = document.getElementById(`ns-${state.currentNamespace}`);
+      if (activeBtn) activeBtn.classList.add('active');
+      
+      const select = document.getElementById('mobile-ns-select');
+      if (select) select.value = state.currentNamespace;
+    }
+
+    // Tab switcher
+    function switchMainTab(tab) {
+      state.currentTab = tab;
+      document.getElementById('tab-db').classList.toggle('active', tab === 'db');
+      document.getElementById('tab-agent').classList.toggle('active', tab === 'agent');
+      
+      const dbView = document.getElementById('db-explorer-view');
+      const agentView = document.getElementById('agent-console-view');
+      
+      if (tab === 'db') {
+        agentView.style.display = 'none';
+        dbView.style.display = 'grid';
+      } else {
+        dbView.style.display = 'none';
+        agentView.style.display = 'grid';
+        renderAgentConsole();
+        const activeAgent = AGENTS.find(a => a.id === state.activeAgentId);
+        if (activeAgent) {
+          renderD3Graph(activeAgent, state.currentD3Matches);
+        }
+      }
+    }
+
+    // Namespace selection triggers
+    function onNamespaceSelect(ns) {
+      state.currentNamespace = ns;
+      state.dbSearchQuery = '';
+      document.getElementById('namespace-search').value = '';
+      renderSidebar();
+      renderNamespace(ns);
+    }
+
+    // Search events
+    function onNamespaceSearch(query) {
+      state.dbSearchQuery = query.toLowerCase().trim();
+      renderNamespace(state.currentNamespace);
+    }
+
+    // Export current namespace data as JSON
+    function exportCurrentNamespace() {
+      const ns = state.currentNamespace;
+      const data = seedData[ns];
+      if (!data) return;
+      
+      const jsonStr = JSON.stringify(data, null, 2);
+      const blob = new Blob([jsonStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${ns}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      // Interactive feedback on the export button
+      const btn = document.getElementById('export-ns-btn');
+      if (btn) {
+        const originalHtml = btn.innerHTML;
+        btn.innerHTML = `
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-check" style="vertical-align: middle;"><polyline points="20 6 9 17 4 12"/></svg>
+          <span style="color: var(--green);">Exported!</span>
+        `;
+        btn.style.borderColor = 'var(--green)';
+        setTimeout(() => {
+          btn.innerHTML = originalHtml;
+          btn.style.borderColor = 'var(--border)';
+        }, 1500);
+      }
+    }
+
+    // Save edits from JSON view
+    function saveJsonEdits(ns) {
+      const area = document.getElementById('json-edit-area');
+      const msg = document.getElementById('json-edit-msg');
+      if (!area) return;
+      try {
+        const parsed = JSON.parse(area.value);
+        seedData[ns] = parsed;
+        if (msg) {
+          msg.textContent = 'Saved! Updates applied to local state.';
+          msg.style.color = 'var(--green)';
+          msg.style.display = 'block';
+          setTimeout(() => msg.style.display = 'none', 3000);
+          
+          calculateCounts();
+          renderHeaderChart();
+        }
+      } catch (e) {
+        if (msg) {
+          msg.textContent = 'Invalid JSON: ' + e.message;
+          msg.style.color = '#ef4444';
+          msg.style.display = 'block';
+        }
+      }
+    }
+
+    // Toggle raw JSON or UI card view
+    function toggleDbViewMode() {
+      state.dbViewMode = state.dbViewMode === 'cards' ? 'json' : 'cards';
+      const btn = document.getElementById('toggle-view-mode-btn');
+      if (btn) {
+        if (state.dbViewMode === 'json') {
+          btn.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-layout-grid" style="vertical-align: middle;"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
+            <span id="view-mode-text">View: Cards</span>
+          `;
+        } else {
+          btn.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-braces" style="vertical-align: middle;"><path d="M8 3H7a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2 2 2 0 0 1 2 2v5a2 2 0 0 0 2 2h1"/><path d="M16 21h1a2 2 0 0 0 2-2v-5a2 2 0 0 1 2-2 2 2 0 0 1-2-2V5a2 2 0 0 0-2-2h-1"/></svg>
+            <span id="view-mode-text">View: JSON</span>
+          `;
+        }
+      }
+      renderNamespace(state.currentNamespace);
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+    }
+
+    // Safe lowercase includes check for search filters
+    function safeMatch(value, query) {
+      if (!value) return false;
+      return String(value).toLowerCase().includes(query);
+    }
+
+    // Dynamic Highlighter Utility
+    function highlight(text, search) {
+      if (!search || !text) return text;
+      const escaped = search.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+      const regex = new RegExp(`(${escaped})`, 'gi');
+      return String(text).replace(regex, '<mark class="highlight">$1</mark>');
+    }
+
+    // RENDER NAMESPACE PANEL
+    function renderNamespace(ns) {
+      const container = document.getElementById('db-content-area');
+      const titleText = document.getElementById('panel-title-text');
+      const descText = document.getElementById('panel-desc-text');
+      const searchWrapper = document.getElementById('search-control-wrapper');
+      
+      // Update descriptors
+      titleText.textContent = ns;
+
+      if (state.dbViewMode === 'json') {
+        descText.textContent = `Raw JSON schema structure and records for ${ns}.`;
+        searchWrapper.style.display = 'none';
+        const rawData = seedData[ns];
+        container.innerHTML = `
+          <div style="background: var(--bg-dark); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; display: flex; flex-direction: column; height: calc(100vh - 280px); font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; line-height: 1.5; color: #a7f3d0; box-shadow: inset 0 2px 8px rgba(0,0,0,0.4);">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 0.75rem; margin-bottom: 1rem; flex-shrink: 0;">
+              <span style="color: var(--text-muted); font-size: 0.7rem; font-weight: bold; text-transform: uppercase;">Raw Document Seed Structure [${ns}]</span>
+              <div style="display: flex; gap: 8px; align-items: center;">
+                <span id="json-edit-msg" style="color: var(--green); font-size: 0.7rem; font-family: 'Inter', sans-serif; display: none;">Saved!</span>
+                <button onclick="saveJsonEdits('${ns}')" style="background: var(--accent); color: var(--text); border: none; border-radius: 4px; padding: 4px 12px; font-size: 0.7rem; font-weight: bold; cursor: pointer; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.8';" onmouseout="this.style.opacity='1';">Save Edits</button>
+              </div>
+            </div>
+            <textarea id="json-edit-area" spellcheck="false" style="flex: 1; width: 100%; background: transparent; color: inherit; border: none; outline: none; font-family: inherit; font-size: inherit; resize: none; white-space: pre; overflow: auto;">${escapeHtml(JSON.stringify(rawData, null, 2))}</textarea>
+          </div>
+        `;
+        return;
+      }
+      
+      searchWrapper.style.display = 'block'; // default to show search
+
+      if (ns === 'shared.glossary') {
+        descText.textContent = "Browse engineering terms, definitions, and multilang translations.";
+        renderGlossary(container);
+      } else if (ns === 'shared.code-conventions') {
+        descText.textContent = "Guidelines and code conventions with good vs bad code blocks.";
+        renderCodeConventions(container);
+      } else if (ns === 'devices') {
+        descText.textContent = "Hardware specifications, biometric units, and active fault records.";
+        renderDevices(container);
+      } else if (ns === 'skippy_device_manuals') {
+        descText.textContent = "Diagnostic manuals and recovery guidelines linked to device models.";
+        renderManuals(container);
+      } else if (ns === 'showrunner.private') {
+        descText.textContent = "Series bible data and script beats for 'The Glass Circuit'.";
+        searchWrapper.style.display = 'none'; // hide normal search, uses sub-tabs
+        renderShowrunner(container);
+      } else if (ns === 'echo.private') {
+        descText.textContent = "Personal memories chronological log with salience priorities.";
+        renderEcho(container);
+      } else if (ns === 'open-translate.private') {
+        descText.textContent = "Translations pairs, context tags, and linguistic logs.";
+        renderTranslate(container);
+      } else if (ns === 'git-committer.private') {
+        descText.textContent = "Terminal git commits mapped to codebase conventions.";
+        renderGit(container);
+      }
+    }
+
+    // 1. shared.glossary
+    function renderGlossary(container) {
+      const items = seedData["shared.glossary"];
+      const filtered = items.filter(item => {
+        const query = state.dbSearchQuery;
+        if (!query) return true;
+        return safeMatch(item.term_en, query) || 
+               safeMatch(item.domain, query) || 
+               safeMatch(item.notes, query) ||
+               Object.values(item.translations).some(t => safeMatch(t, query));
+      });
+
+      if (filtered.length === 0) {
+        container.innerHTML = `<div style="padding: 2rem; text-align: center; color: var(--text-muted);">No matching glossary terms.</div>`;
+        return;
+      }
+
+      let html = `<div class="grid-container">`;
+      filtered.forEach(item => {
+        const query = state.dbSearchQuery;
+        let transHtml = `<div class="translations-box">`;
+        for (const [lang, word] of Object.entries(item.translations)) {
+          transHtml += `
+            <div class="trans-item">
+              <span class="trans-lang">${lang.toUpperCase()}</span>
+              <span class="trans-word">${highlight(word, query)}</span>
+            </div>`;
+        }
+        transHtml += `</div>`;
+
+        html += `
+          <div class="card">
+            <div class="card-title">
+              <span>${highlight(item.term_en, query)}</span>
+              <span class="badge badge-cyan">${highlight(item.domain, query)}</span>
+            </div>
+            <div class="card-notes">${highlight(item.notes, query)}</div>
+            ${transHtml}
+          </div>`;
+      });
+      html += `</div>`;
+      container.innerHTML = html;
+    }
+
+    // 2. shared.code-conventions
+    function renderCodeConventions(container) {
+      const items = seedData["shared.code-conventions"];
+      const filtered = items.filter(item => {
+        const query = state.dbSearchQuery;
+        if (!query) return true;
+        return safeMatch(item.language, query) ||
+               safeMatch(item.rule, query) ||
+               safeMatch(item.rationale, query);
+      });
+
+      if (filtered.length === 0) {
+        container.innerHTML = `<div style="padding: 2rem; text-align: center; color: var(--text-muted);">No conventions match.</div>`;
+        return;
+      }
+
+      let html = `<div class="conventions-grid">`;
+      filtered.forEach(item => {
+        const query = state.dbSearchQuery;
+        const tag = item.rule.split(':')[0].trim();
+        html += `
+          <div class="convention-card" id="convention-${tag}">
+            <div class="convention-header">
+              <div style="font-weight: bold; font-size: 1rem; color: var(--text);">${highlight(item.rule, query)}</div>
+              <span class="badge badge-blue">${highlight(item.language, query)}</span>
+            </div>
+            <div class="card-notes" style="font-size: 0.85rem;">
+              <strong style="color: var(--cyan); font-size: 0.75rem; text-transform: uppercase; font-family: monospace;">Rationale:</strong><br/>
+              ${highlight(item.rationale, query)}
+            </div>
+            <div class="convention-examples">
+              <div class="example-box good">
+                <span class="example-label">Good standard</span>
+                <pre class="example-code">${highlight(item.example_good, query)}</pre>
+              </div>
+              <div class="example-box bad">
+                <span class="example-label">Avoid style</span>
+                <pre class="example-code">${highlight(item.example_bad, query)}</pre>
+              </div>
+            </div>
+          </div>`;
+      });
+      html += `</div>`;
+      container.innerHTML = html;
+    }
+
+    // 3. devices
+    function renderDevices(container) {
+      const items = seedData["devices"];
+      const filtered = items.filter(item => {
+        const query = state.dbSearchQuery;
+        if (!query) return true;
+        return safeMatch(item.make, query) ||
+               safeMatch(item.model, query) ||
+               safeMatch(item.category, query) ||
+               safeMatch(item.key_specs, query) ||
+               item.common_issues.some(issue => safeMatch(issue, query));
+      });
+
+      if (filtered.length === 0) {
+        container.innerHTML = `<div style="padding: 2rem; text-align: center; color: var(--text-muted);">No devices match.</div>`;
+        return;
+      }
+
+      let html = `<div class="grid-container">`;
+      filtered.forEach((device, index) => {
+        const query = state.dbSearchQuery;
+        let issuesHtml = `<div class="issues-list">`;
+        device.common_issues.forEach(issue => {
+          issuesHtml += `<span class="issue-tag">${highlight(issue, query)}</span>`;
+        });
+        issuesHtml += `</div>`;
+
+        const btnId = `dev-btn-${index}`;
+        const drawerId = `dev-drawer-${index}`;
+
+        html += `
+          <div class="card">
+            <div class="card-title">
+              <span>${highlight(device.make, query)} <span style="color: var(--cyan);">${highlight(device.model, query)}</span></span>
+              <span class="badge badge-amber">${highlight(device.category, query)}</span>
+            </div>
+            <div class="card-meta">Deployed: ${device.year}</div>
+            <div class="card-notes" style="font-size: 0.8rem;"><strong style="font-size: 0.7rem; text-transform: uppercase;">Key Specs:</strong> ${highlight(device.key_specs, query)}</div>
+            <div style="margin-top: 0.25rem;">
+              <div style="font-size: 0.7rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.25rem; font-weight: bold; font-family: monospace;">Common Fault Patterns:</div>
+              ${issuesHtml}
+            </div>
+            <button class="device-action-btn" id="${btnId}" onclick="toggleDeviceManualInline('${device.model}', '${btnId}', '${drawerId}')">
+              ⚡ Inspect Connected Manuals
+            </button>
+            <div class="manual-drawer" id="${drawerId}"></div>
+          </div>`;
+      });
+      html += `</div>`;
+      container.innerHTML = html;
+    }
+
+    // Toggle manuals dynamically within device card
+    function toggleDeviceManualInline(model, btnId, drawerId) {
+      const drawer = document.getElementById(drawerId);
+      const btn = document.getElementById(btnId);
+      if (!drawer || !btn) return;
+
+      const isExpanded = drawer.style.display === "block";
+      if (isExpanded) {
+        drawer.style.display = "none";
+        btn.innerHTML = `⚡ Inspect Connected Manuals`;
+        btn.classList.remove('active-btn');
+      } else {
+        // Query linked manual chunks
+        const chunks = seedData["skippy_device_manuals"].filter(chunk => chunk.device_model === model);
+        if (chunks.length === 0) {
+          drawer.innerHTML = `<div style="font-size: 0.75rem; color: var(--text-muted); padding: 0.5rem 0;">No diagnostic manuals recorded for model ${model}.</div>`;
+        } else {
+          let chunksHtml = `<div style="font-size: 0.75rem; font-weight: bold; border-bottom: 1px solid #1f2a3f; padding-bottom: 0.25rem; margin-bottom: 0.25rem; color: var(--cyan); font-family: monospace;">MANUAL RECORDS FOUND: ${chunks.length}</div>`;
+          chunks.forEach(chunk => {
+            chunksHtml += `
+              <div class="manual-chunk">
+                <div class="manual-sec">[SEC: ${chunk.section}]</div>
+                <div class="manual-txt">${chunk.chunk_text}</div>
+              </div>`;
+          });
+          drawer.innerHTML = chunksHtml;
+        }
+        drawer.style.display = "block";
+        btn.innerHTML = `🔒 Close Manual Guidelines`;
+        btn.classList.add('active-btn');
+      }
+    }
+
+    // 4. skippy_device_manuals
+    function renderManuals(container) {
+      const items = seedData["skippy_device_manuals"];
+      const filtered = items.filter(item => {
+        const query = state.dbSearchQuery;
+        if (!query) return true;
+        return safeMatch(item.device_model, query) ||
+               safeMatch(item.section, query) ||
+               safeMatch(item.chunk_text, query);
+      });
+
+      if (filtered.length === 0) {
+        container.innerHTML = `<div style="padding: 2rem; text-align: center; color: var(--text-muted);">No manuals matched.</div>`;
+        return;
+      }
+
+      let html = `<div class="grid-container">`;
+      filtered.forEach(item => {
+        const query = state.dbSearchQuery;
+        html += `
+          <div class="card" style="border-top: 3px solid var(--amber);">
+            <div class="card-title">
+              <span>Model: <span style="color: var(--amber);">${highlight(item.device_model, query)}</span></span>
+              <span class="badge badge-amber" style="font-family: monospace;">SEC: ${highlight(item.section, query)}</span>
+            </div>
+            <div class="card-notes" style="color: var(--text);">${highlight(item.chunk_text, query)}</div>
+          </div>`;
+      });
+      html += `</div>`;
+      container.innerHTML = html;
+    }
+
+    // 5. showrunner.private
+    function renderShowrunner(container) {
+      const data = seedData["showrunner.private"];
+      
+      let navHtml = `
+        <div class="showrunner-nav">
+          <button class="sr-tab-btn ${state.showrunnerSubTab === 'bible' ? 'active' : ''}" onclick="toggleShowrunnerTab('bible')">📖 Series Bible</button>
+          <button class="sr-tab-btn ${state.showrunnerSubTab === 'episodes' ? 'active' : ''}" onclick="toggleShowrunnerTab('episodes')">🎬 Episodes (${data.episodes.length})</button>
+        </div>`;
+
+      let innerHtml = '';
+      if (state.showrunnerSubTab === 'bible') {
+        const bible = data.show_bible;
+        
+        let charsHtml = '';
+        bible.main_characters.forEach(char => {
+          charsHtml += `
+            <div class="char-card">
+              <div class="char-name">
+                <span>${char.name}</span>
+                <span class="char-role">${char.role}</span>
+              </div>
+              <div class="char-arc">${char.arc}</div>
+            </div>`;
+        });
+
+        let rulesHtml = '';
+        bible.world_rules.forEach((rule, idx) => {
+          rulesHtml += `
+            <div class="rule-item">
+              <span class="rule-num">RULE ${idx + 1}:</span>
+              <span>${rule}</span>
+            </div>`;
+        });
+
+        innerHtml = `
+          <div class="sr-bible-grid">
+            <div class="sr-box" style="grid-column: 1 / -1;">
+              <div class="sr-title">📺 SERIES SPECS</div>
+              <div style="font-size: 1.1rem; font-weight: bold; margin-bottom: 0.25rem;">${bible.title}</div>
+              <div style="font-size: 0.75rem; color: var(--purple); margin-bottom: 0.75rem; font-weight: bold; font-family: monospace;">GENRE: ${bible.genre} | TONE: ${bible.tone}</div>
+              <div style="font-size: 0.7rem; text-transform: uppercase; color: var(--text-muted); font-weight: bold; margin-bottom: 0.2rem; font-family: monospace;">Logline:</div>
+              <p class="sr-logline">"${bible.logline}"</p>
+            </div>
+            <div class="sr-box">
+              <div class="sr-title">👥 CAST INDEX</div>
+              ${charsHtml}
+            </div>
+            <div class="sr-box">
+              <div class="sr-title">⚖️ LAWS OF THE COSMOS</div>
+              ${rulesHtml}
+            </div>
+          </div>`;
+      } else {
+        let epCards = '';
+        data.episodes.forEach(ep => {
+          let beatsHtml = '';
+          ep.key_beats.forEach(beat => {
+            beatsHtml += `
+              <div class="ep-beat">
+                <span class="ep-beat-dot">⚡</span>
+                <span>${beat}</span>
+              </div>`;
+          });
+
+          epCards += `
+            <div class="ep-card">
+              <div class="ep-header">
+                <span class="ep-title">EPISODE ${ep.number}: "${ep.title}"</span>
+                <span class="badge badge-purple">Ready</span>
+              </div>
+              <p class="ep-synopsis">${ep.synopsis}</p>
+              <div>
+                <div class="ep-beats-title">Narrative Beats:</div>
+                <div class="ep-beats-list">${beatsHtml}</div>
+              </div>
+            </div>`;
+        });
+
+        innerHtml = `<div class="ep-grid">${epCards}</div>`;
+      }
+
+      container.innerHTML = `<div class="showrunner-panel">${navHtml}${innerHtml}</div>`;
+    }
+
+    function toggleShowrunnerTab(tab) {
+      state.showrunnerSubTab = tab;
+      renderNamespace(state.currentNamespace);
+    }
+
+    // 6. echo.private
+    function renderEcho(container) {
+      const items = seedData["echo.private"];
+      
+      const filtered = items.filter(item => {
+        const query = state.dbSearchQuery;
+        if (!query) return true;
+        return safeMatch(item.memory, query) ||
+               safeMatch(item.category, query);
+      });
+
+      // Sorting
+      if (state.timelineSort === 'salience') {
+        filtered.sort((a, b) => b.salience - a.a_salience || b.salience - a.salience);
+      } else {
+        filtered.sort((a, b) => new Date(b.timestamp_iso) - new Date(a.timestamp_iso));
+      }
+
+      let sortBar = `
+        <div class="timeline-sort-bar">
+          <span style="font-size: 0.75rem; color: var(--text-muted); align-self: center; margin-right: 0.5rem;">Sort chronologies:</span>
+          <button class="sort-btn ${state.timelineSort === 'time' ? 'active' : ''}" onclick="sortTimeline('time')">🕒 Chronological</button>
+          <button class="sort-btn ${state.timelineSort === 'salience' ? 'active' : ''}" onclick="sortTimeline('salience')">🔥 Salience Score</button>
+        </div>`;
+
+      if (filtered.length === 0) {
+        container.innerHTML = sortBar + `<div style="padding: 2rem; text-align: center; color: var(--text-muted);">No private memory matches.</div>`;
+        return;
+      }
+
+      let timelineHtml = `<div class="timeline">`;
+      filtered.forEach(item => {
+        const query = state.dbSearchQuery;
+        const formattedDate = new Date(item.timestamp_iso).toLocaleDateString(undefined, {
+          year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+        });
+
+        const pct = Math.round(item.salience * 100);
+        let salColor = "var(--cyan)";
+        if (item.salience >= 0.85) salColor = "var(--amber)";
+        else if (item.salience >= 0.6) salColor = "var(--purple)";
+
+        timelineHtml += `
+          <div class="timeline-item">
+            <div class="timeline-node ${item.salience >= 0.85 ? 'high-salience' : ''}"></div>
+            <div class="card-title">
+              <span class="badge badge-purple">${highlight(item.category, query)}</span>
+              <span style="font-size: 0.7rem; color: var(--text-muted); font-family: monospace;">${formattedDate}</span>
+            </div>
+            <div style="font-size: 0.85rem; color: var(--text); line-height: 1.4; margin-top: 0.25rem;">
+              "${highlight(item.memory, query)}"
+            </div>
+            <div class="salience-meter">
+              <div class="salience-label">
+                <span>Impact Priority (Salience)</span>
+                <span style="color: ${salColor};">${pct}%</span>
+              </div>
+              <div class="salience-bar-bg">
+                <div class="salience-bar-fill" style="width: ${pct}%; background-color: ${salColor};"></div>
+              </div>
+            </div>
+          </div>`;
+      });
+      timelineHtml += `</div>`;
+
+      container.innerHTML = sortBar + timelineHtml;
+    }
+
+    function sortTimeline(mode) {
+      state.timelineSort = mode;
+      renderNamespace(state.currentNamespace);
+    }
+
+    // 7. open-translate.private
+    function renderTranslate(container) {
+      const items = seedData["open-translate.private"];
+      const filtered = items.filter(item => {
+        const query = state.dbSearchQuery;
+        if (!query) return true;
+        return safeMatch(item.source_text, query) ||
+               safeMatch(item.target_text, query) ||
+               safeMatch(item.context, query);
+      });
+
+      if (filtered.length === 0) {
+        container.innerHTML = `<div style="padding: 2rem; text-align: center; color: var(--text-muted);">No translation matching context found.</div>`;
+        return;
+      }
+
+      let html = `<div class="translate-box">`;
+      filtered.forEach(item => {
+        const query = state.dbSearchQuery;
+        html += `
+          <div class="trans-row">
+            <div class="trans-col trans-col-left">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span class="badge badge-cyan" style="font-family: monospace;">${item.source_lang.toUpperCase()}</span>
+                <span style="font-size: 0.65rem; color: var(--text-muted); font-family: monospace; font-weight: bold;">SOURCE LOG</span>
+              </div>
+              <div style="font-size: 0.85rem; color: var(--text); line-height: 1.4; margin-top: 0.35rem; font-family: monospace;">
+                "${highlight(item.source_text, query)}"
+              </div>
+              <div style="font-size: 0.7rem; color: var(--text-muted); font-style: italic; margin-top: 0.25rem;">
+                Ctx: ${highlight(item.context, query)}
+              </div>
+            </div>
+            <div class="trans-col trans-col-right">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span class="badge badge-green" style="font-family: monospace;">${item.target_lang.toUpperCase()}</span>
+                <span style="font-size: 0.65rem; color: var(--green); font-family: monospace; font-weight: bold;">DECRYPTED TARGET</span>
+              </div>
+              <div style="font-size: 0.85rem; color: var(--green); line-height: 1.4; margin-top: 0.35rem; font-family: monospace; font-weight: 500;">
+                "${highlight(item.target_text, query)}"
+              </div>
+            </div>
+          </div>`;
+      });
+      html += `</div>`;
+      container.innerHTML = html;
+    }
+
+    // 8. git-committer.private
+    function renderGit(container) {
+      const items = seedData["git-committer.private"];
+      const filtered = items.filter(item => {
+        const query = state.dbSearchQuery;
+        if (!query) return true;
+        return safeMatch(item.hash, query) ||
+               safeMatch(item.message, query) ||
+               safeMatch(item.diff_summary, query) ||
+               item.files_changed.some(f => safeMatch(f, query)) ||
+               item.convention_tags.some(tag => safeMatch(tag, query));
+      });
+
+      if (filtered.length === 0) {
+        container.innerHTML = `<div style="padding: 2rem; text-align: center; color: var(--text-muted);">No commit records match query.</div>`;
+        return;
+      }
+
+      let html = `<div style="display: flex; flex-direction: column; gap: 0.75rem;">`;
+      filtered.forEach(item => {
+        const query = state.dbSearchQuery;
+        
+        let tagsHtml = `<div class="git-tags">`;
+        item.convention_tags.forEach(tag => {
+          tagsHtml += `<span class="git-tag" onclick="jumpToConvention('${tag}')" title="Inspect Rule convention">[${highlight(tag, query)}]</span>`;
+        });
+        tagsHtml += `</div>`;
+
+        html += `
+          <div class="git-item">
+            <div class="git-header">
+              <div>
+                <span class="git-hash">[${highlight(item.hash, query)}]</span>
+                <span class="git-msg">${highlight(item.message, query)}</span>
+              </div>
+              ${tagsHtml}
+            </div>
+            <div class="git-files">
+              <strong style="font-size: 0.65rem;">Modified:</strong> ${item.files_changed.map(f => highlight(f, query)).join(', ')}
+            </div>
+            <div class="git-diff">
+              <span style="color: var(--cyan); font-weight: bold; font-size: 0.65rem; text-transform: uppercase;">Change Vector:</span> ${highlight(item.diff_summary, query)}
+            </div>
+          </div>`;
+      });
+      html += `</div>`;
+      container.innerHTML = html;
+    }
+
+    // Git tag link utility
+    function jumpToConvention(tag) {
+      onNamespaceSelect("shared.code-conventions");
+      setTimeout(() => {
+        const card = document.getElementById(`convention-${tag}`);
+        if (card) {
+          card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          card.classList.add('flash-highlight');
+          setTimeout(() => {
+            card.classList.remove('flash-highlight');
+          }, 2000);
+        }
+      }, 100);
+    }
+
+
+    // AGENT CONSOLE LOGIC
+    function renderAgentConsole() {
+      const listContainer = document.getElementById('agent-selector-list');
+      let html = '';
+      AGENTS.forEach(agent => {
+        const isActive = agent.id === state.activeAgentId;
+        html += `
+          <div class="agent-card ${isActive ? 'active' : ''}" onclick="selectAgent('${agent.id}')" style="border-left-color: ${isActive ? agent.color : 'transparent'};">
+            <div class="agent-avatar">${agent.avatar}</div>
+            <div class="agent-info">
+              <div class="agent-name" style="color: ${agent.color};">${agent.name}</div>
+              <div class="agent-role">${agent.role}</div>
+            </div>
+          </div>`;
+      });
+      listContainer.innerHTML = html;
+
+      // Update inputs info
+      const activeAgent = AGENTS.find(a => a.id === state.activeAgentId);
+      document.getElementById('active-agent-prompt').textContent = `Selected Agent: ${activeAgent.name}`;
+      document.getElementById('active-agent-detail').innerHTML = `
+        <strong>Profile:</strong> ${activeAgent.bio}<br/>
+        <span style="font-size: 0.7rem; color: var(--text-muted);">This agent searches across its specific namespaces dynamically.</span>
+      `;
+
+      // Render pills
+      let pills = '';
+      activeAgent.namespaces.forEach(ns => {
+        const isPrivate = ns.endsWith('.private');
+        pills += `<span class="badge ${isPrivate ? 'badge-purple' : 'badge-cyan'}" style="font-size: 0.6rem; padding: 0.1rem 0.3rem;">${ns}</span>`;
+      });
+      document.getElementById('agent-namespaces-pills').innerHTML = pills;
+    }
+
+    function selectAgent(id) {
+      state.activeAgentId = id;
+      renderAgentConsole();
+      // Clear console when agent switches to avoid stale search context
+      document.getElementById('console-output').innerHTML = `<div class="recall-status">Selected agent ${AGENTS.find(a => a.id === id).name}. Enter search query below...</div>`;
+      document.getElementById('agent-query-input').value = '';
+      
+      const agent = AGENTS.find(a => a.id === id);
+      renderD3Graph(agent);
+      renderSearchHistory();
+    }
+
+    function addToSearchHistory(agentId, query) {
+      if (!state.searchHistory[agentId]) {
+        state.searchHistory[agentId] = [];
+      }
+      // Remove if it already exists to move it to front
+      state.searchHistory[agentId] = state.searchHistory[agentId].filter(q => q !== query);
+      state.searchHistory[agentId].unshift(query);
+      if (state.searchHistory[agentId].length > 5) {
+        state.searchHistory[agentId].pop(); // keep last 5
+      }
+      renderSearchHistory();
+    }
+
+    function renderSearchHistory() {
+      const historyContainer = document.getElementById('agent-search-history');
+      if (!historyContainer) return;
+      
+      const history = state.searchHistory[state.activeAgentId] || [];
+      if (history.length === 0) {
+        historyContainer.innerHTML = '';
+        return;
+      }
+      
+      historyContainer.innerHTML = `<span style="font-size: 0.7rem; color: var(--text-muted); font-weight: 500;">Recent:</span>` + history.map(q => 
+        `<div class="history-pill" title="${q.replace(/"/g, '&quot;')}" onclick="reExecuteSearch('${q.replace(/"/g, '&quot;')}')">${q}</div>`
+      ).join('');
+    }
+
+    function reExecuteSearch(query) {
+      document.getElementById('agent-query-input').value = query;
+      triggerAgentRecall();
+    }
+
+    // SIMULATED SEARCH RECALL ALGORITHM
+    function triggerAgentRecall(e) {
+      if (e) e.preventDefault();
+      const input = document.getElementById('agent-query-input');
+      const query = input.value.toLowerCase().trim();
+      const output = document.getElementById('console-output');
+
+      if (!query) {
+        output.innerHTML = `<div class="recall-status" style="color: var(--amber);">[SYSTEM] Please enter a query string to scan nodes...</div>`;
+        return;
+      }
+      
+      addToSearchHistory(state.activeAgentId, query);
+
+      output.innerHTML = `
+        <div class="recall-status">
+          🔍 Searching agent memories...<br/>
+          📊 Match metrics computed in memory buffer...
+        </div>`;
+
+      // Short aesthetic timeout
+      setTimeout(() => {
+        const agent = AGENTS.find(a => a.id === state.activeAgentId);
+        const matches = [];
+
+        agent.namespaces.forEach(ns => {
+          const data = seedData[ns];
+          if (!data) return;
+
+          if (Array.isArray(data)) {
+            data.forEach(item => {
+              const itemStr = JSON.stringify(item).toLowerCase();
+              if (itemStr.includes(query)) {
+                matches.push({
+                  item,
+                  namespace: ns,
+                  score: calculateAgentRecallScore(item, ns, query)
+                });
+              }
+            });
+          } else if (ns === 'showrunner.private') {
+            // Flatten showrunner structures
+            const bible = data.show_bible;
+            if (bible) {
+              const bibleStr = JSON.stringify(bible).toLowerCase();
+              if (bibleStr.includes(query)) {
+                matches.push({
+                  item: { type: 'show_bible', title: bible.title, logline: bible.logline, genre: bible.genre },
+                  namespace: ns,
+                  score: calculateAgentRecallScore(bible, ns, query)
+                });
+              }
+
+              bible.main_characters.forEach(char => {
+                const charStr = JSON.stringify(char).toLowerCase();
+                if (charStr.includes(query)) {
+                  matches.push({
+                    item: { type: 'character', name: char.name, role: char.role, arc: char.arc },
+                    namespace: ns,
+                    score: calculateAgentRecallScore(char, ns, query)
+                  });
+                }
+              });
+
+              bible.world_rules.forEach((rule, index) => {
+                if (safeMatch(rule, query)) {
+                  matches.push({
+                    item: { type: 'world_rule', rule, index: index + 1 },
+                    namespace: ns,
+                    score: calculateAgentRecallScore({ rule }, ns, query)
+                  });
+                }
+              });
+            }
+
+            data.episodes.forEach(ep => {
+              const epStr = JSON.stringify(ep).toLowerCase();
+              if (epStr.includes(query)) {
+                matches.push({
+                  item: { type: 'episode', ...ep },
+                  namespace: ns,
+                  score: calculateAgentRecallScore(ep, ns, query)
+                });
+              }
+            });
+          }
+        });
+
+        // Sort match outcomes
+        matches.sort((a, b) => b.score - a.score);
+        const topMatches = matches.slice(0, 3);
+
+        if (topMatches.length === 0) {
+          output.innerHTML = `
+            <div class="recall-status" style="color: var(--red);">
+              🚨 SEARCH FAILED. 0 records retrieved from ${agent.name}'s allowed boundaries for query "${query}".
+            </div>`;
+          return;
+        }
+
+        let outputHtml = `
+          <div class="recall-status" style="color: var(--text);">
+            ✓ SCAN SUCCESSFUL. Retrieved ${matches.length} matching nodes. Showing top 3 relevance scores:
+          </div>`;
+
+        topMatches.forEach((match, index) => {
+          outputHtml += renderCompactRecallCard(match, query, index);
+        });
+
+        output.innerHTML = outputHtml;
+        renderD3Graph(agent, matches);
+      }, 350);
+    }
+
+    // Heuristics Relevance Meter Computations
+    function calculateAgentRecallScore(item, ns, query) {
+      let score = 40; // Base score
+      
+      const properties = Object.values(item);
+      let foundExactWord = false;
+      let charsChecked = 0;
+
+      properties.forEach(p => {
+        if (typeof p === 'string') {
+          const valLower = p.toLowerCase();
+          charsChecked += valLower.length;
+          // exact word match boost
+          if (valLower === query) {
+            score += 35;
+            foundExactWord = true;
+          } else if (valLower.includes(query)) {
+            score += 15;
+          }
+        }
+      });
+
+      // Special bonus factors
+      if (ns === 'echo.private' && item.salience) {
+        score += item.salience * 15;
+      }
+
+      // Add small density adjustment
+      score += Math.min(9, charsChecked / 120);
+      
+      // Seed deterministic randomization slightly
+      const seed = Math.abs(JSON.stringify(item).length % 7);
+      score += seed;
+
+      return Math.min(99, Math.round(score));
+    }
+
+    // LIVE AI SEARCH GROUNDING WITH QWEN WEB SEARCH & CONTEXT UTILITIES
+    function formatMarkdown(text) {
+      if (!text) return "";
+      let html = text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+      html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+      html = html.replace(/__(.*?)__/g, '<strong>$1</strong>');
+      html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
+      html = html.replace(/_(.*?)_/g, '<em>$1</em>');
+      html = html.replace(/`(.*?)`/g, '<code style="background: var(--bg-dark); border: 1px solid var(--border); padding: 1px 5px; border-radius: 4px; font-family: \'JetBrains Mono\', monospace; font-size: 0.8rem; color: var(--amber);">$1</code>');
+      html = html.replace(/```([\s\S]*?)```/g, '<pre style="background: var(--bg-dark); border: 1px solid var(--border); padding: 0.75rem; border-radius: 8px; font-family: \'JetBrains Mono\', monospace; font-size: 0.75rem; color: #cbd5e1; overflow-x: auto; white-space: pre-wrap; margin: 0.5rem 0;">$1</pre>');
+      const lines = html.split('\n');
+      let inList = false;
+      let formattedLines = [];
+      lines.forEach(line => {
+        const trimmed = line.trim();
+        if (trimmed.startsWith('* ') || trimmed.startsWith('- ')) {
+          if (!inList) {
+            formattedLines.push('<ul style="margin: 0.5rem 0; padding-left: 1.25rem; list-style-type: disc;">');
+            inList = true;
+          }
+          formattedLines.push(`<li style="margin-bottom: 0.25rem;">${trimmed.substring(2)}</li>`);
+        } else {
+          if (inList) {
+            formattedLines.push('</ul>');
+            inList = false;
+          }
+          if (trimmed) {
+            formattedLines.push(`<p style="margin-bottom: 0.75rem;">${line}</p>`);
+          } else {
+            formattedLines.push('');
+          }
+        }
+      });
+      if (inList) {
+        formattedLines.push('</ul>');
+      }
+      return formattedLines.join('\n');
+    }
+
+    function triggerSearchGrounding() {
+      const input = document.getElementById('agent-query-input');
+      const query = input.value.trim();
+      const output = document.getElementById('console-output');
+
+      if (!query) {
+        output.innerHTML = `<div class="recall-status" style="color: var(--amber);">[SYSTEM] Please enter a query string to run Grounded Search...</div>`;
+        return;
+      }
+
+      addToSearchHistory(state.activeAgentId, query);
+
+      const agent = AGENTS.find(a => a.id === state.activeAgentId);
+      const groundingContext = [];
+
+      // Gather ALL records in the agent's current namespaces as grounding data
+      agent.namespaces.forEach(ns => {
+        const data = seedData[ns];
+        if (!data) return;
+        if (Array.isArray(data)) {
+          data.forEach(item => {
+            groundingContext.push({ ...item, namespace: ns });
+          });
+        } else if (ns === 'showrunner.private') {
+          // Flatten showrunner structures completely for full namespace grounding
+          const bible = data.show_bible;
+          if (bible) {
+            groundingContext.push({ type: 'show_bible', title: bible.title, logline: bible.logline, genre: bible.genre, namespace: ns });
+            bible.main_characters.forEach(char => {
+              groundingContext.push({ type: 'character', name: char.name, role: char.role, arc: char.arc, namespace: ns });
+            });
+            bible.world_rules.forEach((rule, index) => {
+              groundingContext.push({ type: 'world_rule', rule, index: index + 1, namespace: ns });
+            });
+          }
+          if (data.episodes) {
+            data.episodes.forEach(ep => {
+              groundingContext.push({ type: 'episode', ...ep, namespace: ns });
+            });
+          }
+        } else {
+          // For any other non-array object
+          groundingContext.push({ ...data, namespace: ns });
+        }
+      });
+
+      // Render custom search grounding loading steps
+      output.innerHTML = `
+        <div class="recall-status" style="color: var(--amber); border-bottom: none; display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 1.1rem; display: inline-block; animation: spin 1.2s linear infinite;">🌐</span>
+          <span style="font-weight: 600;">Initiating Qwen Web Search Grounding...</span>
+        </div>
+        <div style="font-family: 'Inter', sans-serif; font-size: 0.8rem; color: var(--text-muted); display: flex; flex-direction: column; gap: 0.4rem; margin-top: 0.5rem; border-bottom: 1px dashed var(--border); padding-bottom: 1rem;">
+          <div id="grounding-step-1">● [1/4] Loading active agent's entire namespace boundaries [${agent.namespaces.join(', ')}]...</div>
+          <div id="grounding-step-2" style="opacity: 0.5;">○ [2/4] Assembling ${groundingContext.length} namespace memory records for grounding context...</div>
+          <div id="grounding-step-3" style="opacity: 0.5;">○ [3/4] Running Qwen web search with namespace context...</div>
+          <div id="grounding-step-4" style="opacity: 0.5;">○ [4/4] Context-grounded synthesis by Qwen...</div>
+        </div>
+        <div style="display: flex; justify-content: center; align-items: center; padding: 2.5rem;">
+          <div style="width: 32px; height: 32px; border-radius: 50%; border: 3px solid var(--amber); border-top-color: transparent; animation: spin 1s linear infinite;"></div>
+        </div>
+      `;
+
+      // Update loading logs
+      setTimeout(() => {
+        const s1 = document.getElementById('grounding-step-1');
+        if (s1) s1.innerHTML = '✓ [1/4] Agent namespaces loaded successfully.';
+        const s2 = document.getElementById('grounding-step-2');
+        if (s2) {
+          s2.style.opacity = '1';
+          s2.innerHTML = `● [2/4] Assembled ${groundingContext.length} grounding records...`;
+        }
+      }, 300);
+
+      setTimeout(() => {
+        const s2 = document.getElementById('grounding-step-2');
+        if (s2) s2.innerHTML = `✓ [2/4] Grounding context prepared (${groundingContext.length} records).`;
+        const s3 = document.getElementById('grounding-step-3');
+        if (s3) {
+          s3.style.opacity = '1';
+          s3.innerHTML = '● [3/4] Querying Qwen web search with namespace context...';
+        }
+      }, 750);
+
+      // Trigger POST API call
+      fetch('/api/search', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          query: query,
+          agent: {
+            name: agent.name,
+            role: agent.role,
+            bio: agent.bio,
+            namespaces: agent.namespaces
+          },
+          context: groundingContext.slice(0, 50) // Keep context size optimized and within ideal threshold
+        })
+      })
+      .then(res => {
+        if (!res.ok) {
+          return res.json().then(err => { throw new Error(err.error || 'Server error'); });
+        }
+        return res.json();
+      })
+      .then(data => {
+        const s3 = document.getElementById('grounding-step-3');
+        if (s3) s3.innerHTML = `✓ [3/4] Qwen web search grounding complete.${data.chunks && data.chunks.length ? ` Retrieved ${data.chunks.length} web sources.` : ''}`;
+        const s4 = document.getElementById('grounding-step-4');
+        if (s4) {
+          s4.style.opacity = '1';
+          s4.innerHTML = '✓ [4/4] Context-grounded synthesis complete.';
+        }
+
+        setTimeout(() => {
+          let outputHtml = `
+            <div class="recall-status" style="color: var(--text); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; padding-bottom: 0.5rem;">
+              <span style="font-weight: 700; color: var(--amber); display: flex; align-items: center; gap: 6px;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-globe"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+                Grounded Search Response
+              </span>
+              <span class="badge" style="background: rgba(245, 158, 11, 0.15); border: 1px solid var(--amber); color: var(--amber); font-family: 'Inter', sans-serif; font-size: 0.7rem; font-weight: 600; text-transform: none;">Qwen Web Search Active</span>
+            </div>
+            
+            <div class="recall-card" style="background: rgba(245, 158, 11, 0.03); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 12px; padding: 1.25rem; font-size: 0.85rem; line-height: 1.6; color: var(--text); font-family: system-ui, sans-serif; box-shadow: 0 4px 20px rgba(0,0,0,0.25);">
+              ${formatMarkdown(data.text)}
+            </div>
+          `;
+
+          // Searches run list
+          if (data.searchQueries && data.searchQueries.length > 0) {
+            outputHtml += `
+              <div style="margin-top: 0.75rem; display: flex; gap: 0.35rem; flex-wrap: wrap; align-items: center;">
+                <span style="font-size: 0.65rem; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; font-weight: bold;">EXTERNAL WEB QUERIES:</span>
+                ${data.searchQueries.map(q => `<span class="badge" style="font-size: 0.6rem; text-transform: none; border: 1px solid rgba(245, 158, 11, 0.25); background: rgba(245, 158, 11, 0.1); color: var(--amber);">${q}</span>`).join('')}
+              </div>
+            `;
+          }
+
+          // Render external web grounding sources
+          if (data.chunks && data.chunks.length > 0) {
+            let sourcesHtml = `
+              <div style="margin-top: 1rem; border-top: 1px solid var(--border); padding-top: 0.75rem;">
+                <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: var(--amber); margin-bottom: 0.5rem; font-weight: bold; display: flex; align-items: center; gap: 4px;">
+                  🌐 WEB SEARCH GROUNDING SOURCES:
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr; gap: 0.5rem;">
+            `;
+            const seenUris = new Set();
+            let addedSources = 0;
+            data.chunks.forEach(chunk => {
+              if (chunk.web && chunk.web.uri && !seenUris.has(chunk.web.uri)) {
+                seenUris.add(chunk.web.uri);
+                addedSources++;
+                const title = chunk.web.title || "Web Reference Source";
+                sourcesHtml += `
+                  <a href="${chunk.web.uri}" target="_blank" rel="noopener noreferrer" style="display: flex; flex-direction: column; gap: 2px; padding: 0.5rem 0.75rem; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; text-decoration: none; transition: all 0.2s; border-left: 3px solid var(--amber);" onmouseover="this.style.borderColor='var(--amber)'; this.style.background='var(--bg-card-hover)'" onmouseout="this.style.borderColor='var(--border)'; this.style.background='var(--bg-card)'">
+                    <span style="font-size: 0.8rem; font-weight: bold; color: var(--amber); display: flex; align-items: center; gap: 4px;">🔗 ${title}</span>
+                    <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.62rem; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%;">${chunk.web.uri}</span>
+                  </a>
+                `;
+              }
+            });
+            sourcesHtml += `</div></div>`;
+            if (addedSources > 0) {
+              outputHtml += sourcesHtml;
+            }
+          }
+
+          // Collapsible list of injected local agent memory records
+          if (groundingContext.length > 0) {
+            outputHtml += `
+              <div style="margin-top: 1.25rem; border-top: 1px solid var(--border); padding-top: 0.75rem;">
+                <details style="cursor: pointer; border: 1px solid var(--border); border-radius: 8px; padding: 0.5rem 0.75rem; background: var(--bg-dark);">
+                  <summary style="font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: var(--text-muted); font-weight: bold; outline: none; user-select: none;">
+                    📂 VIEW NAMESPACE CONTEXT SUPPLIED (${groundingContext.length} items)
+                  </summary>
+                  <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.75rem; max-height: 250px; overflow-y: auto; padding-right: 4px;">
+            `;
+            groundingContext.forEach((ctxItem, index) => {
+              const matchedWrapper = {
+                item: ctxItem,
+                namespace: ctxItem.namespace,
+                score: calculateAgentRecallScore(ctxItem, ctxItem.namespace, query)
+              };
+              outputHtml += renderCompactRecallCard(matchedWrapper, query, index);
+            });
+            outputHtml += `
+                  </div>
+                </details>
+              </div>
+            `;
+          }
+
+          output.innerHTML = outputHtml;
+          
+          const graphMatches = groundingContext.map(ctxItem => ({
+            item: ctxItem,
+            namespace: ctxItem.namespace,
+            score: calculateAgentRecallScore(ctxItem, ctxItem.namespace, query)
+          }));
+          renderD3Graph(agent, graphMatches);
+        }, 300);
+      })
+      .catch(err => {
+        console.error("Qwen web search request failed:", err);
+        output.innerHTML = `
+          <div class="recall-status" style="color: var(--red);">
+            🚨 Error generating response
+          </div>
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--text-muted); padding: 1rem; border: 1px dashed rgba(239, 68, 68, 0.3); border-radius: 8px; margin-top: 0.5rem; line-height: 1.4;">
+            <div style="color: var(--red); font-weight: bold; margin-bottom: 0.25rem;">Error details:</div>
+            ${err.message || 'The DashScope API returned an error.'}
+            <div style="margin-top: 0.75rem; color: var(--text-muted);">
+              Please ensure your <strong>DASHSCOPE_API_KEY</strong> secret is properly configured in the server .env, and restart the server if issues persist.
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    function triggerAIGroundSearch() {
+      const input = document.getElementById('agent-query-input');
+      const query = input.value.trim();
+      const output = document.getElementById('console-output');
+
+      if (!query) {
+        output.innerHTML = `<div class="recall-status" style="color: var(--amber);">[SYSTEM] Please enter a query string to scan cognitive net...</div>`;
+        return;
+      }
+
+      addToSearchHistory(state.activeAgentId, query);
+
+      const agent = AGENTS.find(a => a.id === state.activeAgentId);
+      const localContext = [];
+
+      // Scan local memory records matching the query word or general query
+      agent.namespaces.forEach(ns => {
+        const data = seedData[ns];
+        if (!data) return;
+        if (Array.isArray(data)) {
+          data.forEach(item => {
+            const itemStr = JSON.stringify(item).toLowerCase();
+            if (itemStr.includes(query.toLowerCase())) {
+              localContext.push({ ...item, namespace: ns });
+            }
+          });
+        }
+      });
+
+      // If no exact matches, retrieve first 5 general memory records to pass as baseline context
+      if (localContext.length === 0) {
+        agent.namespaces.forEach(ns => {
+          const data = seedData[ns];
+          if (data && Array.isArray(data)) {
+            data.slice(0, 3).forEach(item => {
+              localContext.push({ ...item, namespace: ns });
+            });
+          }
+        });
+      }
+
+      // Render custom loading steps inside the output area
+      output.innerHTML = `
+        <div class="recall-status" style="color: var(--text); border-bottom: none; display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 1.1rem; display: inline-block; animation: spin 1.2s linear infinite;">⏳</span>
+          <span>Generating response with Qwen (qwen-plus)...</span>
+        </div>
+        <div style="font-family: 'Inter', sans-serif; font-size: 0.8rem; color: var(--text-muted); display: flex; flex-direction: column; gap: 0.4rem; margin-top: 0.5rem; border-bottom: 1px dashed var(--border); padding-bottom: 1rem;">
+          <div id="ai-step-1">● [1/4] Scanning local memory context [${agent.namespaces.join(', ')}]...</div>
+          <div id="ai-step-2" style="opacity: 0.5;">○ [2/4] Adding ${localContext.length} local memories to context...</div>
+          <div id="ai-step-3" style="opacity: 0.5;">○ [3/4] Searching the web for real-time facts...</div>
+          <div id="ai-step-4" style="opacity: 0.5;">○ [4/4] Generating final answer...</div>
+        </div>
+        <div style="display: flex; justify-content: center; align-items: center; padding: 2.5rem;">
+          <div style="width: 32px; height: 32px; border-radius: 50%; border: 3px solid var(--accent); border-top-color: transparent; animation: spin 1s linear infinite;"></div>
+        </div>
+      `;
+
+      // Update loading logs
+      setTimeout(() => {
+        const s1 = document.getElementById('ai-step-1');
+        if (s1) s1.innerHTML = '✓ [1/4] Local memory context scanned.';
+        const s2 = document.getElementById('ai-step-2');
+        if (s2) {
+          s2.style.opacity = '1';
+          s2.innerHTML = `● [2/4] Adding ${localContext.length} local agent memories...`;
+        }
+      }, 300);
+
+      setTimeout(() => {
+        const s2 = document.getElementById('ai-step-2');
+        if (s2) s2.innerHTML = `✓ [2/4] Added ${localContext.length} local agent memories.`;
+        const s3 = document.getElementById('ai-step-3');
+        if (s3) {
+          s3.style.opacity = '1';
+          s3.innerHTML = '● [3/4] Searching the web...';
+        }
+      }, 750);
+
+      // Trigger POST API call
+      fetch('/api/search', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          query: query,
+          agent: {
+            name: agent.name,
+            role: agent.role,
+            bio: agent.bio,
+            namespaces: agent.namespaces
+          },
+          context: localContext.slice(0, 15) // Keep context size reasonable
+        })
+      })
+      .then(res => {
+        if (!res.ok) {
+          return res.json().then(err => { throw new Error(err.error || 'Server error'); });
+        }
+        return res.json();
+      })
+      .then(data => {
+        const s3 = document.getElementById('ai-step-3');
+        if (s3) s3.innerHTML = `✓ [3/4] Search completed. Found ${data.chunks ? data.chunks.length : 0} sources.`;
+        const s4 = document.getElementById('ai-step-4');
+        if (s4) {
+          s4.style.opacity = '1';
+          s4.innerHTML = '✓ [4/4] Generation completed.';
+        }
+
+        setTimeout(() => {
+          let outputHtml = `
+            <div class="recall-status" style="color: var(--text); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; padding-bottom: 0.5rem;">
+              <span style="font-weight: 600; color: var(--text);">Answer</span>
+              <span class="badge badge-cyan" style="font-family: 'Inter', sans-serif; font-size: 0.7rem; font-weight: 500; text-transform: none;">Qwen qwen-plus (web search)</span>
+            </div>
+            
+            <div class="recall-card" style="background: rgba(99, 102, 241, 0.02); border: 1px solid rgba(99, 102, 241, 0.25); border-radius: 12px; padding: 1.25rem; font-size: 0.85rem; line-height: 1.6; color: var(--text); font-family: system-ui, sans-serif; box-shadow: 0 4px 20px rgba(0,0,0,0.25);">
+              ${formatMarkdown(data.text)}
+            </div>
+          `;
+
+          // Searches run list
+          if (data.searchQueries && data.searchQueries.length > 0) {
+            outputHtml += `
+              <div style="margin-top: 0.75rem; display: flex; gap: 0.35rem; flex-wrap: wrap; align-items: center;">
+                <span style="font-size: 0.65rem; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; font-weight: bold;">WEB QUERIES RUN:</span>
+                ${data.searchQueries.map(q => `<span class="badge badge-purple" style="font-size: 0.6rem; text-transform: none; border: 1px solid rgba(167, 139, 250, 0.2);">${q}</span>`).join('')}
+              </div>
+            `;
+          }
+
+          // Render external web grounding sources
+          if (data.chunks && data.chunks.length > 0) {
+            let sourcesHtml = `
+              <div style="margin-top: 1rem; border-top: 1px solid var(--border); padding-top: 0.75rem;">
+                <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: var(--amber); margin-bottom: 0.5rem; font-weight: bold; display: flex; align-items: center; gap: 4px;">
+                  🌐 WEB SEARCH GROUNDING SOURCES:
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr; gap: 0.5rem;">
+            `;
+            const seenUris = new Set();
+            let addedSources = 0;
+            data.chunks.forEach(chunk => {
+              if (chunk.web && chunk.web.uri && !seenUris.has(chunk.web.uri)) {
+                seenUris.add(chunk.web.uri);
+                addedSources++;
+                const title = chunk.web.title || "Web Reference Source";
+                sourcesHtml += `
+                  <a href="${chunk.web.uri}" target="_blank" rel="noopener noreferrer" style="display: flex; flex-direction: column; gap: 2px; padding: 0.5rem 0.75rem; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; text-decoration: none; transition: all 0.2s; border-left: 3px solid var(--accent);" onmouseover="this.style.borderColor='var(--accent)'; this.style.background='var(--bg-card-hover)'" onmouseout="this.style.borderColor='var(--border)'; this.style.background='var(--bg-card)'">
+                    <span style="font-size: 0.8rem; font-weight: bold; color: var(--accent); display: flex; align-items: center; gap: 4px;">🔗 ${title}</span>
+                    <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.62rem; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%;">${chunk.web.uri}</span>
+                  </a>
+                `;
+              }
+            });
+            sourcesHtml += `</div></div>`;
+            if (addedSources > 0) {
+              outputHtml += sourcesHtml;
+            }
+          }
+
+          // Collapsible list of injected local agent memory records
+          if (localContext.length > 0) {
+            outputHtml += `
+              <div style="margin-top: 1.25rem; border-top: 1px solid var(--border); padding-top: 0.75rem;">
+                <details style="cursor: pointer; border: 1px solid var(--border); border-radius: 8px; padding: 0.5rem 0.75rem; background: var(--bg-dark);">
+                  <summary style="font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: var(--text-muted); font-weight: bold; outline: none; user-select: none;">
+                    📂 VIEW AGENT CONTEXT SUPPLIED (${localContext.length} items)
+                  </summary>
+                  <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.75rem; max-height: 250px; overflow-y: auto; padding-right: 4px;">
+            `;
+            localContext.forEach((ctxItem, index) => {
+              const matchedWrapper = {
+                item: ctxItem,
+                namespace: ctxItem.namespace,
+                score: calculateAgentRecallScore(ctxItem, ctxItem.namespace, query)
+              };
+              outputHtml += renderCompactRecallCard(matchedWrapper, query, index);
+            });
+            outputHtml += `
+                  </div>
+                </details>
+              </div>
+            `;
+          }
+
+          output.innerHTML = outputHtml;
+          
+          const graphMatches = localContext.map(ctxItem => ({
+            item: ctxItem,
+            namespace: ctxItem.namespace,
+            score: calculateAgentRecallScore(ctxItem, ctxItem.namespace, query)
+          }));
+          renderD3Graph(agent, graphMatches);
+        }, 300);
+      })
+      .catch(err => {
+        console.error("Qwen web search request failed:", err);
+        output.innerHTML = `
+          <div class="recall-status" style="color: var(--red);">
+            🚨 Error generating response
+          </div>
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--text-muted); padding: 1rem; border: 1px dashed rgba(239, 68, 68, 0.3); border-radius: 8px; margin-top: 0.5rem; line-height: 1.4;">
+            <div style="color: var(--red); font-weight: bold; margin-bottom: 0.25rem;">Error details:</div>
+            ${err.message || 'The DashScope API returned an error.'}
+            <div style="margin-top: 0.75rem; color: var(--text-muted);">
+              Please ensure your <strong>DASHSCOPE_API_KEY</strong> secret is properly configured in the server .env, and restart the server if issues persist.
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    // Compact output formatters
+    function renderCompactRecallCard(match, query, index = null) {
+      const isPrivate = match.namespace.endsWith('.private');
+      const badgeClass = isPrivate ? 'badge-purple' : 'badge-cyan';
+      const scoreColor = match.score >= 85 ? 'var(--green)' : (match.score >= 60 ? 'var(--amber)' : 'var(--blue)');
+      
+      let detailsHtml = '';
+      const item = match.item;
+
+      // Layout based on specific schema formats
+      if (item.term_en) {
+        detailsHtml = `
+          <div style="font-weight: bold; color: var(--text);">${highlight(item.term_en, query)} (${item.domain})</div>
+          <div style="color: var(--text-muted); font-size: 0.75rem;">${highlight(item.notes, query)}</div>`;
+      } else if (item.rule) {
+        // can be convention OR world rule
+        if (item.type === 'world_rule') {
+          detailsHtml = `
+            <div style="font-weight: bold; color: var(--purple);">World Rule ${item.index}</div>
+            <div style="color: var(--text); font-size: 0.75rem; font-style: italic;">"${highlight(item.rule, query)}"</div>`;
+        } else {
+          detailsHtml = `
+            <div style="font-weight: bold; color: var(--text);">${highlight(item.rule, query)}</div>
+            <div style="color: var(--text-muted); font-size: 0.75rem;">${highlight(item.rationale, query)}</div>`;
+        }
+      } else if (item.make) {
+        detailsHtml = `
+          <div style="font-weight: bold; color: var(--text);">${highlight(item.make)} - <span style="color: var(--cyan);">${highlight(item.model, query)}</span></div>
+          <div style="color: var(--text-muted); font-size: 0.7rem;">Specs: ${highlight(item.key_specs, query)}</div>`;
+      } else if (item.device_model) {
+        detailsHtml = `
+          <div style="font-weight: bold; color: var(--text);">Manual: ${highlight(item.device_model, query)} [Sec: ${highlight(item.section, query)}]</div>
+          <div style="color: var(--text-muted); font-size: 0.75rem;">${highlight(item.chunk_text, query)}</div>`;
+      } else if (item.memory) {
+        detailsHtml = `
+          <div style="font-style: italic; color: var(--text); font-size: 0.75rem;">"${highlight(item.memory, query)}"</div>
+          <div style="color: var(--text-muted); font-size: 0.65rem; margin-top: 0.2rem;">Timeline Category: ${highlight(item.category, query)}</div>`;
+      } else if (item.source_text) {
+        detailsHtml = `
+          <div style="font-family: monospace; font-size: 0.75rem;"><span style="color: var(--text-muted);">SRC:</span> ${highlight(item.source_text, query)}</div>
+          <div style="font-family: monospace; font-size: 0.75rem;"><span style="color: var(--green);">TRN:</span> ${highlight(item.target_text, query)}</div>`;
+      } else if (item.hash) {
+        detailsHtml = `
+          <div style="font-weight: bold; font-family: monospace; font-size: 0.75rem; color: var(--text);"><span style="color: var(--amber);">[${highlight(item.hash, query)}]</span> ${highlight(item.message, query)}</div>
+          <div style="color: var(--text-muted); font-size: 0.7rem;">Summary: ${highlight(item.diff_summary, query)}</div>`;
+      } else if (item.type === 'show_bible') {
+        detailsHtml = `
+          <div style="font-weight: bold; color: var(--purple);">Series specs: ${item.title}</div>
+          <div style="color: var(--text-muted); font-size: 0.75rem;">"${highlight(item.logline, query)}"</div>`;
+      } else if (item.type === 'character') {
+        detailsHtml = `
+          <div style="font-weight: bold; color: var(--text);">${highlight(item.name, query)} [Role: ${highlight(item.role, query)}]</div>
+          <div style="color: var(--text-muted); font-size: 0.75rem;">Arc: ${highlight(item.arc, query)}</div>`;
+      } else if (item.type === 'episode') {
+        detailsHtml = `
+          <div style="font-weight: bold; color: var(--text);">Episode ${item.number}: "${highlight(item.title, query)}"</div>
+          <div style="color: var(--text-muted); font-size: 0.75rem;">Synopsis: ${highlight(item.synopsis, query)}</div>`;
+      } else {
+        // Fallback catch-all format
+        detailsHtml = `<div style="font-size: 0.75rem; color: var(--text-muted); font-family: monospace;">${highlight(JSON.stringify(item), query)}</div>`;
+      }
+
+      const idAttr = index !== null ? `id="recall-card-${index}"` : '';
+      const hoverAttr = index !== null ? `onmouseover="highlightGraphNode('match_${index}')" onmouseout="unhighlightGraphNode()"` : '';
+
+      return `
+        <div class="recall-card" ${idAttr} ${hoverAttr}>
+          <div class="recall-meta">
+            <span class="badge ${badgeClass}" style="font-size: 0.6rem; padding: 0.1rem 0.35rem;">${match.namespace}</span>
+            <div class="recall-score">Relevance Match: <span style="color: ${scoreColor};">${match.score}%</span></div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+            ${detailsHtml}
+          </div>
+        </div>`;
+    }
+    // --- D3 Network Graph Logic ---
+    let current3DGraph = null;
+    let hovered3DNode = null;
+
+    function isWebGLAvailable() {
+      try {
+        const canvas = document.createElement('canvas');
+        return !!(window.WebGLRenderingContext && (canvas.getContext('webgl') || canvas.getContext('experimental-webgl')));
+      } catch (e) {
+        return false;
+      }
+    }
+
+    function renderD3Graph(agent, matches = null) {
+      state.currentD3Agent = agent;
+      state.currentD3Matches = matches;
+
+      const container = document.getElementById('3d-graph');
+      if (!container) return;
+      
+      if (!isWebGLAvailable()) {
+        container.innerHTML = `
+          <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; color:var(--text-muted); text-align:center; padding: 20px;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 16px; opacity: 0.5;"><path d="m2 12 5.25 5 5.25-5-5.25-5Z"/><path d="m8.5 12 5.25 5 5.25-5-5.25-5Z"/><path d="m15.5 12 5.25 5 5.25-5-5.25-5Z"/></svg>
+            <h3 style="color:var(--text); margin-bottom:8px; font-family:'Space Grotesk', sans-serif;">WebGL Not Available</h3>
+            <p style="font-size: 0.85rem; max-width: 300px; line-height: 1.5;">The 3D Immersive Memory Cosmos requires WebGL. Please open this app in a new tab or use a compatible browser to view the 3D visualization.</p>
+          </div>
+        `;
+        return;
+      }
+
+      const width = container.clientWidth || 400;
+      const height = container.clientHeight || 400;
+      
+      const nodesMap = new Map();
+      const links = [];
+      
+      // Agent node
+      const agentNodeId = 'agent_' + agent.id;
+      nodesMap.set(agentNodeId, { id: agentNodeId, label: agent.name, type: 'agent', val: 10, group: 1 });
+      
+      // Namespaces nodes
+      agent.namespaces.forEach(ns => {
+        const nsId = 'ns_' + ns;
+        nodesMap.set(nsId, { id: nsId, label: ns, type: 'namespace', val: 5, group: 2 });
+        links.push({ source: agentNodeId, target: nsId, value: 2 });
+      });
+      
+      // Matches nodes
+      if (matches && matches.length > 0) {
+        matches.forEach((m, i) => {
+          const mId = 'match_' + i;
+          let label = m.item.title || m.item.term_en || m.item.model || m.item.name || m.item.memory || m.item.message || m.item.rule || 'Node';
+          if (typeof label !== 'string') label = 'Node';
+          if (label.length > 15) label = label.substring(0, 13) + '...';
+          
+          nodesMap.set(mId, { id: mId, label: label, type: 'memory', val: 2, group: 3, score: m.score, fullData: m.item });
+          const nsId = 'ns_' + m.namespace;
+          if (nodesMap.has(nsId)) {
+            links.push({ source: nsId, target: mId, value: 1, score: m.score });
+          }
+        });
+      } else {
+        // Dummy scatter nodes
+        agent.namespaces.forEach(ns => {
+           for(let i=0; i < 4; i++) {
+              const dId = 'dummy_' + ns + '_' + i;
+              nodesMap.set(dId, { id: dId, label: '', type: 'memory', val: 1, group: 4 });
+              links.push({ source: 'ns_' + ns, target: dId, value: 0.5 });
+           }
+        });
+      }
+      
+      const nodes = Array.from(nodesMap.values());
+      const gData = { nodes, links };
+      
+      if (!current3DGraph) {
+        current3DGraph = ForceGraph3D()(container)
+          .backgroundColor('rgba(0,0,0,0)')
+          .nodeLabel(node => {
+            if (node.type === 'memory' && node.score) {
+              return `<div style="background: rgba(15, 23, 42, 0.9); padding: 4px 8px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2);"><strong style="color:#a7f3d0">Match: ${node.score}%</strong><br/><span style="font-size:10px;color:#cbd5e1">${node.label}</span></div>`;
+            }
+            return `<div style="background: rgba(15, 23, 42, 0.9); padding: 4px 8px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); color:#fff;">${node.label}</div>`;
+          })
+          .nodeColor(node => {
+            const isHovered = hovered3DNode === node || listHoveredNodeId === node.id;
+            if (node.type === 'agent') return isHovered ? '#ffffff' : '#6366f1'; 
+            if (node.type === 'namespace') return isHovered ? '#ffffff' : '#a78bfa'; 
+            if (node.type === 'memory' && node.score) return node.score >= 85 ? (isHovered ? '#ffffff' : '#34d399') : (isHovered ? '#ffffff' : '#fbbf24');
+            return isHovered ? '#ffffff' : 'rgba(255,255,255,0.3)';
+          })
+          .nodeRelSize(4)
+          .linkWidth(link => link.value)
+          .linkColor(link => {
+            const isHovered = hovered3DNode && (link.source === hovered3DNode || link.target === hovered3DNode || link.source.id === hovered3DNode.id || link.target.id === hovered3DNode.id);
+            if (isHovered) return '#ffffff';
+            return (link.score && link.score >= 85) ? '#34d399' : 'rgba(255,255,255,0.15)';
+          })
+          .linkDirectionalParticles(link => (link.score && link.score >= 85) ? 4 : (link.value > 1 ? 2 : 0))
+          .linkDirectionalParticleWidth(2)
+          .linkDirectionalParticleSpeed(link => (link.score && link.score >= 85) ? 0.015 : 0.005)
+          .onNodeClick(node => {
+            const inspector = document.getElementById('graph-inspector');
+            const title = document.getElementById('inspector-title');
+            const content = document.getElementById('inspector-content');
+            const actions = document.getElementById('inspector-actions');
+            
+            inspector.style.display = 'flex';
+            
+            if (node.type === 'agent') {
+              title.textContent = `Agent Profile: ${node.label}`;
+              content.innerHTML = `<strong>Role:</strong> ${agent.role}<br/><strong>Bio:</strong> ${agent.bio}<br/><strong>Active Namespaces:</strong> ${agent.namespaces.join(', ')}`;
+              actions.innerHTML = '';
+            } else if (node.type === 'namespace') {
+              const nsName = node.label;
+              title.textContent = `Namespace: ${nsName}`;
+              content.innerHTML = `<strong>Coverage:</strong> Connected to agent ${agent.name}.<br/>Contains memories/facts pertaining to agent bio and system rules.`;
+              actions.innerHTML = `<button onclick="switchMainTab('db'); onNamespaceSelect('${nsName}');" style="background: var(--accent); color: #fff; border: none; border-radius: 6px; padding: 6px 12px; font-size: 11px; font-weight: 600; cursor: pointer; font-family: 'Space Grotesk', sans-serif; transition: all 0.2s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">Browse in Database</button>`;
+            } else if (node.type === 'memory') {
+              title.textContent = node.score ? `Memory Node (Match: ${node.score}%)` : `Memory Node`;
+              if (node.fullData) {
+                const formattedData = Object.entries(node.fullData)
+                  .map(([k, v]) => `<strong>${k}:</strong> ${typeof v === 'object' ? JSON.stringify(v) : v}`)
+                  .join('<br/>');
+                content.innerHTML = formattedData;
+                
+                const cleanLabel = node.label.replace(/'/g, "\\'");
+                actions.innerHTML = `<button onclick="document.getElementById('agent-query-input').value='${cleanLabel}'; triggerAgentRecall();" style="background: var(--accent); color: #fff; border: none; border-radius: 6px; padding: 6px 12px; font-size: 11px; font-weight: 600; cursor: pointer; font-family: 'Space Grotesk', sans-serif; transition: all 0.2s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">Filter Search for this Node</button>`;
+              } else {
+                content.innerHTML = `This is a scatter node representing general background context within the <strong>${node.id.split('_')[1]}</strong> namespace.`;
+                actions.innerHTML = '';
+              }
+            }
+
+            // Aim camera at node
+            const distance = 100;
+            const distRatio = 1 + distance/Math.hypot(node.x, node.y, node.z);
+            current3DGraph.cameraPosition(
+              { x: node.x * distRatio, y: node.y * distRatio, z: node.z * distRatio },
+              node,
+              2000
+            );
+          })
+          .onNodeHover(node => {
+            const container = document.getElementById('3d-graph');
+            if (container) container.style.cursor = node ? 'pointer' : null;
+
+            hovered3DNode = node;
+            current3DGraph
+              .nodeColor(current3DGraph.nodeColor())
+              .linkColor(current3DGraph.linkColor());
+
+            // Update list highlighting if it's a match
+            if (node && node.type === 'memory' && node.id.startsWith('match_')) {
+              const matchIdx = node.id.split('_')[1];
+              const card = document.getElementById(`recall-card-${matchIdx}`);
+              if (card) {
+                card.classList.add('highlight-pulse');
+                card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+              }
+            } else {
+              // clear list highlights
+              document.querySelectorAll('.recall-card').forEach(c => c.classList.remove('highlight-pulse'));
+            }
+          });
+          
+          // Optionally add glow using post-processing, but basic materials might suffice given prompt.
+          // We can use Three.js to make spheres glowing if needed, but 3d-force-graph has a nice default aesthetic.
+      }
+      
+      current3DGraph.width(width).height(height);
+      current3DGraph.graphData(gData);
+    }
+
+    function closeInspector() {
+      const inspector = document.getElementById('graph-inspector');
+      if (inspector) {
+        inspector.style.display = 'none';
+      }
+    }
+
+    let listHoveredNodeId = null;
+
+    // Bidirectional list-to-graph highlight helpers
+    function highlightGraphNode(nodeId) {
+      if (!current3DGraph) return;
+      listHoveredNodeId = nodeId;
+      current3DGraph
+        .nodeColor(current3DGraph.nodeColor())
+        .linkColor(current3DGraph.linkColor())
+        .nodeRelSize(4);
+    }
+
+    function unhighlightGraphNode() {
+      if (!current3DGraph) return;
+      listHoveredNodeId = null;
+      current3DGraph
+        .nodeColor(current3DGraph.nodeColor())
+        .linkColor(current3DGraph.linkColor())
+        .nodeRelSize(4);
+    }
+
+  </script>
+</body>
+</html>

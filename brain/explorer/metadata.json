@@ -1,0 +1,6 @@
+{
+  "name": "Brain Explorer",
+  "description": "A single-page dark-themed explorer and simulation interface for multi-agent shared and private namespaces.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
