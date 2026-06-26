@@ -1,18 +1,17 @@
 // Brain Explorer server: static UI + one grounded-recall endpoint backed by
-// the Qwen/DashScope spine (OpenAI-compatible, so a plain fetch — no SDK).
+// the shared Qwen/DashScope spine.
 import express from "express";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import dotenv from "dotenv";
+import { createDashScopeClient } from "../../shared/dashscope.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // Key/models live in the repo-root .env (shared with the Python spine).
 dotenv.config({ path: path.resolve(__dirname, "../../.env") });
 
 const PORT = 3000;
-const BASE_URL = process.env.DASHSCOPE_BASE_URL
-  || "https://dashscope-intl.aliyuncs.com/compatible-mode/v1";
-const MODEL = process.env.QWEN_CHAT_MODEL || "qwen-plus";
+const qwen = createDashScopeClient();
 
 const app = express();
 app.use(express.json());
@@ -22,9 +21,6 @@ app.post("/api/search", async (req, res) => {
   try {
     const { query, agent, context } = req.body;
     if (!query) return res.status(400).json({ error: "Query is required" });
-    const apiKey = process.env.DASHSCOPE_API_KEY;
-    if (!apiKey) return res.status(500).json({ error: "DASHSCOPE_API_KEY is not configured in the server .env." });
-
     const systemInstruction = `You are ${agent.name}, a cognitive agent with the role: ${agent.role}.
 Bio: ${agent.bio}.
 
@@ -37,23 +33,16 @@ Guidelines:
 3. Synthesize beautifully in your professional persona. Keep it focused and concise.
 4. Do not dump raw markdown URLs in the body; keep it clean.`;
 
-    // DashScope OpenAI-compatible endpoint. enable_search = Qwen's web grounding.
-    const r = await fetch(`${BASE_URL}/chat/completions`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
-      body: JSON.stringify({
-        model: MODEL,
-        messages: [
-          { role: "system", content: systemInstruction },
-          { role: "user", content: query },
-        ],
-        enable_search: true,
-        search_options: { enable_source: true, enable_citation: true },
-      }),
+    // enable_search = Qwen's web grounding.
+    const data = await qwen.chat({
+      messages: [
+        { role: "system", content: systemInstruction },
+        { role: "user", content: query },
+      ],
+      enable_search: true,
+      search_options: { enable_source: true, enable_citation: true },
+      metadata: { surface: "brain-explorer", agent: agent.name },
     });
-
-    const data = await r.json();
-    if (!r.ok) throw new Error(data.error?.message || data.message || `DashScope HTTP ${r.status}`);
 
     const text = data.choices?.[0]?.message?.content || "";
     // ponytail: this compatible endpoint doesn't return citation chunks; map

@@ -11,12 +11,16 @@ so it's reported as DEFERRED rather than built. Add it when skippy needs voice.
 import os
 import time
 
-from dashscope import client  # configured OpenAI client (reads .env)
+try:
+    from shared.dashscope import DashScopeClient
+except ModuleNotFoundError:  # supports `python shared/probe.py`
+    from dashscope import DashScopeClient
 
 CODER_MODEL = os.environ.get("QWEN_CODER_MODEL", "qwen3-coder-plus")
 VL_MODEL = os.environ.get("QWEN_VL_MODEL", "qwen-vl-max")
 CHAT_MODEL = os.environ.get("QWEN_CHAT_MODEL", "qwen-plus")
 EMBED_MODEL = os.environ.get("QWEN_EMBED_MODEL", "text-embedding-v3")
+qwen = DashScopeClient()
 
 # DashScope's own documented sample image — stable, proves vision input works.
 SAMPLE_IMAGE = "https://dashscope.oss-cn-beijing.aliyuncs.com/images/dog_and_girl.jpeg"
@@ -33,31 +37,28 @@ def timed(label, fn):
 
 
 def list_models():
-    ids = [m.id for m in client.models.list().data]
+    ids = qwen.list_models()
     return f"{len(ids)} models, e.g. {', '.join(ids[:4])}"
 
 
 def chat(model):
-    r = client.chat.completions.create(
-        model=model, messages=[{"role": "user", "content": "Reply with one word: ok"}]
-    )
-    return repr(r.choices[0].message.content.strip()[:30])
+    return repr(qwen.chat("Reply with one word: ok", model=model, max_tokens=8).strip()[:30])
 
 
 def embed():
-    r = client.embeddings.create(model=EMBED_MODEL, input="probe")
-    return f"dim {len(r.data[0].embedding)}"
+    vector = qwen.embed("probe", model=EMBED_MODEL)
+    return f"dim {len(vector)}"
 
 
 def vision():
-    r = client.chat.completions.create(
+    text = qwen.chat(
         model=VL_MODEL,
         messages=[{"role": "user", "content": [
             {"type": "text", "text": "What animal is in this image? One word."},
             {"type": "image_url", "image_url": {"url": SAMPLE_IMAGE}},
         ]}],
     )
-    return repr(r.choices[0].message.content.strip()[:30])
+    return repr(text.strip()[:30])
 
 
 print("Probing free-tier key capabilities:\n")

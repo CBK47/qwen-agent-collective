@@ -52,6 +52,19 @@ cp .env.example .env
 
 See [docs/architecture](docs/architecture/) for system design and [HACKATHON.md](HACKATHON.md) for submission details.
 
+## Developer Commands
+
+```bash
+make doctor   # live DashScope/Qwen credential diagnostics
+make test     # offline unit tests
+make smoke    # live chat + embedding smoke test
+make probe    # live model capability probe
+```
+
+Architecture review and autonomous-worker decisions live in
+[docs/architecture/repository-review.md](docs/architecture/repository-review.md)
+and [docs/architecture/autonomous-development.md](docs/architecture/autonomous-development.md).
+
 ## Licence
 
 MIT - see [LICENSE](LICENSE).

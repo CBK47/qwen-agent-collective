@@ -1,111 +1,61 @@
 # Hackathon Submission Log
 
-Global AI Hackathon with Qwen Cloud - 2026
+Global AI Hackathon with Qwen Cloud — submissions close **2026-07-08/09, 2pm PT**.
+One shared brain + five specialist Qwen agents on DashScope.
+**Build law:** breadth-first — five thin *demoable* agents beat one gold-plated one.
 
 ---
 
-## Track 1 - MemoryAgent (memory-echo)
+## PM Status Board — SSOT
 
-**Agent:** memory-echo
+Refresh this table every PM session. Last refresh: **2026-06-26** (~12 working days left).
+STATE ∈ not-started · in-progress · blocked · done. OWNER-CHAT = the code chat that does NEXT ACTION.
 
-**Significant Updates**
+| Track / Layer | STATE | LAST DECISION | NEXT ACTION (one step) | OWNER-CHAT |
+|---|---|---|---|---|
+| Spine `shared/` | **done** | DashScope Singapore compatible endpoint; chat + embeddings live, smoke passes | Freeze the client API — agents import, never fork it | — |
+| **Brain runtime** ⭐ keystone | **not-started** (blocks all 5) | PG + Qdrant + n8n designed; **n8n CUT from critical path** (demo calls the client in-process) | Build `shared/brain.py` = `ingest()` + `retrieve()` over Postgres + Qdrant via `brain/docker-compose.yml` (run the committed schema) | chat:brain |
+| T1 · memory-echo | **in-progress** | `session_logger.py` ships as a SessionEnd hook (live qwen-plus) — this is NOT the Track-1 MVP | Once brain client exists: ingest → expire stale → recall-under-budget demo harness | chat:memory-echo |
+| T2 · showrunner | **blocked** (on brain) | — | Read recent `memory_events` → 1 `qwen-plus` script → write `showrunner.private` | chat:showrunner |
+| T3 · git-committer | **blocked** (on brain) | — | Read `shared.code-conventions` → 1 `qwen2.5-coder` review pass over a fixed diff | chat:git-committer |
+| T4 · open-translate | **blocked** (on brain) | — | Read `shared.glossary` → 1 `qwen-plus` translation honoring it | chat:open-translate |
+| T5 · skippy-concierge | **blocked** (on brain) | — | Seed a couple `devices` rows → 1 text→action `qwen-plus` call | chat:skippy |
+| Deploy + proof (×5 required) | **not-started** | — | ONE shared Alibaba Cloud harness every track hits — not 5 bespoke deploys | chat:infra |
+| Submission kit | **in-progress** | Blogger drafts the journal (qwen-plus, "invent nothing"); `viewer.html` renders any repo `.md` live | Re-run blogger after the keystone lands | chat:submission |
 
-| Date | Update |
-|---|---|
-| 2026-05-26 | Repo scaffold created |
-| 2026-06-25 | Brain assembled (schema, DashScope env, manifest); orchestrator port plan + per-agent kickoff plans committed |
-| _ongoing_ | Log entries here through 2026-07-09 |
+### Next move (highest leverage)
+**Build the keystone brain client.** It is the single dependency under four blocked tracks; landing it
+converts them all to "a few hours each." Skip n8n — demo agents call `shared/brain.py` directly.
 
-**Deployment Proof:** _link to be added_
-
-**Demo Video:** _link to be added_
-
----
-
-## Track 2 - AI Showrunner (showrunner)
-
-**Agent:** showrunner
-
-**Significant Updates**
-
-| Date | Update |
-|---|---|
-| 2026-05-26 | Repo scaffold created |
-| 2026-06-25 | Brain assembled (schema, DashScope env, manifest); orchestrator port plan + per-agent kickoff plans committed |
-| _ongoing_ | Log entries here through 2026-07-09 |
-
-**Deployment Proof:** _link to be added_
-
-**Demo Video:** _link to be added_
+### Biggest risk → cheapest de-risk
+**Risk:** deploy proof + demo video required ×5, 0 deployed today, all 5 hang off one unbuilt keystone — slip it and *nothing* ships.
+**De-risk:** prove the keystone end-to-end **locally with memory-echo only** first, then make deploy a *single shared* Alibaba Cloud harness reused by every track.
 
 ---
 
-## Track 3 - Agent Society (git-committer)
+## Decisions & significant-updates log (2026-05-26 → 2026-07-09)
 
-**Agent:** git-committer
-
-**Significant Updates**
-
-| Date | Update |
+| Date | Update / Decision |
 |---|---|
-| 2026-05-26 | Repo scaffold created |
-| 2026-06-25 | Brain assembled (schema, DashScope env, manifest); orchestrator port plan + per-agent kickoff plans committed |
-| _ongoing_ | Log entries here through 2026-07-09 |
-
-**Deployment Proof:** _link to be added_
-
-**Demo Video:** _link to be added_
+| 2026-05-26 | Repo scaffold created (monorepo: brain, agents ×5, shared, infra, docs). |
+| 2026-06-25 | Brain assembled — schema, DashScope env, manifest; orchestrator PORT-PLAN + per-agent kickoff PLANs committed. |
+| 2026-06-25 | Qwen spine proven — `shared/dashscope.py` (OpenAI SDK → DashScope), `smoke_test.py` passes. Chat + embeddings live. |
+| 2026-06-26 | Blogger reworked to daily Skippy-voice entries; `blog.html` + repo-root `viewer.html` added. |
+| 2026-06-26 | **PM pass:** HACKATHON.md refactored into the SSOT status board above. |
+| 2026-06-26 | **Decision — keystone:** the next build is `shared/brain.py` (`ingest`/`retrieve`) over Postgres+Qdrant; it unblocks T2–T5. |
+| 2026-06-26 | **Decision — scope cut:** n8n orchestrator removed from the critical path (demo agents call the brain client in-process); n8n is polish-if-time only. |
+| 2026-06-26 | **Decision — deploy:** one shared Alibaba Cloud harness for proof+video across all tracks, not 5 bespoke deploys. |
+| _ongoing_ | Log real milestones here through 2026-07-09. |
 
 ---
 
-## Track 4 - Autopilot (open-translate)
+## Per-track submission proofs (required for each track)
 
-**Agent:** open-translate
-
-**Significant Updates**
-
-| Date | Update |
-|---|---|
-| 2026-05-26 | Repo scaffold created |
-| 2026-06-25 | Brain assembled (schema, DashScope env, manifest); orchestrator port plan + per-agent kickoff plans committed |
-| _ongoing_ | Log entries here through 2026-07-09 |
-
-**Deployment Proof:** _link to be added_
-
-**Demo Video:** _link to be added_
-
----
-
-## Track 5 - EdgeAgent (skippy-concierge)
-
-**Agent:** skippy-concierge
-
-**Significant Updates**
-
-| Date | Update |
-|---|---|
-| 2026-05-26 | Repo scaffold created |
-| 2026-06-25 | Brain assembled (schema, DashScope env, manifest); orchestrator port plan + per-agent kickoff plans committed |
-| _ongoing_ | Log entries here through 2026-07-09 |
-
-**Deployment Proof:** _link to be added_
-
-**Demo Video:** _link to be added_
-
----
-
-## Blog Post Award (cross-track build journal)
-
-**Artifact:** `docs/submission-kit/` (`blogger.py`, `blog-draft.md`, `blog.html`, `posts/`)
-
-**Significant Updates**
-
-| Date | Update |
-|---|---|
-| 2026-06-25 | Blogger built: `qwen-plus` drafts the journal from `HACKATHON.md` + `git log`, with an "invent nothing" grounding rule. Part-1 draft written. |
-| 2026-06-26 | Blogger reworked to one dated entry per day in Skippy's voice, em/en dashes stripped, dated archive in `posts/`. Day-1 draft Skippy-fied. HTML front-end `blog.html` added: renders `blog-draft.md` live, AURIC gold-on-black palette, glitch title, cyber-rain field, and an ASCII-moon header ported from the Kimi template. |
-| _ongoing_ | Re-run blogger after each real milestone; publish per-day entries. |
-
-**Deployment Proof:** _link to be added_
-
-**Demo Video:** _link to be added_
+| Track | Agent | Deployment Proof | Demo Video |
+|---|---|---|---|
+| T1 MemoryAgent | memory-echo | _link tbd_ | _link tbd_ |
+| T2 AI Showrunner | showrunner | _link tbd_ | _link tbd_ |
+| T3 Agent Society | git-committer | _link tbd_ | _link tbd_ |
+| T4 Autopilot | open-translate | _link tbd_ | _link tbd_ |
+| T5 EdgeAgent | skippy-concierge | _link tbd_ | _link tbd_ |
+| Blog Post Award | submission-kit (`blogger.py`, `blog.html`, `viewer.html`) | n/a | n/a |
