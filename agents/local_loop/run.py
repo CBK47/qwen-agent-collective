@@ -47,16 +47,8 @@ def extract_commit_msg(text):
     """Return first line matching Conventional Commits, else clean fallback."""
     cc = re.compile(r'^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\(\w[\w-]*\))?!?:\s.{3,}', re.I)
     for line in text.split("\n"):
-        line = line.strip().strip("\"'")
+        line = line.strip().strip("\"'`")
         if cc.match(line):
-            return line[:72]
-    # first non-thinking line
-    bad_starts = ("okay", "let's", "i need", "the user", "here's", "first,",
-                  "so,", "alright", "sure,", "well,", "now,", "conventional",
-                  "the commit", "a commit", "looking", "based on")
-    for line in text.split("\n"):
-        line = line.strip().strip("\"'")
-        if line and not any(line.lower().startswith(b) for b in bad_starts):
             return line[:72]
     return "chore: automated improvement by local-loop"
 
@@ -187,11 +179,13 @@ print(f"Staged:\n{status}")
 summary = run_output or review.split("\n")[2] if "\n" in review else "automated review"
 msg_raw = ollama([
     {"role": "system", "content":
-     "Output ONLY a git commit message. Single line, max 60 chars, "
-     "Conventional Commits (feat/fix/docs/chore/refactor: description). "
-     "Start directly with the type. Nothing else."},
+     "You are a commit message generator. Reply with ONE LINE ONLY.\n"
+     "Format: <type>(<scope>): <description>\n"
+     "Types: feat fix docs chore refactor test\n"
+     "Example: feat(agents): add synthesize_reviews stub to debate_prototype\n"
+     "Your entire response must be just that one line. No explanation, no quotes."},
     {"role": "user", "content": f"Work done: {summary[:200]}\nFiles changed:\n{status[:300]}"}
-], temperature=0, num_predict=1000)
+], temperature=0, num_predict=200)
 
 commit_msg = extract_commit_msg(msg_raw)
 print(f"Commit message: {commit_msg!r}")
