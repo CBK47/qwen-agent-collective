@@ -1,0 +1,215 @@
+{
+  "name": "Qwen Project Worker - 30 Minute Repo Review",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 30
+            }
+          ]
+        }
+      },
+      "id": "6d7f7fd0-74a4-49e0-b638-33442c8aa9a4",
+      "name": "Every 30 Minutes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -740,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "command": "bash -lc 'set -u\nREPO=\"${REPO_PATH:-}\"\nprintf \"# Repo Context\\n\"\nprintf \"generated_at: %s\\n\" \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"\nif [ -z \"$REPO\" ]; then\n  printf \"\\n## Preflight\\nFAIL: REPO_PATH is not set in the n8n environment. Set it to the qwen-agent-collective checkout path on this machine.\\n\"\n  exit 0\nfi\nprintf \"repo: %s\\n\" \"$REPO\"\nif [ ! -d \"$REPO/.git\" ]; then\n  printf \"\\n## Preflight\\nFAIL: REPO_PATH does not point at a git checkout: %s\\n\" \"$REPO\"\n  exit 0\nfi\ncd \"$REPO\"\nprintf \"branch: \"\ngit branch --show-current || true\nprintf \"\\n## Git Status\\n\"\ngit status --short --branch || true\nprintf \"\\n## Recent Work, Last 30 Minutes\\n\"\ngit log --since=\"30 minutes ago\" --pretty=format:\"%h %ad %s\" --date=iso || true\nprintf \"\\n\\n## Recent Work, Today\\n\"\ngit log --since=\"midnight\" --pretty=format:\"%h %ad %s\" --date=iso || true\nprintf \"\\n\\n## Diff Stat\\n\"\ngit diff --stat || true\nprintf \"\\n## DashScope Offline Config Check\\n\"\nif python -m shared.dashscope doctor --no-network > /tmp/qwen-worker-doctor.log 2>&1; then echo \"PASS: doctor --no-network\"; else echo \"FAIL: doctor --no-network\"; fi\ncat /tmp/qwen-worker-doctor.log\nprintf \"\\n## Tests\\n\"\nif make test > /tmp/qwen-worker-tests.log 2>&1; then echo \"PASS: make test\"; else echo \"FAIL: make test\"; fi\ntail -n 120 /tmp/qwen-worker-tests.log\nprintf \"\\n## Continuous Improvement Check\\n\"\nif python -m shared.improvement > /tmp/qwen-worker-improvement.log 2>&1; then echo \"PASS: shared.improvement\"; else echo \"FAIL: shared.improvement\"; fi\ncat /tmp/qwen-worker-improvement.log\nprintf \"\\n## Lightweight Security Scan\\n\"\nSECURITY_HITS=\"$(git ls-files | xargs grep -nE \"(DASHSCOPE_API_KEY=sk-|OPENAI_API_KEY=|ANTHROPIC_API_KEY=|AWS_SECRET_ACCESS_KEY=|PRIVATE KEY)\" 2>/dev/null || true)\"\nif [ -z \"$SECURITY_HITS\" ]; then echo \"PASS: no obvious tracked secret patterns found\"; else printf \"%s\\n\" \"$SECURITY_HITS\" | sed -E \"s/(=)[^[:space:]]+/=REDACTED/g\" | head -n 50; fi\n' | sed -E 's/(DASHSCOPE_API_KEY=)[^[:space:]]+/\\1[REDACTED]/g; s/(OPENAI_API_KEY=)[^[:space:]]+/\\1[REDACTED]/g; s/(ANTHROPIC_API_KEY=)[^[:space:]]+/\\1[REDACTED]/g; s/(PASSWORD=)[^[:space:]]+/\\1[REDACTED]/g; s/(TOKEN=)[^[:space:]]+/\\1[REDACTED]/g; s/(SECRET=)[^[:space:]]+/\\1[REDACTED]/g; s/sk-[A-Za-z0-9_-]{8,}/sk-[REDACTED]/g'"
+      },
+      "id": "875fcf1f-5c75-40fc-8f6b-bf01bb71871d",
+      "name": "Collect Repo Context",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        -500,
+        0
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const context = ($input.first().json.stdout || $input.first().json.stderr || '').slice(-45000);\nconst now = new Date().toISOString();\nconst model = process.env.QWEN_CODER_MODEL || process.env.QWEN_CHAT_MODEL || 'qwen-plus';\nconst system = `You are git-committer, the autonomous coding/review agent for qwen-agent-collective.\n\nOverall goal: evolve this repository into an engineering platform where AI workers can safely generate, review, improve, document, and iterate on the Qwen agent collective with minimal human intervention.\n\nYour job in this 30 minute loop is bounded. Review the repo context, identify the safest next useful work, and produce a concise project-work report. Do not claim to have changed files. Do not ask for secrets. Do not invent facts. Prefer work that improves shared infrastructure, tests, docs, memory, CI, or agent safety.\n\nReturn Markdown with exactly these sections:\n# Qwen Project Worker Report\n## Verdict\nPASS, WARN, or FAIL with one sentence.\n## What Changed Recently\nBullets grounded only in the context.\n## Repo Health\nTests/config/docs/security observations.\n## Recommended Next Work Slice\nOne small task that an autonomous worker can safely attempt next.\n## Suggested Commands\nShell commands only if useful. Keep them safe and non-destructive.\n## Risks Or Blockers\nConcrete blockers, missing env, failing tests, merge conflicts, or uncertain facts.\n## Memory Notes\nFacts worth adding later to project memory.`;\nconst user = `Time: ${now}\\n\\nRepo context follows. Values that looked like secrets may have been redacted.\\n\\n${context || 'No repo context was captured.'}`;\nreturn [{ json: { model, now, messages: [{ role: 'system', content: system }, { role: 'user', content: user }] } }];"
+      },
+      "id": "40d02706-44ad-427b-a24d-7b90c68f3cf1",
+      "name": "Build Qwen Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -260,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{($env.DASHSCOPE_BASE_URL || 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1') + '/chat/completions'}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{'Bearer ' + $env.DASHSCOPE_API_KEY}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { model: $json.model, messages: $json.messages, temperature: 0.2, max_tokens: 1800 } }}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "78604c3e-ed9c-4853-a48e-f81f4d60c03e",
+      "name": "Ask Qwen For Next Work",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -20,
+        0
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nconst now = new Date();\nconst iso = now.toISOString();\nconst stamp = iso.replace(/[:.]/g, '-');\nconst date = iso.slice(0, 10);\nlet content = item.choices?.[0]?.message?.content;\nlet verdict = 'WARN';\nif (!content) {\n  content = `# Qwen Project Worker Report\\n\\n## Verdict\\nFAIL: Qwen did not return a normal chat completion.\\n\\n## Raw Error\\n\\n\\`\\`\\`json\\n${JSON.stringify(item, null, 2).slice(0, 6000)}\\n\\`\\`\\``;\n} else if (/^## Verdict\\s*\\n\\s*PASS/im.test(content) || /\\bPASS\\b/.test(content.slice(0, 250))) {\n  verdict = 'PASS';\n}\nconst report = `<!-- generated by n8n workflow: Qwen Project Worker - 30 Minute Repo Review -->\\n<!-- generated_at: ${iso} -->\\n\\n${content.trim()}\\n`;\nconst reportPath = `reports/qwen-worker/${date}/${stamp}.md`;\nreturn [{ json: { report, report_base64: Buffer.from(report, 'utf8').toString('base64'), report_path: reportPath, generated_at: iso, verdict } }];"
+      },
+      "id": "f26f7900-8405-4ce1-a6f8-48d91b4ec706",
+      "name": "Normalize Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "command": "=bash -lc 'set -eu\nREPO=\"${REPO_PATH:-}\"\nif [ -z \"$REPO\" ]; then echo \"REPO_PATH is not set\" >&2; exit 1; fi\nif [ ! -d \"$REPO/.git\" ]; then echo \"REPO_PATH is not a git checkout: $REPO\" >&2; exit 1; fi\ncd \"$REPO\"\nmkdir -p \"$(dirname \"{{$json.report_path}}\")\"\nprintf %s \"{{$json.report_base64}}\" | base64 --decode > \"{{$json.report_path}}\"\nprintf \"Wrote %s\\n\" \"{{$json.report_path}}\"\n'"
+      },
+      "id": "6f4b41cd-e182-4640-8739-b2f75b3e28bc",
+      "name": "Write Markdown Report",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        460,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { ok: true, report_path: $node['Normalize Report'].json.report_path, verdict: $node['Normalize Report'].json.verdict, generated_at: $node['Normalize Report'].json.generated_at, stdout: $input.first().json.stdout || '' } }];"
+      },
+      "id": "c5358ef7-3670-4a36-a1ab-5c2c3492641e",
+      "name": "Return Summary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        700,
+        0
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Every 30 Minutes": {
+      "main": [
+        [
+          {
+            "node": "Collect Repo Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Collect Repo Context": {
+      "main": [
+        [
+          {
+            "node": "Build Qwen Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Qwen Prompt": {
+      "main": [
+        [
+          {
+            "node": "Ask Qwen For Next Work",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ask Qwen For Next Work": {
+      "main": [
+        [
+          {
+            "node": "Normalize Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Report": {
+      "main": [
+        [
+          {
+            "node": "Write Markdown Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Markdown Report": {
+      "main": [
+        [
+          {
+            "node": "Return Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "timezone": "Europe/London"
+  },
+  "versionId": "1",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": [
+    {
+      "name": "qwen-agent-collective"
+    },
+    {
+      "name": "git-committer"
+    },
+    {
+      "name": "automation"
+    }
+  ]
+}
