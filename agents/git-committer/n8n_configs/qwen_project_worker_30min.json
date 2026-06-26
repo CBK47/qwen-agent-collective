@@ -110,14 +110,30 @@
     },
     {
       "parameters": {
-        "jsCode": "return [{ json: { ok: true, report_path: $node['Normalize Report'].json.report_path, verdict: $node['Normalize Report'].json.verdict, generated_at: $node['Normalize Report'].json.generated_at, stdout: $input.first().json.stdout || '' } }];"
+        "method": "POST",
+        "url": "http://localhost:5678/webhook/qwen-coder",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { triggered_by: 'report', report_path: $json.report_path, verdict: $json.verdict } }}",
+        "options": { "timeout": 300000 }
+      },
+      "id": "trigger-coding-agent",
+      "name": "Trigger Coding Agent",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [700, 0],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { ok: true, report_path: $node['Normalize Report'].json.report_path, verdict: $node['Normalize Report'].json.verdict, generated_at: $node['Normalize Report'].json.generated_at, coding_agent: $input.first().json || {} } }];"
       },
       "id": "c5358ef7-3670-4a36-a1ab-5c2c3492641e",
       "name": "Return Summary",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        700,
+        940,
         0
       ]
     }
@@ -180,6 +196,17 @@
       ]
     },
     "Write Markdown Report": {
+      "main": [
+        [
+          {
+            "node": "Trigger Coding Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trigger Coding Agent": {
       "main": [
         [
           {
