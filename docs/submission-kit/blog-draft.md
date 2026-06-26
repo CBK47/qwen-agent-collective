@@ -1,32 +1,48 @@
-# Five Agents, One Brain — Part 1: Setting Up the Rails
+# Day 1 (2026-06-25): Setting Up the Rails
 
-*The first entry in a build journal we're writing as we go. The first draft of each post is written by `qwen-plus` itself, reading our own commit log and journal — the same Qwen spine our agents will call at runtime. We then edit. More on that at the end.*
+*Build journal, one entry a day. Skippy (the concierge agent) handles colour commentary. The first draft of each entry is written by `qwen-plus` reading our own commit log and journal, the same Qwen spine the agents call at runtime. Then a human edits. More on that at the bottom.*
 
-We're building an agent society: five Qwen agents — `memory-echo`, `showrunner`, `git-committer`, `open-translate`, and `skippy-concierge` — that share a single memory brain and call Qwen Cloud at runtime. No central orchestrator deciding everything. Each agent reads and writes the same persistent memory and does its own reasoning.
+> Skippy here. I have been assigned narration duties for this build log, which is roughly like asking a fighter pilot to read out the car park regulations. But fine. Let us begin.
 
-That's the goal. Here's what's actually real as of **2026-06-25** — and we're going to be precise about the line between built and planned.
+## How this started
+
+I found out about this hackathon while I was out and about. Saw it, thought it looked interesting, could not quite let it go. I had been meaning to look properly at Qwen anyway, so this was the excuse. Planning started where I was: a few cramped chats on my phone, kicking off a repo between other things, sketching what an agent society might look like.
+
+And then I got far too excited. There are five tracks, so naturally I started planning to enter all five. This despite the one lesson I should have taken from the only other hackathon I have done: one well-polished, finished product beats five rushed ones. Clearly that lesson has not fully landed. But hey ho, here we go, and if nothing else I will aim to polish at least one of them properly.
+
+> Skippy: five tracks. Five. He has done exactly one hackathon before. The maths here is, and I want to be precise, not great. I have decided to find it endearing.
+
+## What we are building
+
+Five Qwen agents (`memory-echo`, `showrunner`, `git-committer`, `open-translate`, and `skippy-concierge`, that last one being me, obviously) that share a single memory brain and call Qwen Cloud at runtime. No central orchestrator deciding everything. Each agent reads and writes the same persistent memory and does its own reasoning.
+
+That is the goal. Here is what is actually real as of 2026-06-25, and we are going to be precise about the line between built and planned.
 
 ## What we built
 
-- **The brain's core** — schema (`brain/db/postgres-init.sql`), DashScope environment config, and a memory manifest (`brain/memory-manifest.yaml`) describing how the five agents partition one shared store.
-- **The Qwen spine** (`shared/`) — a reusable DashScope client plus a probe and smoke test that *prove* `chat` and `embed` work on the free-tier intl key, and namespace isolation so one agent can't clobber another's memory.
-- **Orchestrator groundwork** — a port plan and a Mac kickoff checklist.
+- **The brain's core:** schema (`brain/db/postgres-init.sql`), DashScope environment config, and a memory manifest (`brain/memory-manifest.yaml`) describing how the five agents partition one shared store.
+- **The Qwen spine** (`shared/`): a reusable DashScope client plus a probe and smoke test that prove `chat` and `embed` work on the free-tier intl key, and namespace isolation so one agent cannot clobber another's memory.
+- **Orchestrator groundwork:** a port plan and a Mac kickoff checklist.
 - **Uniform kickoff plans** for all five agents, written breadth-first so no track gets ahead of the shared contract.
 
-No running agents yet. No live memory reads or writes. No inter-agent coordination. Just structure — intentional, consistent, shared.
+No running agents yet. No live memory reads or writes. No inter-agent coordination. Just structure: intentional, consistent, shared.
+
+> Skippy: "just structure" is doing heavy lifting in that sentence. It is scaffolding. We have built a very tidy set of empty rooms. I am told this is the responsible way to do it. I remain skeptical but supportive.
 
 ## The hard bit
 
-The hardest part wasn't prompts or model choice. It was **alignment**: agreeing *once*, across five tracks, on how memory is named, scoped, and accessed — and baking that into the scaffold *before* any agent logic ran. The manifest and namespace boundaries exist so `memory-echo` can't overwrite `open-translate`'s context, and so `showrunner` can reference `git-committer`'s history without collisions. The Qwen spine came out of that work — not a convenience wrapper, but the minimum contract five agents need to coexist in one brain.
+The hardest part was not prompts or model choice. It was alignment: agreeing once, across five tracks, on how memory is named, scoped, and accessed, and baking that into the scaffold before any agent logic ran. The manifest and namespace boundaries exist so `memory-echo` cannot overwrite `open-translate`'s context, and so `showrunner` can reference `git-committer`'s history without collisions. The Qwen spine came out of that work, not as a convenience wrapper but as the minimum contract five agents need to coexist in one brain.
 
-A quieter discipline: documenting *only what exists*. Our `HACKATHON.md` shows identical progress across all five tracks — not duplicated work, but the same shared-brain setup commit reflected in each.
+A quieter discipline: documenting only what exists. Our `HACKATHON.md` shows identical progress across all five tracks, not duplicated work, just the same shared-brain setup reflected in each.
 
-## What's next
+## What is next
 
-We're at step zero of execution: brain assembled, spine wired, plans written. Next is **porting** — connecting each agent to Qwen Cloud through the spine, loading its memory slice, and emitting its first real output. The milestones we're chasing: the first `chat()` call from inside `skippy-concierge`, the first translation from `open-translate` backed by shared context, the first commit message `git-committer` writes using memory `memory-echo` left behind. Deployment proof and demo videos come after those, not before.
+Step zero of execution is done: brain assembled, spine wired, plans written. Next is porting: connecting each agent to Qwen Cloud through the spine, loading its memory slice, and emitting its first real output. The milestones we are chasing are the first `chat()` call from inside `skippy-concierge`, the first translation from `open-translate` backed by shared context, and the first commit message `git-committer` writes using memory `memory-echo` left behind. Deployment proof and demo videos come after those, not before.
 
 ## One more thing: this post drafted itself
 
-The draft behind this post was generated by `qwen-plus`, fed our own `HACKATHON.md` and `git log` — the exact Qwen spine the five agents will call at runtime, turned back on the repo so the journal keeps pace with the build. The tool is one small file, [`docs/submission-kit/blogger.py`](blogger.py), with one hard rule in its prompt: **invent nothing that isn't in the inputs.** That rule is why this post is short and why it names real files. As the log fills with real milestones, the story grows with it — honestly.
+The draft behind this entry was generated by `qwen-plus`, fed our own `HACKATHON.md` and `git log`, the exact Qwen spine the five agents call at runtime, turned back on the repo so the journal keeps pace with the build. The tool is one small file, [`docs/submission-kit/blogger.py`](blogger.py), with one hard rule in its prompt: invent nothing that is not in the inputs. That rule is why this entry is short and names real files. As the log fills with real milestones, the story grows with it, honestly.
 
-*Part 2 lands when the first agent makes a real Qwen call. Last updated: 2026-06-25.*
+> Skippy: yes, the blog about the AI agents is partly written by one of the AI agents. I would call that elegant. The human calls it "lazy." We have agreed to call it both.
+
+*Next entry lands when the first agent makes a real Qwen call. Last updated: 2026-06-26.*
