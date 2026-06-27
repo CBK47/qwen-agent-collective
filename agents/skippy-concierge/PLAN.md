@@ -24,4 +24,4 @@ One real DashScope call + one brain read/write:
 - [x] Brain stack + DashScope key; seed a couple of `devices` rows.
 - [x] Single text→action path over the device registry.
 - [x] Add `qwen-vl` / `qwen2-audio` inputs
-- [ ] manual-grounded answers
+- [x] manual-grounded answers
