@@ -1,0 +1,40 @@
+{
+  "translation_memory": {
+    "French": {
+      "open source": "open source",
+      "agent": "agent",
+      "glossary": "glossaire",
+      "translation memory": "mémoire de traduction",
+      "localization": "localisation",
+      "confidence": "confiance",
+      "workflow": "flux de travail"
+    },
+    "Spanish": {
+      "open source": "código abierto",
+      "agent": "agente",
+      "glossary": "glosario",
+      "translation memory": "memoria de traducción",
+      "localization": "localización",
+      "confidence": "confianza",
+      "workflow": "flujo de trabajo"
+    },
+    "German": {
+      "open source": "Open Source",
+      "agent": "Agent",
+      "glossary": "Glossar",
+      "translation memory": "Übersetzungsspeicher",
+      "localization": "Lokalisierung",
+      "confidence": "Konfidenz",
+      "workflow": "Arbeitsablauf"
+    },
+    "Chinese": {
+      "open source": "开源",
+      "agent": "代理",
+      "glossary": "词汇表",
+      "translation memory": "翻译记忆",
+      "localization": "本地化",
+      "confidence": "置信度",
+      "workflow": "工作流程"
+    }
+  }
+}

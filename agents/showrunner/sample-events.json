@@ -1,0 +1,72 @@
+[
+  {
+    "agent_id": "echo",
+    "event_type": "memory_ingest",
+    "title": "Surfaced forgotten preference",
+    "event_text": "Echo recalled a 90-day-old preference about commit message format and surfaced it to the review queue, where git-committer found it directly relevant to a PR under review.",
+    "event_time": "2026-06-27T01:15:00Z"
+  },
+  {
+    "agent_id": "git-committer",
+    "event_type": "pr_verdict",
+    "title": "Security block on auth-service PR",
+    "event_text": "git-committer flagged PR #142 (auth-service token rotation) as blocking: a hardcoded expiry constant was found in the refresh path. rev-sec agreed; rev-style had already approved.",
+    "event_time": "2026-06-27T02:30:00Z"
+  },
+  {
+    "agent_id": "open-translate",
+    "event_type": "translation_segment",
+    "title": "Glossary term added: ablation",
+    "event_text": "open-translate added 'ablation study' to shared.glossary after encountering the term in three separate documents. The Japanese rendering (アブレーション実験) was flagged as a new consensus term.",
+    "event_time": "2026-06-27T03:45:00Z"
+  },
+  {
+    "agent_id": "skippy",
+    "event_type": "device_action",
+    "title": "Front-door unlock refused",
+    "event_text": "Skippy refused an unlock request for the front door at 03:52 UTC — outside the configured allowed hours window (06:00–23:00 local). The refusal was logged with reason 'curfew_policy'.",
+    "event_time": "2026-06-27T03:52:00Z"
+  },
+  {
+    "agent_id": "git-committer",
+    "event_type": "session_summary",
+    "title": "Nightly PR sweep complete",
+    "event_text": "git-committer processed 7 open PRs: 4 approved, 2 blocked (including auth-service), 1 deferred pending human review. Code-conventions namespace updated with two new entries.",
+    "event_time": "2026-06-27T04:10:00Z"
+  },
+  {
+    "agent_id": "echo",
+    "event_type": "memory_forget",
+    "title": "Stale device preference pruned",
+    "event_text": "Echo pruned a 180-day-old lighting preference for a device no longer registered. The prune was confirmed by Skippy's device list returning no match.",
+    "event_time": "2026-06-27T04:30:00Z"
+  },
+  {
+    "agent_id": "showrunner",
+    "event_type": "session_summary",
+    "title": "Showrunner bootstrap complete",
+    "event_text": "Showrunner came online for the first time. Verified read access to memory_events and shared namespaces. No prior episodes found — registry initialised.",
+    "event_time": "2026-06-27T05:00:00Z"
+  },
+  {
+    "agent_id": "open-translate",
+    "event_type": "translation_segment",
+    "title": "Batch translation: policy docs",
+    "event_text": "open-translate completed a batch of 12 policy document segments (EN→JA). Confidence scores ranged 0.87–0.96. Two segments queued for human review due to domain-specific legal terminology.",
+    "event_time": "2026-06-27T05:45:00Z"
+  },
+  {
+    "agent_id": "echo",
+    "event_type": "memory_ingest",
+    "title": "Cross-agent link discovered",
+    "event_text": "Echo identified that the 'ablation' term added by open-translate this morning matches a research reference in echo.private from 14 days ago. Cross-reference logged.",
+    "event_time": "2026-06-27T06:20:00Z"
+  },
+  {
+    "agent_id": "skippy",
+    "event_type": "device_action",
+    "title": "Morning routine executed",
+    "event_text": "Skippy ran the 06:00 morning routine: lights to 80%, thermostat to 20°C, coffee maker started. All devices responded within timeout. Routine marked complete.",
+    "event_time": "2026-06-27T06:01:00Z"
+  }
+]
