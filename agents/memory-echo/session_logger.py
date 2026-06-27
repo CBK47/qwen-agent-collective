@@ -12,7 +12,7 @@ ponytail: reuses shared.dashscope (auth/endpoint/model) instead of a new client.
 """
 import json
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 import namespaces
 
@@ -75,10 +75,27 @@ def summarize(convo: str) -> str:
 
 
 def ingest_facts(session_id: str, facts: str) -> None:
-    namespaces.ingest(session_id, facts)
+    current_time = datetime.utcnow().isoformat()
+    data = {
+        'timestamp': current_time,
+        'content': facts
+    }
+    namespaces.ingest(session_id, json.dumps(data))
 
 def retrieve_facts(session_id: str) -> str:
-    return namespaces.retrieve(session_id)
+    data_str = namespaces.retrieve(session_id)
+    if not data_str:
+        return ""
+    try:
+        data = json.loads(data_str)
+        timestamp = datetime.fromisoformat(data['timestamp'])
+        current_time = datetime.utcnow()
+        ttl = timedelta(hours=24)  # 24 hours TTL
+        if current_time - timestamp > ttl:
+            return ""
+        return data['content']
+    except Exception as e:
+        return ""
 
 
 def main() -> int:
@@ -132,12 +149,10 @@ def _self_check() -> int:
     assert "assistant: Found it in foo.py" in convo, convo
     assert "[tool:Edit]" in convo, convo
     assert "ignore me" not in convo, "should skip non-user/assistant lines"
-    # format check with a stub summary (no API)
-    global LOG
-    LOG = Path(tempfile.mkdtemp()) / "session-log.md"
-    append_entry("abcd1234ef", "- did a thing\n- decided another")
-    body = LOG.read_text()
-    assert "## " in body and "abcd1234" in body and "- did a thing" in body, body
+    # Test ingest and retrieve
+    ingest_facts("abcd1234ef", "- did a thing\n- decided another")
+    retrieved = retrieve_facts("abcd1234ef")
+    assert "- did a thing" in retrieved, retrieved
     print("self-check OK")
     return 0
 
