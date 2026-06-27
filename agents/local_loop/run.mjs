@@ -119,18 +119,20 @@ const planRaw = await ollama([
     "open PLAN.md checklist item, fleshing out a stub into real logic, adding a " +
     "missing docstring/type hints to a real public function, or improving a README to " +
     "match the code. AVOID files marked '[recently touched]'. AVOID trivial no-ops.\n\n" +
-    "Respond with ONLY a JSON object, no prose, no code fences:\n" +
-    '{\n' +
-    '  "target": "<repo-relative path to ONE file>",\n' +
-    '  "action": "edit" | "create",\n' +
-    '  "type": "feat" | "fix" | "docs" | "refactor" | "test" | "chore",\n' +
-    '  "goal": "<imperative, specific, <=70 chars — becomes the commit subject>",\n' +
-    '  "details": "<2-4 sentences: exactly what to change and why it is valuable>"\n' +
-    "}" },
-  { role: "user", content: ctx + "\n\n/no_think\nRespond now with ONLY the JSON object." },
-], { temperature: 0.4, numPredict: 3000 });
+    "Reason briefly if you need to, then on the FINAL line output a marker " +
+    "`PLAN_JSON:` immediately followed by a single JSON object (and nothing after it):\n" +
+    'PLAN_JSON: {"target":"<repo-relative path to ONE file>",' +
+    '"action":"edit"|"create",' +
+    '"type":"feat"|"fix"|"docs"|"refactor"|"test"|"chore",' +
+    '"goal":"<imperative, specific, <=70 chars — becomes the commit subject>",' +
+    '"details":"<2-4 sentences: exactly what to change and why it is valuable>"}' },
+  { role: "user", content: ctx + "\n\nChoose the work slice, then end with the PLAN_JSON: line." },
+], { temperature: 0.4, numPredict: 6000 });
 
-function parsePlan(text) {
+function parsePlan(fullText) {
+  // Prefer JSON after the explicit PLAN_JSON: marker; fall back to scanning all text.
+  const mk = fullText.lastIndexOf("PLAN_JSON:");
+  const text = mk !== -1 ? fullText.slice(mk + "PLAN_JSON:".length) : fullText;
   // Scan for every balanced {...} block (thinking text may contain stray braces),
   // try to parse each, and prefer the last one that has a "target" field.
   const candidates = [];
@@ -155,7 +157,7 @@ function parsePlan(text) {
 }
 
 let plan = parsePlan(planRaw);
-if (!plan || !plan.target) log(`Planner raw (first 300): ${JSON.stringify(planRaw.slice(0, 300))}`);
+if (!plan || !plan.target) log(`Planner raw tail: ${JSON.stringify(planRaw.slice(-300))}`);
 if (!plan || !plan.target || !plan.goal) {
   log("Planner output unusable — falling back to a rotation target.");
   const fallback = rotationPick();
