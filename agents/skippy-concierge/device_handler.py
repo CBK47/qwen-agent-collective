@@ -56,3 +56,16 @@ class DeviceRegistry:
                         'params': params
                     }
         return None
+
+    def process_manual_input(self, manual_input, current_command):
+        device_name = current_command['device']
+        devices = Device.query.filter_by(device_name=device_name).all()
+        manual_input_lower = manual_input.lower()
+        for device in devices:
+            if device.action_keyword in manual_input_lower:
+                return {
+                    'device': device_name,
+                    'action': device.action,
+                    'params': current_command.get('params', {})
+                }
+        return None
