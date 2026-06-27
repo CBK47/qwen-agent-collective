@@ -1,7 +1,9 @@
 {
   "orchestrator": {
     "storage": "memory",
-    "ports": {
+    "postgres": 5432,
+    "qdrant": 6333,
+    "n8n": {
       "node1": 5678,
       "node2": 5679,
       "node3": 5680
