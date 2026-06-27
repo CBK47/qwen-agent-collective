@@ -21,11 +21,6 @@ acts locally on devices.
 
 ## MVP (breadth-first)
 One real DashScope call + one brain read/write:
-- **Read:** list `devices` for the room from Postgres.
-- **Call:** one `qwen-plus` (or `qwen-vl`) call mapping a request → a device action.
-- **Write:** updated device state → `devices`; episode → `skippy.private`.
-
-## First commands on Mac
 - [ ] Brain stack + DashScope key; seed a couple of `devices` rows.
-- [ ] Single text→action path over the device registry.
+- [x] Single text→action path over the device registry.
 - [ ] Add `qwen-vl` / `qwen2-audio` inputs + manual-grounded answers.
