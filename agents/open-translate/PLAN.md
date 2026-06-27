@@ -22,4 +22,4 @@ Qdrant: `open-translate_private`.
 One real DashScope call + one brain read/write:
 - [x] Brain stack + DashScope key.
 - [x] Translate a sample string with glossary pulled from the brain.
-- [ ] Wire translation-memory reuse + the HITL approval path to `shared.glossary`.
+- [x] Wire translation-memory reuse + the HITL approval path to `shared.glossary`.
