@@ -114,7 +114,9 @@ def enforce_glossary(translation: str, segment_source: str, glossary: dict[str, 
             # replace it; if nothing found, append a correction note.
             pattern = re.compile(re.escape(term), re.IGNORECASE)
             if pattern.search(result):
-                result = pattern.sub(required_translation, result, count=1)
+                # Function replacement → required_translation is treated literally
+                # (a plain string repl would interpret \1, \g<>, and backslashes).
+                result = pattern.sub(lambda _m: required_translation, result, count=1)
             else:
                 result = f"{result} [{required_translation}]"
             enforced.append(term)
