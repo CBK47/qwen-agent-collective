@@ -15,6 +15,10 @@ All collections/tables are namespaced. `shared.*` is readable by every agent. Ea
 
 See [../shared/](../shared/) for the namespace contract.
 
+## API Usage
+
+The brain client API is frozen. All agents must import from `shared.brain.py` to prevent forks and ensure consistency across agents for submission.
+
 ## Setup
 
 To initialize the brain stack:
