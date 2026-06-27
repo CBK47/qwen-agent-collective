@@ -14,3 +14,22 @@ Shared memory layer used by all five agents.
 All collections/tables are namespaced. `shared.*` is readable by every agent. Each agent also has a private namespace (e.g. `echo.private`, `skippy.private`).
 
 See [../shared/](../shared/) for the namespace contract.
+
+## Setup
+
+To initialize the brain stack:
+
+1. Copy the environment template:
+   ```bash
+   cp .env.example .env
+   ```
+
+2. Set your DashScope API key in the `.env` file:
+   ```env
+   DASHSCOPE_API_KEY=your_api_key_here
+   ```
+
+3. Start the services:
+   ```bash
+   docker-compose up -d
+   ```
