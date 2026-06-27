@@ -4,9 +4,11 @@ Common utilities and contracts used by all agents.
 
 ## Contents
 
-- **DashScope client** - shared Qwen/DashScope interface for chat, embeddings, streaming, diagnostics, retries, timeouts, structured logs, and model selection.
-- **Agent template** - `shared.agent.BaseAgent` defines the default lifecycle: receive task, read memory/conventions, generate work, self-review, validate, iterate, write memory, return result.
-- **Namespace contract** - defines every Qdrant collection name and Postgres schema prefix. Agents must use these constants rather than hard-coded strings.
+- **agent.py**: `shared.agent.BaseAgent` defines the default lifecycle: receive task, read memory/conventions, generate work, self-review, validate, iterate, write memory, return result.
+- **dashscope.py**: Shared Qwen/DashScope interface for chat, embeddings, streaming, diagnostics, retries, timeouts, structured logs, and model selection.
+- **namespace.py**: Defines every Qdrant collection name and Postgres schema prefix. Agents must use these constants rather than hard-coded strings.
+- **glossary.py**: Provides access to canonical term translations stored in Postgres.
+- **code_conventions.py**: Defines language-specific style rules and conventions for code generation.
 
 ## Commands
 
