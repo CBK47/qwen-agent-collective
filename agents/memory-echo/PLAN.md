@@ -20,10 +20,6 @@ Qdrant: `echo_private`, `echo_chat_chunks`, `echo_docs`.
 
 ## MVP (breadth-first)
 One real DashScope call + one brain read/write:
-- **Write:** embed a memory (`text-embedding-v3`) → Qdrant `echo_private`; fact row → Postgres.
-- **Read:** `retrieve` approved facts honoring `expires_at`, ranked + truncated to a budget.
-
-## First commands on Mac
 - [ ] Bring up the brain stack (`brain/docker-compose.yml`) + DashScope key.
-- [ ] Implement the brain client call for `ingest` then `retrieve`.
+- [x] Implement the brain client call for ingest then retrieve.
 - [ ] Track-1 demo harness: ingest facts → expire stale → recall under a tight budget.
