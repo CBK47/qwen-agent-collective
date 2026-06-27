@@ -68,3 +68,24 @@ Each service should show `healthy` in the status column.
 ```bash
 docker compose logs
 ```
+
+## Service Health Status
+
+Each service in the Docker Compose setup includes a healthcheck configuration to monitor its status. To verify the health status of all services:
+
+```bash
+docker compose ps
+```
+
+The output will show the status of each service. A healthy service will display `healthy` in the status column. If a service is unhealthy, check its logs for details:
+
+```bash
+docker compose logs <service-name>
+```
+
+Common troubleshooting steps for failed services:
+
+- Ensure all required environment variables are set correctly in `.env`.
+- Check for port conflicts (e.g., another process using the same port).
+- Verify network connectivity between services if they depend on each other.
+- Review the healthcheck configuration in `docker-compose.yml` for the specific service.
