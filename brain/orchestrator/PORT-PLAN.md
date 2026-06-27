@@ -1,4 +1,4 @@
-# Orchestrator Port Plan — Ollama → Qwen on DashScope
+# Orchestrator Port Plan — Qwen on DashScope
 
 **Status:** plan only (no JSON authored this pass). The original 20 KB
 `n8n-memory-orchestrator.json` lives in `CBK47/Agents` and was **not reachable**
@@ -6,17 +6,16 @@ from the web session that wrote this file. Build the workflow on your Mac, where
 you can copy the real JSON and apply the port below.
 
 The brain orchestrator is a single n8n workflow exposing **one webhook API** with
-three actions: `retrieve`, `ingest`, `manifest`. The port = repoint the three model
-nodes from local Ollama to **Qwen on Alibaba Cloud Model Studio (DashScope,
+three actions: `retrieve`, `ingest`, `manifest`. The model nodes are configured to use **Qwen on Alibaba Cloud Model Studio (DashScope,
 OpenAI-compatible)**, fully parameterized via `$env`. No hardcoded hosts/models.
 
 ## The three nodes to port
 
-| Node | Was (Ollama) | Becomes (DashScope, OpenAI-compatible) |
-|---|---|---|
-| **Embed Query** | local `/api/embeddings` | `POST {{$env.DASHSCOPE_BASE_URL}}/embeddings`, model `{{$env.QWEN_EMBED_MODEL}}` (`text-embedding-v3`) |
-| **Embed Summary** | local `/api/embeddings` | `POST {{$env.DASHSCOPE_BASE_URL}}/embeddings`, model `{{$env.QWEN_EMBED_MODEL}}` |
-| **Summarise & Extract** | local `/api/generate` | `POST {{$env.DASHSCOPE_BASE_URL}}/chat/completions`, model `{{$env.QWEN_CHAT_MODEL}}` (`qwen-plus`) |
+| Node | Current Configuration |
+|------|-----------------------|
+| **Embed Query** | `POST {{$env.DASHSCOPE_BASE_URL}}/embeddings`, model `{{$env.QWEN_EMBED_MODEL}}` (`text-embedding-v3`) |
+| **Embed Summary** | `POST {{$env.DASHSCOPE_BASE_URL}}/embeddings`, model `{{$env.QWEN_EMBED_MODEL}}` |
+| **Summarise & Extract** | `POST {{$env.DASHSCOPE_BASE_URL}}/chat/completions`, model `{{$env.QWEN_CHAT_MODEL}}` (`qwen-plus`) |
 
 Common HTTP Request node settings for all three:
 - Header `Authorization: Bearer {{$env.DASHSCOPE_API_KEY}}`
@@ -66,7 +65,7 @@ Common HTTP Request node settings for all three:
 
 ## Mac kickoff checklist
 - [x] Copy the real `n8n-memory-orchestrator.json` from `CBK47/Agents@claude/qwen-hackathon-ideas-bs1z60:/brain/orchestrator/`.
-- [ ] Apply the 3-node port table above; remove any Ollama host references.
+- [ ] Apply the port table above.
 - [ ] `cp brain/.env.example brain/.env` and fill `DASHSCOPE_API_KEY`.
 - [ ] `docker compose up`; confirm Postgres init + Qdrant + n8n are healthy.
 - [ ] Create Qdrant collections (dim 1024).
