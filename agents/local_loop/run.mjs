@@ -59,7 +59,8 @@ function sh(cmd, opts = {}) {
 // ── 1. Gather context ──────────────────────────────────────────────────────────
 console.log("[1/7] Gathering repo context...");
 const ctx = sh(
-  "git status --short --branch && git log --oneline -6 && " +
+  "git status --short --branch && echo '### Recent commits ###' && git log --oneline -10 && " +
+  "echo '### Files changed in last 5 commits ###' && git diff HEAD~5 HEAD --name-only 2>/dev/null | sort -u && " +
   "find . -name '*.py' ! -path './venv/*' ! -path './.git/*' | sort | head -6 | " +
   "xargs -I{} sh -c 'printf \"### %s ###\\n\" \"{}\" && head -30 \"{}\"'"
 ).slice(0, 4000);
@@ -75,8 +76,9 @@ const reviewRaw = await ollama([
     "PASS/WARN/FAIL + one sentence.\n" +
     "## Recommended Next Work Slice\n" +
     "ONE micro-task under 20 shell lines. Add a docstring, type hint, " +
-    "TODO comment, or stub function to a specific Python file and function. " +
-    "NEVER edit JSON/config files or recommend complex features." },
+    "TODO comment, or stub function. IMPORTANT: look at the recent commits list " +
+    "and pick a FILE that has NOT been recently touched. Never recommend debate_prototype.py " +
+    "if it already appears in the recent commits. Vary the target file each cycle." },
   { role: "user", content: `Repo context:\n\n${ctx}` },
 ], 0.2, 4000);
 
@@ -163,14 +165,17 @@ if (safeScript) {
   console.log("[6/7] Skipped (no safe script)");
 }
 
-// ── 7. Commit ──────────────────────────────────────────────────────────────────
+// ── 7. Commit (only when real code changed, not just reports) ──────────────────
 console.log("[7/7] Committing...");
 sh("git add -A");
-const staged = sh("git diff --staged --stat");
-if (!staged) {
-  console.log("Nothing to commit.");
+// Only count changes outside reports/ — skip report-only cycles
+const codeChanges = sh("git diff --staged --name-only | grep -v '^reports/' || true");
+if (!codeChanges.trim()) {
+  console.log("No code changes this cycle — skipping commit (reports not committed alone).");
+  sh("git reset HEAD -- .");
   process.exit(0);
 }
+const staged = sh("git diff --staged --stat");
 console.log(`Staged:\n${staged}`);
 
 const summary = runOutput || verdictLine;
