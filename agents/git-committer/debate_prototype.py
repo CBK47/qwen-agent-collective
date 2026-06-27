@@ -1,6 +1,5 @@
 import os
-from shared.dashscope import chat
-from brain import conventions
+from review import conventions
 
 def review_single_role(role: str, context: str) -> str:
     persona = conventions.get(role)
