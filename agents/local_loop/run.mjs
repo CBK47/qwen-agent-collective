@@ -178,18 +178,18 @@ if (!codeChanges.trim()) {
 const staged = sh("git diff --staged --stat");
 console.log(`Staged:\n${staged}`);
 
-const summary = runOutput || verdictLine;
-const msgRaw = await ollama([
-  { role: "system", content:
-    "You are a commit message generator. Reply with ONE LINE ONLY.\n" +
-    "Format: <type>(<scope>): <description>\n" +
-    "Types: feat fix docs chore refactor test\n" +
-    "Example: chore(agents): add synthesize_reviews stub to debate_prototype\n" +
-    "Your entire response must be just that one line. No explanation, no quotes." },
-  { role: "user", content: `Work done: ${summary.slice(0, 200)}\nFiles changed:\n${staged.slice(0, 300)}` },
-], 0, 200);
-
-const commitMsg = extractCommitMsg(msgRaw);
+// Build commit message from known info — more reliable than asking the model
+const doneMatch = runOutput.match(/DONE:\s*(.+)/i);
+const description = doneMatch
+  ? doneMatch[1].trim().toLowerCase().replace(/['"]/g, "").slice(0, 60)
+  : verdictLine.toLowerCase().replace(/^(pass|warn|fail)[:\s-]*/i, "").trim().slice(0, 60) || "automated improvement";
+const type = /\b(fix|bug|error|broken)\b/.test(description) ? "fix"
+  : /\b(doc|comment|readme|todo)\b/.test(description) ? "docs"
+  : /\b(refactor|clean|restructur|reorganiz)\b/.test(description) ? "refactor"
+  : /\b(test|spec)\b/.test(description) ? "test"
+  : "feat";
+const scope = targetFile.replace(/.*\//, "").replace(/\.\w+$/, "");
+const commitMsg = `${type}(${scope}): ${description}`;
 console.log(`Commit message: ${JSON.stringify(commitMsg)}`);
 
 const commitResult = spawnSync(
