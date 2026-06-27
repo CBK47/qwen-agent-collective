@@ -28,15 +28,31 @@ class DeviceRegistry:
                 db.session.add(new_device)
         db.session.commit()
 
-    def parse_command(self, text):
+    def parse_command(self, input_data):
+        if isinstance(input_data, dict):
+            text = input_data.get('text', '')
+            image = input_data.get('image')
+            audio = input_data.get('audio')
+        elif isinstance(input_data, str):
+            text = input_data
+            image = None
+            audio = None
+        else:
+            return None
+
         text = text.lower()
         all_devices = Device.query.all()
         for device in all_devices:
             if device.device_name in text:
                 if device.action_keyword in text:
+                    params = {}
+                    if image is not None:
+                        params['image'] = image
+                    if audio is not None:
+                        params['audio'] = audio
                     return {
                         'device': device.device_name,
                         'action': device.action,
-                        'params': {}
+                        'params': params
                     }
         return None
