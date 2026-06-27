@@ -29,6 +29,9 @@ class GitCommitterAgent(BaseAgent):
         diff = task.instruction
         context = memory.as_prompt_context()
         
+        # Retrieve code conventions from brain client
+        code_conventions = self.retrieve('code-conventions')
+        
         # Handle iteration context
         repair_context = ""
         if previous_output or previous_validation.output:
@@ -42,7 +45,7 @@ class GitCommitterAgent(BaseAgent):
 
         for round in range(3):
             # Pedant's turn
-            pedant_prompt = f"{self.PERSONAS['Pedant']}\n\nContext:\n{context}\n\nDiff:\n{diff}\n\n"
+            pedant_prompt = f"{self.PERSONAS['Pedant']}\n\nContext:\n{context}\n\nCode Conventions:\n{code_conventions}\n\nDiff:\n{diff}\n\n"
             if current_arch is not None:
                 pedant_prompt += f"Architect's previous review: {current_arch}\n"
             if current_skeptic is not None:
@@ -52,7 +55,7 @@ class GitCommitterAgent(BaseAgent):
             print(f"[PEDANT ROUND {round+1}]: {current_pedant}")
 
             # Architect's turn
-            arch_prompt = f"{self.PERSONAS['Architect']}\n\nContext:\n{context}\n\nDiff:\n{diff}\n\n"
+            arch_prompt = f"{self.PERSONAS['Architect']}\n\nContext:\n{context}\n\nCode Conventions:\n{code_conventions}\n\nDiff:\n{diff}\n\n"
             if current_pedant is not None:
                 arch_prompt += f"Pedant's review: {current_pedant}\n"
             if current_skeptic is not None:
@@ -62,7 +65,7 @@ class GitCommitterAgent(BaseAgent):
             print(f"[ARCHITECT ROUND {round+1}]: {current_arch}")
 
             # Skeptic's turn
-            skeptic_prompt = f"{self.PERSONAS['Skeptic']}\n\nContext:\n{context}\n\nDiff:\n{diff}\n\n"
+            skeptic_prompt = f"{self.PERSONAS['Skeptic']}\n\nContext:\n{context}\n\nCode Conventions:\n{code_conventions}\n\nDiff:\n{diff}\n\n"
             if current_pedant is not None:
                 skeptic_prompt += f"Pedant's review: {current_pedant}\n"
             if current_arch is not None:
@@ -75,6 +78,7 @@ class GitCommitterAgent(BaseAgent):
         synth_prompt = (
             f"{self.PERSONAS['Synthesizer']}\n\n"
             f"Context:\n{context}\n\n"
+            f"Code Conventions:\n{code_conventions}\n\n"
             f"Diff:\n{diff}\n\n"
             f"Reports:\nPedant: {current_pedant}\nArchitect: {current_arch}\nSkeptic: {current_skeptic}\n\n"
             f"Produce a final Conventional Commit message and a brief summary of the verdict."
