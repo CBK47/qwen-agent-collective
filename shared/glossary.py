@@ -1,3 +1,5 @@
+import json
+
 class Glossary:
     """Manages a collection of source-target translation pairs."""
     
@@ -24,3 +26,21 @@ class Glossary:
             str | None: The target translation if found, otherwise None.
         """
         return self.entries.get(source)
+    
+    def load_from_file(self, path: str) -> None:
+        """Load glossary entries from a JSON file.
+
+        Args:
+            path (str): Path to the JSON file containing entries.
+        """
+        with open(path, 'r') as f:
+            self.entries = json.load(f)
+    
+    def save_to_file(self, path: str) -> None:
+        """Save glossary entries to a JSON file.
+
+        Args:
+            path (str): Path to the JSON file to save entries.
+        """
+        with open(path, 'w') as f:
+            json.dump(self.entries, f)
