@@ -59,6 +59,7 @@ class DashScopeConfig:
 
     @classmethod
     def from_env(cls) -> "DashScopeConfig":
+        """Create a DashScopeConfig instance from environment variables."""
         return cls(
             api_key=os.environ.get("DASHSCOPE_API_KEY"),
             base_url=os.environ.get("DASHSCOPE_BASE_URL", DEFAULT_BASE_URL),
@@ -75,6 +76,7 @@ class DashScopeConfig:
         )
 
     def require_api_key(self) -> str:
+        """Return the API key, raising an error if not configured."""
         if self.api_key:
             return self.api_key
         raise DashScopeError(
@@ -83,6 +85,7 @@ class DashScopeConfig:
         )
 
     def model_map(self) -> dict[str, str]:
+        """Return a mapping of model types to their configured names."""
         return {
             "chat": self.chat_model,
             "coder": self.coder_model,
@@ -132,11 +135,18 @@ class DashScopeClient:
     """Small OpenAI-compatible client for DashScope/Qwen models."""
 
     def __init__(self, config: DashScopeConfig | None = None, openai_client: OpenAI | None = None):
+        """Initialize the DashScope client.
+
+        Args:
+            config: Optional configuration to use. If None, uses default from environment.
+            openai_client: Optional pre-configured OpenAI client. If provided, overrides config.
+        """
         self.config = config or DashScopeConfig.from_env()
         self._client = openai_client
 
     @property
     def raw(self) -> OpenAI:
+        """Return the underlying OpenAI client instance."""
         if self._client is None:
             self._client = OpenAI(
                 api_key=self.config.require_api_key(),
@@ -158,7 +168,24 @@ class DashScopeClient:
         metadata: Mapping[str, Any] | None = None,
         **extra: Any,
     ) -> str:
-        """Run one chat completion and return reply text."""
+        """Perform a chat completion using the DashScope API.
+
+        Args:
+            prompt: The user's input text. Either `prompt` or `messages` must be provided.
+            messages: A sequence of message dictionaries. Each message should have a 'role' and 'content' key.
+            model: The model to use for the chat. If not specified, uses the default chat model from config.
+            temperature: Controls randomness. Lower values make the model more deterministic. Defaults to config's temperature.
+            max_tokens: The maximum number of tokens to generate in the response. Defaults to config's max_tokens.
+            timeout: Request timeout in seconds. Defaults to config's timeout_seconds.
+            metadata: Additional metadata for the request, such as request_id.
+            **extra: Additional keyword arguments to pass to the underlying API call.
+
+        Returns:
+            The text content of the model's response.
+
+        Raises:
+            DashScopeError: If the request fails after retries.
+        """
         request_messages = _normalize_messages(prompt, messages)
         response = self._with_retries(
             operation="chat",
@@ -410,22 +437,56 @@ client = _LazyOpenAIClient()
 
 
 def chat(prompt: str, model: str | None = None, **kwargs: Any) -> str:
-    """Backwards-compatible one-shot chat helper."""
+    """Sends a chat prompt to the DashScope API and returns the response.
+
+    Args:
+        prompt: The input text to send to the model.
+        model: The model to use for the chat. If not specified, uses the default chat model from config.
+        **kwargs: Additional keyword arguments to pass to the underlying chat method.
+
+    Returns:
+        The response text from the model.
+    """
     return DashScopeClient().chat(prompt, model=model, **kwargs)
 
 
 def chat_stream(prompt: str, model: str | None = None, **kwargs: Any) -> Iterator[str]:
-    """Backwards-compatible streaming chat helper."""
+    """Streams a chat completion as text chunks.
+
+    Args:
+        prompt: The input text to send to the model.
+        model: The model to use for the chat. If not specified, uses the default chat model from config.
+        **kwargs: Additional keyword arguments to pass to the underlying chat_stream method.
+
+    Returns:
+        An iterator of text chunks from the model's response.
+    """
     return DashScopeClient().chat_stream(prompt, model=model, **kwargs)
 
 
 def embed(text: str | Sequence[str], model: str | None = None, **kwargs: Any) -> list[float] | list[list[float]]:
-    """Backwards-compatible embedding helper."""
+    """Embeds one or more strings into vectors.
+
+    Args:
+        text: A single string or a sequence of strings to embed.
+        model: The embedding model to use. If not specified, uses the default embed model from config.
+        **kwargs: Additional keyword arguments to pass to the underlying embed method.
+
+    Returns:
+        A list of floats for a single string, or a list of lists of floats for multiple strings.
+    """
     return DashScopeClient().embed(text, model=model, **kwargs)
 
 
 def diagnose(*, network: bool = True) -> dict[str, Any]:
-    """Run configuration and credential diagnostics."""
+    """Runs diagnostics on the DashScope configuration and credentials.
+
+    Args:
+        network: Whether to perform network-based diagnostics (e.g., checking API connectivity).
+
+    Returns:
+        A dictionary containing the diagnostic results.
+    """
     return DashScopeClient().diagnose(network=network)
 
 
@@ -445,6 +506,14 @@ def _print_human_report(report: Mapping[str, Any]) -> None:
 
 
 def main(argv: Iterable[str] | None = None) -> int:
+    """Command-line interface for the DashScope client.
+
+    Args:
+        argv: Optional list of command-line arguments. If None, uses sys.argv.
+
+    Returns:
+        Exit code (0 for success, non-zero for errors).
+    """
     parser = argparse.ArgumentParser(description="DashScope/Qwen shared client utilities.")
     sub = parser.add_subparsers(dest="command")
 
@@ -494,14 +563,3 @@ def main(argv: Iterable[str] | None = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-def chat(prompt: str, model: str = "qwen-max") -> str:
-    """Sends a prompt to DashScope API and returns the response.
-
-    Args:
-        prompt: Input text for the model.
-        model: Model name to use (default: qwen-max).
-
-    Returns:
-        Response string from the API.
-    """
-    pass
