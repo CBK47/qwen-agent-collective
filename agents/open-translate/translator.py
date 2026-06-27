@@ -18,6 +18,15 @@ def translate_with_glossary(text: str) -> str:
         str: The translated text in Chinese.
     """
     glossary = brain.get_glossary()
+    new_terms = []
+    words = text.split()
+    for word in words:
+        if word not in glossary:
+            new_terms.append(word)
+    
+    if new_terms:
+        brain.add_to_review_queue(new_terms)
+    
     sorted_terms = sorted(glossary.items(), key=lambda x: len(x[0]), reverse=True)
     unapproved_terms = []
     for term, entry in sorted_terms:
