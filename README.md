@@ -45,10 +45,20 @@ Namespaces are prefixed: `shared.*` is readable by all agents; each agent also h
 
 ## Setup
 
-```bash
-cp brain/.env.example brain/.env
-# Fill in DASHSCOPE_API_KEY in brain/.env
-```
+To get started, you need to set up your DashScope API key:
+
+1. **Obtain your API key**:
+   - Visit the [DashScope Console](https://dashscope.console.aliyun.com/)
+   - Sign in with your Alibaba Cloud account
+   - Navigate to "API Key Management" and copy your existing key or create a new one
+
+2. **Set up the environment variables**:
+   ```bash
+   cp brain/.env.example brain/.env
+   # Open brain/.env and replace the placeholder with your actual API key
+   # Example:
+   # DASHSCOPE_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+   ```
 
 See [docs/architecture](docs/architecture/) for system design and [HACKATHON.md](HACKATHON.md) for submission details.
 
