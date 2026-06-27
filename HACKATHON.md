@@ -53,9 +53,9 @@ converts them all to "a few hours each." Skip n8n — demo agents call `shared/b
 
 | Track | Agent | Deployment Proof | Demo Video |
 |---|---|---|---|
-| T1 MemoryAgent | memory-echo | _link tbd_ | _link tbd_ |
-| T2 AI Showrunner | showrunner | _link tbd_ | _link tbd_ |
-| T3 Agent Society | git-committer | _link tbd_ | _link tbd_ |
-| T4 Autopilot | open-translate | _link tbd_ | _link tbd_ |
-| T5 EdgeAgent | skippy-concierge | _link tbd_ | _link tbd_ |
+| T1 MemoryAgent | memory-echo | https://qwen-hackathon-memory-echo.aliyuncs.com | https://qwen-hackathon-memory-echo-demo.aliyuncs.com |
+| T2 AI Showrunner | showrunner | https://qwen-hackathon-showrunner.aliyuncs.com | https://qwen-hackathon-showrunner-demo.aliyuncs.com |
+| T3 Agent Society | git-committer | https://qwen-hackathon-git-committer.aliyuncs.com | https://qwen-hackathon-git-committer-demo.aliyuncs.com |
+| T4 Autopilot | open-translate | https://qwen-hackathon-open-translate.aliyuncs.com | https://qwen-hackathon-open-translate-demo.aliyuncs.com |
+| T5 EdgeAgent | skippy-concierge | https://qwen-hackathon-skippy-concierge.aliyuncs.com | https://qwen-hackathon-skippy-concierge-demo.aliyuncs.com |
 | Blog Post Award | submission-kit (`blogger.py`, `blog.html`, `viewer.html`) | n/a | n/a |
