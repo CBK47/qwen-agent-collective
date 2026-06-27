@@ -25,6 +25,6 @@ One real DashScope call + one brain read/write:
 - **Write:** store the pair in translation memory; new terms → `memory_review_queue` (HITL).
 
 ## First commands on Mac
-- [ ] Brain stack + DashScope key.
+- [x] Brain stack + DashScope key.
 - [ ] Translate a sample string with glossary pulled from the brain.
 - [ ] Wire translation-memory reuse + the HITL approval path to `shared.glossary`.
