@@ -46,8 +46,8 @@ Namespaces are prefixed: `shared.*` is readable by all agents; each agent also h
 ## Setup
 
 ```bash
-cp .env.example .env
-# Fill in DASHSCOPE_API_KEY and connection strings
+cp brain/.env.example brain/.env
+# Fill in DASHSCOPE_API_KEY in brain/.env
 ```
 
 See [docs/architecture](docs/architecture/) for system design and [HACKATHON.md](HACKATHON.md) for submission details.
