@@ -494,3 +494,14 @@ def main(argv: Iterable[str] | None = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+def chat(prompt: str, model: str = "qwen-max") -> str:
+    """Sends a prompt to DashScope API and returns the response.
+
+    Args:
+        prompt: Input text for the model.
+        model: Model name to use (default: qwen-max).
+
+    Returns:
+        Response string from the API.
+    """
+    pass
