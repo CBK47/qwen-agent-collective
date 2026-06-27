@@ -1,4 +1,5 @@
 import os
+from shared.dashscope import chat
 from review import conventions
 
 def review_single_role(role: str, context: str) -> str:
