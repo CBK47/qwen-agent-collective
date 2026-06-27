@@ -19,8 +19,16 @@ def translate_with_glossary(text: str) -> str:
     """
     glossary = brain.get_glossary()
     sorted_terms = sorted(glossary.items(), key=lambda x: len(x[0]), reverse=True)
-    for term, translation in sorted_terms:
-        text = text.replace(term, translation)
+    unapproved_terms = []
+    for term, entry in sorted_terms:
+        if isinstance(entry, dict) and entry.get('approved', False):
+            text = text.replace(term, entry['translation'])
+        else:
+            unapproved_terms.append(term)
+    
+    if unapproved_terms:
+        return f"Approval needed for terms: {', '.join(unapproved_terms)}"
+    
     response = Translation.call(
         model='qwen-turbo',
         source_text=text,
