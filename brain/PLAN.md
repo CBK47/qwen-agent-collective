@@ -4,9 +4,13 @@
 Per `HACKATHON.md` SSOT, this is the highest-leverage remaining work.
 
 ## Keystone — `shared/brain.py`
-- [ ] Build `shared/brain.py` exposing `ingest(...)` + `retrieve(...)` over Postgres + Qdrant, using the running brain stack (`echo-postgres`, `echo-qdrant`) and the committed schema (`brain/db/postgres-init.sql`).
-- [ ] Prove ingest → retrieve end to end locally with memory-echo (the Track-1 path).
-- [ ] Freeze the brain client API so all five agents import it (never fork).
+- [x] Build `shared/brain.py` exposing `ingest(...)` + `retrieve(...)` over Postgres + Qdrant, using the running brain stack (`echo-postgres`, `echo-qdrant`) and the committed schema (`brain/db/postgres-init.sql`).
+- [x] Prove ingest → retrieve end to end locally (DashScope `text-embedding-v3` → Qdrant cosine search; governance by status + `expires_at`; token-budget truncation). Run `python -m shared.brain`.
+- [x] Freeze the brain client API so all five agents import it (`Brain`, `ingest`, `retrieve`, `recent_events`).
+
+> Provisioned: an isolated `brain` DB + `brain_user` role inside the running Postgres
+> instance (no port conflict with Local Echo), schema applied from `postgres-init.sql`.
+> Qdrant collections are created per namespace on first ingest (dim 1024, cosine).
 
 ## Cross-cutting submission proofs (required ×5)
 - [ ] One shared Alibaba Cloud deploy harness every track reuses (not 5 bespoke deploys).

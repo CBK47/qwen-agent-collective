@@ -14,7 +14,7 @@ STATE ∈ not-started · in-progress · blocked · done. OWNER-CHAT = the code c
 | Track / Layer | STATE | LAST DECISION | NEXT ACTION (one step) | OWNER-CHAT |
 |---|---|---|---|---|
 | Spine `shared/` | **done** | DashScope Singapore compatible endpoint; chat + embeddings live, smoke passes | Freeze the client API — agents import, never fork it | — |
-| **Brain runtime** ⭐ keystone | **not-started** (blocks all 5) | PG + Qdrant + n8n designed; **n8n CUT from critical path** (demo calls the client in-process) | Build `shared/brain.py` = `ingest()` + `retrieve()` over Postgres + Qdrant via `brain/docker-compose.yml` (run the committed schema) | chat:brain |
+| **Brain runtime** ⭐ keystone | **done** (unblocks all 5) | `shared/brain.py` built + proven E2E (ingest→retrieve with embeddings + governance + token budget) against live Postgres+Qdrant | Wire each track's demo onto `brain.ingest/retrieve` (now ~a few hours each) | chat:brain |
 | T1 · memory-echo | **in-progress** | `session_logger.py` ships as a SessionEnd hook (live qwen-plus) — this is NOT the Track-1 MVP | Once brain client exists: ingest → expire stale → recall-under-budget demo harness | chat:memory-echo |
 | T2 · showrunner | **blocked** (on brain) | — | Read recent `memory_events` → 1 `qwen-plus` script → write `showrunner.private` | chat:showrunner |
 | T3 · git-committer | **blocked** (on brain) | — | Read `shared.code-conventions` → 1 `qwen2.5-coder` review pass over a fixed diff | chat:git-committer |
