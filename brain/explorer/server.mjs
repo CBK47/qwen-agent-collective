@@ -1,5 +1,3 @@
-// Brain Explorer server: static UI + one grounded-recall endpoint backed by
-// the shared Qwen/DashScope spine.
 import express from "express";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -7,13 +5,29 @@ import { execSync } from "node:child_process";
 import fs from "node:fs";
 import dotenv from "dotenv";
 import { createDashScopeClient } from "../../shared/dashscope.mjs";
+import { createQdrantClient } from "../../shared/qdrant.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-// Key/models live in the repo-root .env (shared with the Python spine).
 dotenv.config({ path: path.resolve(__dirname, "../../.env") });
 
 const PORT = 3456;
 const qwen = createDashScopeClient();
+
+const qdrant = createQdrantClient();
+try {
+  await qdrant.createCollection('brain', {
+    vectors: {
+      size: 1024,
+      distance: 'Cosine'
+    }
+  });
+} catch (e) {
+  if (e.message.includes('already exists')) {
+    console.log('Qdrant collection "brain" already exists');
+  } else {
+    console.error('Error creating Qdrant collection:', e);
+  }
+}
 
 const app = express();
 app.use(express.json());
@@ -35,7 +49,6 @@ Guidelines:
 3. Synthesize beautifully in your professional persona. Keep it focused and concise.
 4. Do not dump raw markdown URLs in the body; keep it clean.`;
 
-    // enable_search = Qwen's web grounding.
     const data = await qwen.chat({
       messages: [
         { role: "system", content: systemInstruction },
@@ -47,8 +60,6 @@ Guidelines:
     });
 
     const text = data.choices?.[0]?.message?.content || "";
-    // ponytail: this compatible endpoint doesn't return citation chunks; map
-    // them if a future endpoint/model does, else the UI hides the source cards.
     const results = data.choices?.[0]?.message?.search_results
       || data.search_info?.search_results || [];
     const chunks = results.map(s => ({ web: { uri: s.url || s.uri, title: s.title } }));
@@ -60,8 +71,6 @@ Guidelines:
     res.status(500).json({ error: err.message || "Internal server error" });
   }
 });
-
-const REPO = path.resolve(__dirname, "../..");
 
 app.get("/api/git-log", (_req, res) => {
   try {
