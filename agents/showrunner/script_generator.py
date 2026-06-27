@@ -1,4 +1,4 @@
-from brain_storage import get_recent_events
+from brain_client import get_memory_events
 import subprocess
 import dashscope
 import os
@@ -13,16 +13,19 @@ def format_time(seconds):
     return f"{hours:02d}:{minutes:02d}:{seconds:02d},000"
 
 def generate_script(limit=10):
-    events = get_recent_events(limit=limit)
+    events = get_memory_events(limit=limit)
     prompt = "Generate a script based on the following events:\n"
     for event in events:
         prompt += f"{event['timestamp']} - {event['type']}: {event['summary']}\n"
     response = dashscope.Generation.call(
-        model='qwen-turbo',
+        model='qwen-plus',
         prompt=prompt
     )
     if response.status_code == 200:
-        return response.output.text
+        script_text = response.output.text
+        with open('showrunner.private', 'w') as f:
+            f.write(script_text)
+        return script_text
     else:
         return f"Error generating script: {response.message}"
 
