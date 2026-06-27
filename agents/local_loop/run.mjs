@@ -119,15 +119,16 @@ const planRaw = await ollama([
     "open PLAN.md checklist item, fleshing out a stub into real logic, adding a " +
     "missing docstring/type hints to a real public function, or improving a README to " +
     "match the code. AVOID files marked '[recently touched]'. AVOID trivial no-ops.\n\n" +
-    "Reason briefly if you need to, then on the FINAL line output a marker " +
-    "`PLAN_JSON:` immediately followed by a single JSON object (and nothing after it):\n" +
+    "IMPORTANT: keep any reasoning to 3 short sentences MAX, then immediately output a " +
+    "line starting with `PLAN_JSON:` followed by a single JSON object (and nothing after it). " +
+    "Do not deliberate at length — decide quickly and emit the marker:\n" +
     'PLAN_JSON: {"target":"<repo-relative path to ONE file>",' +
     '"action":"edit"|"create",' +
     '"type":"feat"|"fix"|"docs"|"refactor"|"test"|"chore",' +
     '"goal":"<imperative, specific, <=70 chars — becomes the commit subject>",' +
     '"details":"<2-4 sentences: exactly what to change and why it is valuable>"}' },
-  { role: "user", content: ctx + "\n\nChoose the work slice, then end with the PLAN_JSON: line." },
-], { temperature: 0.4, numPredict: 6000 });
+  { role: "user", content: ctx + "\n\nDecide quickly (<=3 sentences) and emit the PLAN_JSON: line." },
+], { temperature: 0.2, numPredict: 8000 });
 
 function parsePlan(fullText) {
   // Prefer JSON after the explicit PLAN_JSON: marker; fall back to scanning all text.
