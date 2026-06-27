@@ -14,7 +14,7 @@ import json
 import sys
 from datetime import datetime, timedelta
 from pathlib import Path
-import namespaces
+from shared.brain import ingest, retrieve
 
 ROOT = Path(__file__).resolve().parents[2]          # repo root
 
@@ -80,10 +80,10 @@ def ingest_facts(session_id: str, facts: str) -> None:
         'timestamp': current_time,
         'content': facts
     }
-    namespaces.ingest(session_id, json.dumps(data))
+    ingest(session_id, json.dumps(data))
 
 def retrieve_facts(session_id: str) -> str:
-    data_str = namespaces.retrieve(session_id)
+    data_str = retrieve(session_id)
     if not data_str:
         return ""
     try:
