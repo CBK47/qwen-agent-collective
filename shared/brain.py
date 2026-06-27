@@ -328,6 +328,41 @@ def retrieve(query: str, **kwargs: Any) -> list[Memory]:
     return _default().retrieve(query, **kwargs)
 
 
+class BrainClient:
+    """Compatibility adapter for agents that want chat + a string memory fetch.
+
+    Some agents (e.g. git-committer's ``review.py``) expect one client that can
+    both run chat completions and pull shared knowledge as text. This wraps
+    ``shared.dashscope.DashScopeClient`` for ``chat()`` / ``config`` and ``Brain``
+    for memory, exposing a string-returning ``retrieve(key)``.
+    """
+
+    def __init__(self, config: BrainConfig | None = None) -> None:
+        from shared.dashscope import DashScopeClient
+        self._chat = DashScopeClient()
+        self.config = self._chat.config          # .chat_model, .coder_model, …
+        self.brain = Brain(config)
+
+    def chat(self, *args: Any, **kwargs: Any) -> str:
+        """Delegate to the DashScope chat client (prompt= or messages=)."""
+        return self._chat.chat(*args, **kwargs)
+
+    def retrieve(self, key: str, *, namespace: str | None = None, top_k: int = 10) -> str:
+        """Return shared knowledge for ``key`` as joined text (``""`` if none).
+
+        ``key='code_conventions'`` defaults to the ``shared.code-conventions``
+        namespace. Best-effort: never raises, so a missing brain degrades to "".
+        """
+        ns = namespace or ("shared.code-conventions" if key == "code_conventions" else None)
+        if not ns:
+            return ""
+        try:
+            mems = self.brain.retrieve(key.replace("_", " "), namespace=ns, top_k=top_k)
+            return "\n".join(m.text for m in mems)
+        except Exception:  # noqa: BLE001 — conventions are optional context
+            return ""
+
+
 def _selftest() -> None:
     """Idempotent end-to-end proof: ingest a few facts, recall under a budget.
 

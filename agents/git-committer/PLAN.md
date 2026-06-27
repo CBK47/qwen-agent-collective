@@ -35,3 +35,5 @@ One real DashScope call + one brain read/write:
 - [ ] Custom WebUI front-end for this agent — branded, interactive demo surface (the public face for the video)
 - [ ] Deploy proof on the shared Alibaba Cloud harness (required for submission)
 - [ ] Record a 60–90s demo video (required for submission)
+
+- [ ] Fix `debate_prototype.py`: it imports the nonexistent `brain.conventions`; either inline the personas or point it at the working `review.py` pipeline.
