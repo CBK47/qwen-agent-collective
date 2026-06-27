@@ -20,7 +20,7 @@
       "position": [-160, 0],
       "continueOnFail": true,
       "parameters": {
-        "command": "LOCK=/tmp/local-loop-agent.lock\nif ! mkdir \"$LOCK\" 2>/dev/null; then\n  echo 'SKIP: already running'\n  exit 0\nfi\ntrap \"rmdir '$LOCK' 2>/dev/null || true\" EXIT\ncd /home/cbk/qwen-agent-collective && OLLAMA_CODE_MODEL=qwen3-next-cbk:latest node agents/local_loop/run.mjs 2>&1"
+        "command": "LOCK=/tmp/local-loop-agent.lock\nif [ -d \"$LOCK\" ] && [ -z \"$(find \"$LOCK\" -maxdepth 0 -mmin -15)\" ]; then rmdir \"$LOCK\" 2>/dev/null; fi\nif ! mkdir \"$LOCK\" 2>/dev/null; then\n  echo 'SKIP: already running'\n  exit 0\nfi\ntrap \"rmdir '$LOCK' 2>/dev/null || true\" EXIT\ncd /home/cbk/qwen-agent-collective && OLLAMA_CODE_MODEL=qwen3-next-cbk:latest node agents/local_loop/run.mjs 2>&1"
       }
     },
     {
