@@ -1,12 +1,3 @@
--- ============================================================================
--- qwen-agent-collective :: shared brain :: PostgreSQL schema
--- Structured, queryable memory + governance for all five agents.
---
--- Track-1 (MemoryAgent) story maps onto this schema:
---   ACCUMULATE -> ingest writes candidates to memory_review_queue
---   FORGET     -> expires_at / confidence / status govern decay
---   RECALL     -> retrieve ranks approved facts + truncates to a context budget
--- ============================================================================
 
 CREATE TABLE IF NOT EXISTS agents (
   agent_id TEXT PRIMARY KEY,
@@ -149,21 +140,35 @@ CREATE TABLE IF NOT EXISTS retrieval_feedback (
 
 CREATE INDEX IF NOT EXISTS idx_memory_facts_namespace_status_updated
   ON memory_facts (memory_namespace, status, updated_at DESC);
+
 CREATE INDEX IF NOT EXISTS idx_sessions_agent_user_started
   ON sessions (agent_id, user_id, started_at DESC);
+
 CREATE INDEX IF NOT EXISTS idx_review_queue_agent_status_created
   ON memory_review_queue (agent_id, status, created_at DESC);
 
--- Seed the five collective agents + shared store (extends the original echo/skippy seed)
-INSERT INTO agents (agent_id, agent_slug, display_name, description) VALUES
-  ('echo','echo','Echo','Track 1 memory agent face'),
-  ('git-committer','git-committer','GIT-Committer','Track 3 multi-role PR review'),
-  ('open-translate','open-translate','Open-Translate','Track 4 localization autopilot'),
-  ('skippy','skippy','Skippy','Track 5 multimodal home concierge'),
-  ('showrunner','showrunner','Showrunner','Track 2 brain-event dramatizer'),
-  ('shared','shared','Shared','Cross-agent shared knowledge store')
+-- ─────────────────────────────────────────────────────────────────────────────
+-- MEMORY NAMESPACE CONVENTIONS
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Private agent memory:  agent_id = 'echo'|'skippy',  memory_namespace = 'private'
+-- Shared architecture:   agent_id = 'shared',         memory_namespace = 'architecture'
+-- Shared project state:  agent_id = 'shared',         memory_namespace = 'projects'
+-- Shared people/orgs:    agent_id = 'shared',         memory_namespace = 'people'
+--
+-- Rules:
+--   - Only the owning agent writes to its 'private' namespace.
+--   - All agents can READ any 'shared.*' namespace.
+--   - All agents can WRITE to 'shared.*' namespaces (with review queue approval).
+--   - Qdrant collections mirror this: echo_private, skippy_private, shared
+-- ─────────────────────────────────────────────────────────────────────────────
+
+INSERT INTO agents (agent_id, agent_slug, display_name, description, system_prompt_path, retrieval_prompt_path)
+VALUES
+  ('echo',   'echo',   'Echo',   'Primary collaboration agent',       'prompts/echo/system.md',   'prompts/echo/retrieval.md'),
+  ('skippy', 'skippy', 'Skippy', 'Home-ops and banter agent',         'prompts/skippy/system.md', 'prompts/skippy/retrieval.md'),
+  ('shared', 'shared', 'Shared', 'Cross-agent shared knowledge store', NULL, NULL)
 ON CONFLICT (agent_id) DO NOTHING;
 
-INSERT INTO users (user_id, external_id, display_name, profile_json) VALUES
-  ('connor','connor','Connor','{"source":"seed"}'::jsonb)
+INSERT INTO users (user_id, external_id, display_name, profile_json)
+VALUES ('connor', 'connor', 'Connor', '{"source":"seed"}'::jsonb)
 ON CONFLICT (user_id) DO NOTHING;

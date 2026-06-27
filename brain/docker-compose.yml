@@ -1,0 +1,63 @@
+# Full brain stack: Postgres + Qdrant + n8n.
+# Reuses the demo's Postgres pattern (init SQL mounted, same db/user) and adds
+# Qdrant + n8n on one network so the workflows' Postgres nodes use host `postgres`
+# and DashScope vars pass into n8n.
+#
+# Untested on hardware — the DGX runbook (DGX-SETUP.md) verifies healthchecks,
+# ports, and GPU/Ollama coexistence. Bring up from repo's brain/ dir:
+#   docker compose -f brain/docker-compose.yml --env-file brain/.env up -d
+name: cbk-brain
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: brain_postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-collective}
+      POSTGRES_USER: ${POSTGRES_USER:-collective}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./db/postgres-init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+      - brain_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-collective} -d ${POSTGRES_DB:-collective}"]
+      interval: 3s
+      timeout: 5s
+      retries: 20
+      start_period: 5s
+
+  qdrant:
+    image: qdrant/qdrant:v1.11.0
+    container_name: brain_qdrant
+    ports:
+      - "6333:6333"
+    volumes:
+      - brain_qdrant:/qdrant/storage
+    # ponytail: no healthcheck — qdrant image lacks curl/bash; runbook curls :6333 from host.
+
+  n8n:
+    image: n8nio/n8n:latest  # ponytail: pin a version for reproducible deploys
+    container_name: brain_n8n
+    ports:
+      - "5678:5678"
+    environment:
+      DASHSCOPE_API_KEY: ${DASHSCOPE_API_KEY}
+      DASHSCOPE_BASE_URL: ${DASHSCOPE_BASE_URL:-https://dashscope-intl.aliyuncs.com/compatible-mode/v1}
+      QWEN_CHAT_MODEL: ${QWEN_CHAT_MODEL:-qwen-plus}
+      QWEN_CODER_MODEL: ${QWEN_CODER_MODEL:-qwen3-coder-plus}
+      QWEN_EMBED_MODEL: ${QWEN_EMBED_MODEL:-text-embedding-v3}
+      QDRANT_BASE_URL: http://qdrant:6333
+      N8N_SECURE_COOKIE: "false"
+      GENERIC_TIMEZONE: ${GENERIC_TIMEZONE:-Europe/London}
+    volumes:
+      - brain_n8n:/home/node/.n8n
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  brain_pg:
+  brain_qdrant:
+  brain_n8n:

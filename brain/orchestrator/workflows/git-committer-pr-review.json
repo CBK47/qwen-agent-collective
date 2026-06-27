@@ -1,0 +1,99 @@
+{
+  "name": "GIT-Committer \u00b7 Multi-Agent PR Review",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "GIT-Committer multi-agent PR review (Track-3)\n\nPOST {\"diff\":\"<unified diff>\"} to /webhook/git-committer-review.\n3 role reviewers (qwen3-coder, parallel) -> negotiation (qwen-plus) -> one verdict, plus a single-agent baseline metric (the Track-3 story).\nNeeds: DASHSCOPE_* + QWEN_CODER_MODEL/QWEN_CHAT_MODEL env.",
+        "height": 200,
+        "width": 440
+      },
+      "id": "39e3f239-ba95-45ef-b78f-99a0e80fa53a",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -380,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "git-committer-review",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "b2b739bd-a965-4254-961a-9d06344811ce",
+      "name": "PR review webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -380,
+        200
+      ],
+      "webhookId": "c6afba01-4641-4f72-b1f9-cb49959e983c"
+    },
+    {
+      "parameters": {
+        "jsCode": "const qwen = async (messages, model, opts = {}) => {\n  const base = ($env.DASHSCOPE_BASE_URL || 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1').replace(/\\/$/, '');\n  const res = await this.helpers.httpRequest({\n    method: 'POST', url: base + '/chat/completions',\n    headers: { Authorization: 'Bearer ' + ($env.DASHSCOPE_API_KEY || ''), 'Content-Type': 'application/json' },\n    body: Object.assign({ model, temperature: 0, messages }, opts), json: true,\n  });\n  return res.choices?.[0]?.message?.content ?? '';\n};\nconst esc = (s) => String(s).replace(/'/g, \"''\");\nconst body = $json.body ?? $json;\nconst diff = (body.diff || body.patch || '').toString().slice(0, 12000);\nif (!diff.trim()) return [{ json: { verdict: 'error', error: 'no diff provided (POST {\"diff\": \"...\"})' } }];\nconst coder = $env.QWEN_CODER_MODEL || 'qwen3-coder-plus';\nconst askIssues = async (sys) => {\n  const out = await qwen([{ role: 'system', content: sys }, { role: 'user', content: 'Diff:\\n' + diff }],\n    coder, { response_format: { type: 'json_object' } });\n  try { return JSON.parse(out).issues || []; } catch (e) { return []; }\n};\nconst roles = [\n  ['correctness', 'Find logic bugs, edge cases, and incorrect behavior.'],\n  ['security', 'Find security holes: injection, authz, secrets, unsafe deserialization.'],\n  ['style', 'Find readability and test-coverage gaps.'],\n];\nconst fmt = ' List concrete issues only. Respond as JSON {\"issues\":[{\"severity\":\"high|med|low\",\"note\":\"...\"}]}.';\nconst [roleResults, baseIssues] = await Promise.all([\n  Promise.all(roles.map(async ([role, brief]) =>\n    ({ role, issues: await askIssues(`You are the ${role} reviewer. ${brief}${fmt}`) }))),\n  askIssues('You are a senior code reviewer doing a single-pass review.' + fmt),\n]);\nconst merged = [].concat(...roleResults.map(r => r.issues.map(i => ({ ...i, role: r.role }))));\nconst negOut = await qwen([\n  { role: 'system', content: 'Reconcile multiple reviewers into ONE verdict. Deduplicate, rank by severity, resolve disagreements. Respond as JSON {\"verdict\":\"approve|request_changes\",\"summary\":\"...\",\"ranked_issues\":[{\"severity\":\"...\",\"note\":\"...\",\"roles\":[\"...\"]}]}.' },\n  { role: 'user', content: 'Reviewer findings:\\n' + JSON.stringify(merged) },\n], ($env.QWEN_CHAT_MODEL || 'qwen-plus'), { response_format: { type: 'json_object' } });\nlet verdict; try { verdict = JSON.parse(negOut); } catch (e) { verdict = { verdict: 'request_changes', summary: negOut, ranked_issues: [] }; }\nreturn [{ json: {\n  verdict,\n  role_findings: roleResults,\n  metric: { team_issue_count: merged.length, baseline_issue_count: baseIssues.length, delta: merged.length - baseIssues.length },\n} }];\n"
+      },
+      "id": "9ba28679-5d9b-476b-a6d5-3c6f8d9f6225",
+      "name": "Multi-agent review",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -120,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "b62f1a82-08ee-4aa3-82b0-93eba9f4dcf7",
+      "name": "Respond verdict",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.2,
+      "position": [
+        140,
+        200
+      ]
+    }
+  ],
+  "connections": {
+    "PR review webhook": {
+      "main": [
+        [
+          {
+            "node": "Multi-agent review",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Multi-agent review": {
+      "main": [
+        [
+          {
+            "node": "Respond verdict",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "c440e167-df34-4e4d-bd16-7e41d234421e",
+  "meta": {},
+  "tags": []
+}

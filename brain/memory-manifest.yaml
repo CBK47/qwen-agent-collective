@@ -1,76 +1,87 @@
-# ============================================================================
-# qwen-agent-collective :: shared brain :: memory manifest
-#
-# The access contract every agent obeys. Reconstructed from the namespace
-# spec; keep in sync with brain/db/postgres-init.sql (agent seeds) and each
-# agents/<name>/PLAN.md.
-# ============================================================================
-
-version: 1
-
-embeddings:
-  provider: dashscope                 # Alibaba Cloud Model Studio, OpenAI-compatible
-  model: text-embedding-v3            # QWEN_EMBED_MODEL
-  dimension: 1024                     # must match text-embedding-v3
-  distance: cosine
-
-# --- Access rules ----------------------------------------------------------
-# Private : agent_id = '<agent>',  memory_namespace = 'private'
-#           -> only the owning agent WRITES its own private namespace.
-# Shared  : agent_id = 'shared',   memory_namespace = code-conventions
-#                                                    | glossary
-#                                                    | architecture
-#                                                    | projects | people
-#           -> all agents READ any shared.* namespace.
-#           -> all agents WRITE shared.* ONLY via memory_review_queue approval.
-rules:
-  private_write: owner_only
-  shared_read: all_agents
-  shared_write: review_queue_only      # memory_review_queue -> approved
-
-shared_namespaces:
-  - code-conventions     # primary writer: git-committer
-  - glossary             # primary writer: open-translate
-  - architecture
-  - projects
-  - people
-
-# --- Agents ----------------------------------------------------------------
+version: '1.0'
+generated_for: Local Echo / Skippy MVP
 agents:
-  echo:                  # Track 1 — MemoryAgent
-    private_namespace: private
-    shared_read: ["*"]
-    qdrant_collections: [echo_private, echo_chat_chunks, echo_docs]
-
-  git-committer:         # Track 3 — Agent Society
-    private_namespace: private
-    shared_read: ["*"]
-    shared_write: [code-conventions]   # via review queue
-    qdrant_collections: [git-committer_private]
-
-  open-translate:        # Track 4 — Autopilot
-    private_namespace: private
-    shared_read: ["*"]
-    shared_write: [glossary]           # via review queue
-    qdrant_collections: [open-translate_private]
-
-  skippy:                # Track 5 — EdgeAgent
-    private_namespace: private
-    shared_read: ["*"]
-    structured_scopes: [devices]       # Postgres devices table (agent_scope='skippy')
-    qdrant_collections: [skippy_private, skippy_device_manuals]
-
-  showrunner:            # Track 2 — AI Showrunner
-    private_namespace: private
-    shared_read: ["*"]
-    event_sources: [memory_events]     # dramatizes brain events
-    qdrant_collections: [showrunner_private]
-
-# --- Qdrant collections to create (all dim 1024) ---------------------------
-qdrant_collections:
-  - echo_chat_chunks
-  - echo_docs
-  - skippy_device_manuals
+  echo:
+    identity_files:
+    - agent.echo.identity.md
+    - agent.echo.system-prompt.md
+    - agent.echo.retrieval-prompt.md
+    - agent.echo.memory-manifest.yaml
+    postgres_namespaces:
+    - echo
+    - echo.review
+    - echo.session
+    qdrant_collections:
+    - echo_chat_chunks
+    - echo_docs
+    - echo_obsidian
+    - echo_project_refs
+    exports:
+    - echo.memory-facts.jsonl
+    - echo.memory-events.jsonl
+    - echo.session-summaries.jsonl
+    - echo.review-queue.jsonl
+    - echo.qdrant-collections.json
+    - echo.obsidian-export.md
+  skippy:
+    identity_files:
+    - agent.skippy.identity.md
+    - agent.skippy.system-prompt.md
+    - agent.skippy.retrieval-prompt.md
+    - agent.skippy.memory-manifest.yaml
+    postgres_namespaces:
+    - skippy
+    - skippy.review
+    - skippy.session
+    qdrant_collections:
+    - skippy_chat_chunks
+    - skippy_home_docs
+    - skippy_device_manuals
+    - skippy_obsidian
+    exports:
+    - skippy.memory-facts.jsonl
+    - skippy.memory-events.jsonl
+    - skippy.session-summaries.jsonl
+    - skippy.review-queue.jsonl
+    - skippy.qdrant-collections.json
+    - skippy.device-registry.json
+    - skippy.obsidian-export.md
+shared:
+  exports:
+  - manifest.global.yaml
+  - user.connor.profile.json
+  - preferences.global.json
+  - people.registry.json
+  - projects.registry.json
+  - shared.policies.json
+  - shared.reference.index.json
+  qdrant_collections:
   - shared_reference
   - shared_policies
-  # plus <agent>_private for each agent above
+  postgres_tables:
+  - agents
+  - users
+  - sessions
+  - messages
+  - memory_facts
+  - memory_events
+  - memory_review_queue
+  - projects
+  - people
+  - devices
+  - source_registry
+  - retrieval_feedback
+obsidian:
+  vault_name: local-echo-vault
+  folders:
+  - 00-inbox
+  - 10-people
+  - 20-projects
+  - 30-systems
+  - 40-home-ops
+  - 50-daily
+  - 90-exports
+  frontmatter_defaults:
+    agent_scope: echo
+    memory_class: source
+    status: active

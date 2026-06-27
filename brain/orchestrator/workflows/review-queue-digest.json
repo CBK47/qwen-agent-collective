@@ -1,0 +1,138 @@
+{
+  "name": "Brain \u00b7 Review Queue Digest",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "Review-queue digest (Track-1 ACCUMULATE)\n\nNeeds: Brain Postgres cred + DASHSCOPE_API_KEY/BASE_URL, QWEN_CHAT_MODEL env.\nqwen-plus RECOMMENDS approve/reject/hold per pending candidate; never writes memory_facts (human gate). Logs a digest event. Skips when queue empty.",
+        "height": 200,
+        "width": 380
+      },
+      "id": "c46ddf08-e88f-42ff-a13b-7e4cac50f571",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -360,
+        -60
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * *"
+            }
+          ]
+        }
+      },
+      "id": "ae58fcea-9269-4187-9946-48156d571d8f",
+      "name": "Every morning 08:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -360,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT candidate_id, agent_id, candidate_type, payload_json, confidence, created_at FROM memory_review_queue WHERE status='pending' ORDER BY confidence DESC LIMIT 50;",
+        "options": {}
+      },
+      "id": "0fb45265-2e02-4932-a84f-dcb25562f0ea",
+      "name": "Fetch pending candidates",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -120,
+        220
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "REPLACE_ME",
+          "name": "Brain Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const qwen = async (messages, model, opts = {}) => {\n  const base = ($env.DASHSCOPE_BASE_URL || 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1').replace(/\\/$/, '');\n  const res = await this.helpers.httpRequest({\n    method: 'POST', url: base + '/chat/completions',\n    headers: { Authorization: 'Bearer ' + ($env.DASHSCOPE_API_KEY || ''), 'Content-Type': 'application/json' },\n    body: Object.assign({ model, temperature: 0, messages }, opts), json: true,\n  });\n  return res.choices?.[0]?.message?.content ?? '';\n};\nconst esc = (s) => String(s).replace(/'/g, \"''\");\nconst rows = $input.all().map(i => i.json);\nconst list = rows.slice(0, 50).map(r => ({\n  id: r.candidate_id, agent: r.agent_id, type: r.candidate_type,\n  confidence: Number(r.confidence), payload: r.payload_json,\n}));\nconst sys = 'You triage memory candidates for a GOVERNED review queue. For each candidate recommend approve, reject, or hold with a one-line reason. Recommendations only \u2014 a human applies them. Invent nothing. Respond ONLY as JSON {\"recommendations\":[{\"id\":<int>,\"recommendation\":\"approve|reject|hold\",\"reason\":\"...\"}]}.';\nconst raw = await qwen(\n  [{ role: 'system', content: sys }, { role: 'user', content: 'Candidates:\\n' + JSON.stringify(list) }],\n  ($env.QWEN_CHAT_MODEL || 'qwen-plus'), { response_format: { type: 'json_object' } });\nlet recs = []; try { recs = JSON.parse(raw).recommendations || []; } catch (e) { recs = []; }\nconst counts = recs.reduce((a, r) => { a[r.recommendation] = (a[r.recommendation] || 0) + 1; return a; }, {});\nconst md = ['# Review queue digest', `Pending candidates: ${rows.length}`, '']\n  .concat(recs.map(r => `- [${r.recommendation}] #${r.id} \u2014 ${r.reason}`)).join('\\n');\nconst metadata = JSON.stringify({ pending: rows.length, counts }).replace(/'/g, \"''\");\nreturn [{ json: { digest_md: esc(md), metadata, recommendations: recs } }];\n"
+      },
+      "id": "6015097d-ca28-4fa7-a877-740dac5dac00",
+      "name": "Triage with qwen-plus",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        120,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO memory_events (agent_id, event_type, title, event_text, event_time, metadata_json) VALUES ('shared', 'review.digest', 'Review queue digest', '{{ $json.digest_md }}', NOW(), '{{ $json.metadata }}'::jsonb);",
+        "options": {}
+      },
+      "id": "7f912ff8-a0a7-4e4d-8b28-8412ec1f4ef9",
+      "name": "Store digest event",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        360,
+        220
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "REPLACE_ME",
+          "name": "Brain Postgres"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Every morning 08:00": {
+      "main": [
+        [
+          {
+            "node": "Fetch pending candidates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch pending candidates": {
+      "main": [
+        [
+          {
+            "node": "Triage with qwen-plus",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Triage with qwen-plus": {
+      "main": [
+        [
+          {
+            "node": "Store digest event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "3d81f66b-e6fb-4bc2-a732-8806d51430c7",
+  "meta": {},
+  "tags": []
+}

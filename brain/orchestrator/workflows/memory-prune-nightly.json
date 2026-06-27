@@ -1,0 +1,138 @@
+{
+  "name": "Brain \u00b7 Nightly Memory Prune",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "Nightly memory prune (Track-1 FORGET)\n\nNeeds: Brain Postgres credential.\nExpires approved facts past expires_at, logs one memory_event.\nNo-op nights write nothing.",
+        "height": 200,
+        "width": 380
+      },
+      "id": "3b884eb2-d26b-4b9c-ac8b-09a49076d28c",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -360,
+        -40
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 3 * * *"
+            }
+          ]
+        }
+      },
+      "id": "de5090a2-88a2-4fbf-a441-57ead30831e0",
+      "name": "Every night 03:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -360,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE memory_facts SET status='expired', updated_at=NOW() WHERE status='approved' AND expires_at IS NOT NULL AND expires_at < NOW() RETURNING fact_id, agent_id, memory_namespace, subject, predicate;",
+        "options": {}
+      },
+      "id": "bed9ef29-3bd6-4b8f-8071-b15d56934e9c",
+      "name": "Expire stale facts",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -120,
+        200
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "REPLACE_ME",
+          "name": "Brain Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all().map(i => i.json);\nconst pruned = rows.length;\nconst byNs = {};\nfor (const r of rows) byNs[r.memory_namespace] = (byNs[r.memory_namespace] || 0) + 1;\nconst summary = `Nightly prune: expired ${pruned} stale fact(s).`;\nconst metadata = JSON.stringify({ pruned, by_namespace: byNs }).replace(/'/g, \"''\");\nreturn [{ json: { pruned, summary, metadata } }];\n"
+      },
+      "id": "821b81ca-a4a8-44f0-a6da-35f17cc64a05",
+      "name": "Build event",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        120,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO memory_events (agent_id, event_type, title, event_text, event_time, metadata_json) VALUES ('shared', 'memory.prune', 'Nightly prune', '{{ $json.summary }}', NOW(), '{{ $json.metadata }}'::jsonb);",
+        "options": {}
+      },
+      "id": "09727218-8c1b-4a4d-ad2d-feb4cd3e19da",
+      "name": "Write memory_event",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        360,
+        200
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "REPLACE_ME",
+          "name": "Brain Postgres"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Every night 03:00": {
+      "main": [
+        [
+          {
+            "node": "Expire stale facts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Expire stale facts": {
+      "main": [
+        [
+          {
+            "node": "Build event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build event": {
+      "main": [
+        [
+          {
+            "node": "Write memory_event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "132c36f9-9205-45d0-892d-85fc6ba14d75",
+  "meta": {},
+  "tags": []
+}
