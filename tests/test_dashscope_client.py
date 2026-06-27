@@ -1,5 +1,6 @@
 from types import SimpleNamespace
 import unittest
+import os
 
 from shared.dashscope import DashScopeClient, DashScopeConfig, DashScopeError
 
@@ -84,6 +85,15 @@ class DashScopeClientTests(unittest.TestCase):
         client = DashScopeClient(config=self.config(), openai_client=FakeOpenAI())
         self.assertEqual(client.embed("one"), [0.1, 0.2])
         self.assertEqual(client.embed(["one", "two"]), [[0.0], [1.0]])
+
+    def test_real_api_response(self):
+        api_key = os.getenv("DASHSCOPE_API_KEY")
+        if not api_key:
+            self.skipTest("DASHSCOPE_API_KEY not set")
+        client = DashScopeClient(config=self.config(api_key=api_key))
+        response = client.chat("Hello, world!")
+        self.assertIsInstance(response, str)
+        self.assertTrue(len(response) > 0)
 
 
 if __name__ == "__main__":
