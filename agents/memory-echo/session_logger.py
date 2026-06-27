@@ -29,7 +29,7 @@ SYSTEM = (
 
 def extract(transcript_path: str) -> str:
     """Flatten a transcript .jsonl into 'role: text' lines (tool noise dropped)."""
-    out = []
+    out: list[str] = []
     for raw in Path(transcript_path).read_text(errors="replace").splitlines():
         try:
             obj = json.loads(raw)
@@ -43,7 +43,7 @@ def extract(transcript_path: str) -> str:
         if isinstance(content, str):
             text = content
         elif isinstance(content, list):
-            parts = []
+            parts: list[str] = []
             for b in content:
                 if not isinstance(b, dict):
                     continue
@@ -75,6 +75,14 @@ def summarize(convo: str) -> str:
 
 
 def append_entry(session_id: str, bullets: str) -> None:
+    """Appends a session entry to the session log file.
+
+    If the log file does not exist, creates it with a header. Otherwise, appends a new entry with the current timestamp and session ID.
+
+    Args:
+        session_id: The session identifier (truncated to 8 characters in the header)
+        bullets: The summary content as bullet points (each starting with '- ')
+    """
     if not LOG.exists():
         LOG.write_text("# memory-echo · session log\n\nAppend-only TLDRs of Claude Code sessions, written by qwen-plus.\n")
     stamp = datetime.now().strftime("%Y-%m-%d %H:%M")
@@ -83,6 +91,15 @@ def append_entry(session_id: str, bullets: str) -> None:
 
 
 def main() -> int:
+    """Main entry point for the session logger.
+
+    Handles two modes:
+    - When --check is present: runs a self-test with synthetic data.
+    - Otherwise: reads SessionEnd JSON from stdin, processes the transcript,
+      generates a summary, and appends it to the log.
+
+    Returns 0 on success, non-zero on errors (though errors are caught and logged without exiting).
+    """
     if "--check" in sys.argv:
         return _self_check()
     try:
