@@ -112,6 +112,7 @@ log("[2/6] Planning next work slice...");
 
 const planRaw = await ollama([
   { role: "system", content:
+    "/no_think\n" +
     "You are the planning agent for the qwen-agent-collective repo — a multi-agent " +
     "system where each agent advances its PLAN.md.\n\n" +
     "Choose ONE concrete, genuinely valuable next slice of work. Prefer advancing an " +
@@ -130,19 +131,34 @@ const planRaw = await ollama([
 ], { temperature: 0.4, numPredict: 1200 });
 
 function parsePlan(text) {
-  const m = text.match(/\{[\s\S]*\}/);
-  if (!m) return null;
-  try { return JSON.parse(m[0]); } catch {}
-  // tolerate trailing commas / single quotes
-  try { return JSON.parse(m[0].replace(/,\s*([}\]])/g, "$1").replace(/'/g, '"')); }
-  catch { return null; }
+  // Scan for every balanced {...} block (thinking text may contain stray braces),
+  // try to parse each, and prefer the last one that has a "target" field.
+  const candidates = [];
+  for (let i = 0; i < text.length; i++) {
+    if (text[i] !== "{") continue;
+    let depth = 0, inStr = false, esc = false;
+    for (let j = i; j < text.length; j++) {
+      const c = text[j];
+      if (inStr) { if (esc) esc = false; else if (c === "\\") esc = true; else if (c === '"') inStr = false; continue; }
+      if (c === '"') inStr = true;
+      else if (c === "{") depth++;
+      else if (c === "}") { depth--; if (depth === 0) { candidates.push(text.slice(i, j + 1)); break; } }
+    }
+  }
+  let best = null;
+  for (const raw of candidates) {
+    for (const s of [raw, raw.replace(/,\s*([}\]])/g, "$1")]) {
+      try { const o = JSON.parse(s); if (o && typeof o === "object") { if (o.target) return o; best = best || o; } } catch {}
+    }
+  }
+  return best;
 }
 
 let plan = parsePlan(planRaw);
+if (!plan || !plan.target) log(`Planner raw (first 300): ${JSON.stringify(planRaw.slice(0, 300))}`);
 if (!plan || !plan.target || !plan.goal) {
   log("Planner output unusable — falling back to a rotation target.");
-  const fallback = inventory.find(f => /\.py$/.test(f) && !recentlyTouched.has(f)) ||
-    "agents/git-committer/README.md";
+  const fallback = rotationPick();
   plan = { target: fallback, action: "edit", type: "docs",
     goal: "improve documentation and type clarity",
     details: "Planner produced no usable plan; performing a safe documentation pass." };
@@ -156,10 +172,17 @@ const escapes = !targetPath.startsWith(REPO + "/");
 const inNoise = /(^|\/)(node_modules|venv|__pycache__|\.git)\//.test(target) ||
   target.startsWith("reports/");
 
+function rotationPick() {
+  const ok = f => !recentlyTouched.has(f) && !PROTECTED.some(p => f === p || f.startsWith(p + "/")) &&
+    !f.startsWith(".github/");
+  return inventory.find(f => /\.py$/.test(f) && /^(agents|shared)\//.test(f) && ok(f)) ||
+    inventory.find(f => /\.md$/.test(f) && /^agents\//.test(f) && ok(f)) ||
+    inventory.find(f => /\.py$/.test(f) && ok(f)) ||
+    "agents/git-committer/README.md";
+}
 if (isProtected || escapes || inNoise) {
   log(`Planner chose a protected/invalid target (${target}); rotating to a safe file.`);
-  target = inventory.find(f => /\.(py|md)$/.test(f) && !recentlyTouched.has(f) &&
-    !PROTECTED.some(p => f === p)) || "agents/git-committer/README.md";
+  target = rotationPick();
 }
 plan.target = target;
 log(`Plan: ${plan.type}(${target}) — ${plan.goal}`);
@@ -171,7 +194,8 @@ const dateStr = now.toISOString().slice(0, 10);
 const tsStr = now.toISOString().replace(/[:.]/g, "-").slice(0, 19) + "Z";
 const rdir = join(REPO, "reports", "local-worker", dateStr);
 mkdirSync(rdir, { recursive: true });
-writeFileSync(join(rdir, `${tsStr}.md`),
+const reportPath = join(rdir, `${tsStr}.md`);
+writeFileSync(reportPath,
   `<!-- local-loop-agent -->\n<!-- generated_at: ${now.toISOString()} -->\n\n` +
   `# Local Loop Plan\n\n` +
   `- **Target:** \`${plan.target}\`\n- **Action:** ${plan.action}\n` +
@@ -194,6 +218,7 @@ const oldForPrompt = oldContent.slice(0, 9000);
 
 const codeRaw = await ollama([
   { role: "system", content:
+    "/no_think\n" +
     "You are a senior engineer making a SINGLE, focused, correct change to one file.\n\n" +
     "Output the COMPLETE final contents of the file — every line it should contain " +
     "after your change, ready to save verbatim. Make a real, coherent change that " +
@@ -227,10 +252,14 @@ if (newContent != null && !newContent.endsWith("\n")) newContent += "\n";
 // ── 5. VERIFY ───────────────────────────────────────────────────────────────
 log("[5/6] Verifying...");
 function reject(reason) { log(`REJECTED: ${reason}`); cleanReset(); process.exit(0); }
+// Surgical cleanup: ONLY the target file the loop touched and the report it wrote.
+// Never operates on the whole tree — must not destroy unrelated/human changes.
 function cleanReset() {
-  // discard any working-tree edits to tracked files + remove the report we wrote
-  shSafe("git checkout -- . 2>/dev/null");
-  shSafe("git clean -fdq reports/ 2>/dev/null");
+  const tracked = spawnSync("git", ["ls-files", "--error-unmatch", target],
+    { cwd: REPO, encoding: "utf8" }).status === 0;
+  if (tracked) shSafe(`git checkout -- ${JSON.stringify(target)} 2>/dev/null`);
+  else if (existsSync(targetPath)) shSafe(`rm -f ${JSON.stringify(targetPath)}`);
+  if (reportPath && existsSync(reportPath)) shSafe(`rm -f ${JSON.stringify(reportPath)}`);
 }
 
 if (!newContent || newContent.trim().length < 10) reject("model produced no usable file content");
@@ -284,11 +313,14 @@ writeFileSync(targetPath, newContent);
 
 // ── 6. COMMIT (only if real code changed, not just the report) ──────────────
 log("[6/6] Committing...");
-sh("git add -A");
-const codeChanges = shSafe("git diff --staged --name-only | grep -v '^reports/'");
+// Stage ONLY our own two files — never `git add -A` (that would sweep up
+// unrelated or human-authored changes in the working tree).
+sh(`git add ${JSON.stringify(target)} ${JSON.stringify(reportPath)}`);
+const codeChanges = shSafe(`git diff --staged --name-only -- ${JSON.stringify(target)}`);
 if (!codeChanges.trim()) {
   log("No code change vs HEAD (model reproduced the file) — skipping commit.");
   cleanReset();
+  shSafe(`git reset -q HEAD ${JSON.stringify(reportPath)} 2>/dev/null`);
   process.exit(0);
 }
 log(`Staged:\n${shSafe("git diff --staged --stat")}`);
