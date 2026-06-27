@@ -41,6 +41,8 @@ N8N_BASIC_AUTH_USER=admin
 N8N_BASIC_AUTH_PASSWORD=secret
 ```
 
+**Note:** Replace all placeholder values (e.g., `your_api_key`, `your_dashscope_api_key`) with your actual credentials.
+
 The services use the following ports:
 
 - Postgres: 5432
