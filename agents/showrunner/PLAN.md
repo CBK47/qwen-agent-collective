@@ -20,6 +20,6 @@ Qdrant: `showrunner_private`.
 
 ## MVP (breadth-first)
 One real DashScope call + one brain read/write:
-- [ ] Brain stack + DashScope key (with a few `memory_events` present).
+- [x] Brain stack + DashScope key (with a few `memory_events` present).
 - [x] Generate a script from the last N events.
 - [x] Add the script → short-video render step.
