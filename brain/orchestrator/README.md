@@ -32,6 +32,12 @@ N8N_BASIC_AUTH_USER=admin
 N8N_BASIC_AUTH_PASSWORD=secret
 ```
 
+The services use the following ports:
+
+- Postgres: 5432
+- Qdrant: 6333
+- n8n: 5678
+
 2. Start the services with:
 
 ```bash
