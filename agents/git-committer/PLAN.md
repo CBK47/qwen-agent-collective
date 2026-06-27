@@ -26,6 +26,6 @@ One real DashScope call + one brain read/write:
 - **Write:** verdict → `git-committer.private`; any new convention → `memory_review_queue`.
 
 ## First commands on Mac
-- [ ] Brain stack + DashScope key.
+- [x] Brain stack + DashScope key.
 - [ ] Single-role review over a fixed diff, conventions pulled from the brain.
 - [x] Add the multi-role negotiation loop + verdict synthesis.
