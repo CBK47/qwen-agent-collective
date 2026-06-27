@@ -1,17 +1,11 @@
 import os
 from shared.dashscope import chat
-
-PERSONAS = {
-    "Pedant": "You are 'The Pedant'. Your sole focus is style, naming conventions, and strict adherence to the project's house rules. Be nitpicky. If a variable name is slightly off or a comment is missing, point it out.",
-    "Architect": "You are 'The Architect'. You care about system design, complexity, scalability, and logic flow. Ignore style; focus on whether this code actually makes sense and doesn't introduce technical debt.",
-    "Skeptic": "You are 'The Skeptic'. Your job is to find reasons why this change should be REJECTED. Look for edge cases, bugs, or simpler ways to achieve the same result. Be a devil's advocate.",
-    "Synthesizer": "You are the Synthesis Agent. You will receive reports from a Pedant, an Architect, and a Skeptic. Your goal is to resolve their disagreements and produce a final, polished Conventional Commit message."
-}
+from brain import conventions
 
 def review_single_role(role: str, context: str) -> str:
-    persona = PERSONAS.get(role)
+    persona = conventions.get(role)
     if persona is None:
-        raise ValueError(f"Role '{role}' not found in PERSONAS")
+        raise ValueError(f"Role '{role}' not found in conventions")
     prompt = f"{persona}\n\n{context}"
     return chat(prompt)
 
@@ -27,7 +21,7 @@ def synthesize_reviews(diff: str, pedant_review: str, arch_review: str, skeptic_
     Returns:
         A string containing the final commit message and summary.
     """
-    synth_prompt = f"{PERSONAS['Synthesizer']}\n\nDiff:\n{diff}\n\nReports:\nPedant: {pedant_review}\nArchitect: {arch_review}\nSkeptic: {skeptic_review}\n\nProduce a final Conventional Commit message and a brief summary of the verdict."
+    synth_prompt = f"{conventions['Synthesizer']}\n\nDiff:\n{diff}\n\nReports:\nPedant: {pedant_review}\nArchitect: {arch_review}\nSkeptic: {skeptic_review}\n\nProduce a final Conventional Commit message and a brief summary of the verdict."
     return chat(synth_prompt)
 
 def run_debate(diff: str) -> None:
