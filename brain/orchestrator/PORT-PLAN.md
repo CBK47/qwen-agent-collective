@@ -65,7 +65,7 @@ Common HTTP Request node settings for all three:
   `QDRANT_*` env vars on the n8n container.
 
 ## Mac kickoff checklist
-- [ ] Copy the real `n8n-memory-orchestrator.json` from `CBK47/Agents@claude/qwen-hackathon-ideas-bs1z60:/brain/orchestrator/`.
+- [x] Copy the real `n8n-memory-orchestrator.json` from `CBK47/Agents@claude/qwen-hackathon-ideas-bs1z60:/brain/orchestrator/`.
 - [ ] Apply the 3-node port table above; remove any Ollama host references.
 - [ ] `cp brain/.env.example brain/.env` and fill `DASHSCOPE_API_KEY`.
 - [ ] `docker compose up`; confirm Postgres init + Qdrant + n8n are healthy.
