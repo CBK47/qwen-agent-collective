@@ -1,5 +1,10 @@
 {
   "orchestrator": {
-    "storage": "memory"
+    "storage": "memory",
+    "ports": {
+      "node1": 5678,
+      "node2": 5679,
+      "node3": 5680
+    }
   }
 }
