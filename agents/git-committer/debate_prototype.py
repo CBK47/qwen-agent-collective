@@ -8,6 +8,13 @@ PERSONAS = {
     "Synthesizer": "You are the Synthesis Agent. You will receive reports from a Pedant, an Architect, and a Skeptic. Your goal is to resolve their disagreements and produce a final, polished Conventional Commit message."
 }
 
+def review_single_role(role: str, context: str) -> str:
+    persona = PERSONAS.get(role)
+    if persona is None:
+        raise ValueError(f"Role '{role}' not found in PERSONAS")
+    prompt = f"{persona}\n\n{context}"
+    return chat(prompt)
+
 def synthesize_reviews(diff: str, pedant_review: str, arch_review: str, skeptic_review: str) -> str:
     """Synthesizes reviews from Pedant, Architect, and Skeptic into a final Conventional Commit message.
 
@@ -32,18 +39,18 @@ def run_debate(diff: str) -> None:
     print(f"--- Starting Debate for Diff ---\n{diff}\n")
     
     # 1. The Pedant's Review
-    pedant_prompt = f"{PERSONAS['Pedant']}\n\nReview this diff:\n{diff}"
-    pedant_review = chat(pedant_prompt)
+    pedant_context = f"Review this diff:\n{diff}"
+    pedant_review = review_single_role("Pedant", pedant_context)
     print(f"PEDANT: {pedant_review}\n")
 
     # 2. The Architect's Review (receives the diff + pedant's notes for context)
-    arch_prompt = f"{PERSONAS['Architect']}\n\nDiff:\n{diff}\n\nPedant says: {pedant_review}\n\nProvide your architectural review."
-    arch_review = chat(arch_prompt)
+    arch_context = f"Diff:\n{diff}\n\nPedant says: {pedant_review}\n\nProvide your architectural review."
+    arch_review = review_single_role("Architect", arch_context)
     print(f"ARCHITECT: {arch_review}\n")
 
     # 3. The Skeptic's Review (receives all previous notes)
-    skeptic_prompt = f"{PERSONAS['Skeptic']}\n\nDiff:\n{diff}\n\nPedant says: {pedant_review}\n\nArchitect says: {arch_review}\n\nFind the holes in this change."
-    skeptic_review = chat(skeptic_prompt)
+    skeptic_context = f"Diff:\n{diff}\n\nPedant says: {pedant_review}\n\nArchitect says: {arch_review}\n\nFind the holes in this change."
+    skeptic_review = review_single_role("Skeptic", skeptic_context)
     print(f"SKEPTIC: {skeptic_review}\n")
 
     # 4. Synthesis (Final Verdict)
