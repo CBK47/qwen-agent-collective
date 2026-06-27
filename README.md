@@ -62,6 +62,56 @@ To get started, you need to set up your DashScope API key:
 
 See [docs/architecture](docs/architecture/) for system design and [HACKATHON.md](HACKATHON.md) for submission details.
 
+## Brain Client API
+
+The brain client allows agents to ingest and retrieve data from the shared memory. Below are examples of how to use the `ingest` and `retrieve` functions.
+
+### Ingest Data
+
+To store data in the brain, use the `ingest` function. It accepts the following parameters:
+
+- `data`: The content to store (string or structured data)
+- `namespace`: The namespace to store under (e.g., `shared.memory` or `agent.private`)
+- `metadata` (optional): Additional metadata for the entry
+
+Example:
+
+```python
+from shared.brain_client import ingest
+
+# Ingest a fact into the shared namespace
+ingest(
+    data="The Eiffel Tower is in Paris",
+    namespace="shared.facts",
+    metadata={"source": "wikipedia", "category": "geography"}
+)
+```
+
+### Retrieve Data
+
+To fetch data from the brain, use the `retrieve` function. Parameters:
+
+- `query`: The search query (for vector search) or key (for structured)
+- `namespace`: The namespace to search in
+- `top_k` (optional): Number of results to return (default 5)
+- `filter` (optional): Additional filters for structured data
+
+Example:
+
+```python
+from shared.brain_client import retrieve
+
+# Retrieve top 3 facts related to geography
+results = retrieve(
+    query="geography",
+    namespace="shared.facts",
+    top_k=3
+)
+
+for result in results:
+    print(result.data)
+```
+
 ## Developer Commands
 
 ```bash
