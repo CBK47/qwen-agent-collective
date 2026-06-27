@@ -27,5 +27,5 @@ One real DashScope call + one brain read/write:
 
 ## First commands on Mac
 - [x] Brain stack + DashScope key.
-- [ ] Single-role review over a fixed diff, conventions pulled from the brain.
+- [x] Single-role review over a fixed diff, conventions pulled from the brain.
 - [x] Add the multi-role negotiation loop + verdict synthesis.
