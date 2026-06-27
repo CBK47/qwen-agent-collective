@@ -23,14 +23,25 @@ SHOWRUNNER_PRIVATE = "showrunner.private"      # showrunner (Qdrant + Postgres)
 DEVICES = "devices"                            # Postgres
 SKIPPY_DEVICE_MANUALS = "skippy_device_manuals"  # Qdrant
 
-def get_glossary():
+def get_glossary() -> dict[str, str]:
+    """Retrieve glossary terms and translations from the database.
+
+    Returns:
+        dict[str, str]: A dictionary mapping terms to their translations.
+    """
     conn = psycopg2.connect("dbname=translation_db user=app")
     cur = conn.cursor()
     cur.execute(sql.SQL("SELECT term, translation FROM {}").format(sql.Identifier(SHARED_GLOSSARY)))
     rows = cur.fetchall()
     return {term: translation for term, translation in rows}
 
-def update_glossary(term, translation):
+def update_glossary(term: str, translation: str) -> None:
+    """Update or insert a glossary term and translation.
+
+    Args:
+        term (str): The term to update or insert.
+        translation (str): The new translation for the term.
+    """
     conn = psycopg2.connect("dbname=translation_db user=app")
     cur = conn.cursor()
     cur.execute(sql.SQL("INSERT INTO {} (term, translation) VALUES (%s, %s) ON CONFLICT (term) DO UPDATE SET translation = %s").format(sql.Identifier(SHARED_GLOSSARY)), (term, translation, translation))
