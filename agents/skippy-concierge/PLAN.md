@@ -21,6 +21,6 @@ acts locally on devices.
 
 ## MVP (breadth-first)
 One real DashScope call + one brain read/write:
-- [ ] Brain stack + DashScope key; seed a couple of `devices` rows.
+- [x] Brain stack + DashScope key; seed a couple of `devices` rows.
 - [x] Single text→action path over the device registry.
 - [ ] Add `qwen-vl` / `qwen2-audio` inputs + manual-grounded answers.
