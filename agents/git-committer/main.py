@@ -6,7 +6,7 @@ from shared.dashscope import DashScopeClient
 class GitCommitterAgent(BaseAgent):
     """
     Productionizes the git-committer debate prototype into a structured agent.
-    Implements the 'Triangular Debate Loop' (Pedant -> Architect -> Skeptic -> Synthesis).
+    Implements the 'Multi-Role Negotiation Loop' for collaborative review.
     """
 
     PERSONAS = {
@@ -33,46 +33,49 @@ class GitCommitterAgent(BaseAgent):
         if previous_output or previous_validation.output:
             repair_context = f"\n\nPrevious attempt failed validation:\n{previous_validation.output}\nRevise the result."
 
-        print(f"--- Starting Triangular Debate for Session {task.session_id} ---")
+        print(f"--- Starting Multi-Role Negotiation Loop for Session {task.session_id} ---")
 
-        # 1. The Pedant's Review
-        pedant_prompt = (
-            f"{self.PERSONAS['Pedant']}\n\n"
-            f"Context:\n{context}\n\n"
-            f"Review this diff:\n{diff}"
-        )
-        pedant_review = self.ai.chat(pedant_prompt, temperature=0)
-        print(f"[PEDANT]: {pedant_review}")
+        current_pedant = None
+        current_arch = None
+        current_skeptic = None
 
-        # 2. The Architect's Review
-        arch_prompt = (
-            f"{self.PERSONAS['Architect']}\n\n"
-            f"Context:\n{context}\n\n"
-            f"Diff:\n{diff}\n\n"
-            f"Pedant says: {pedant_review}\n\n"
-            f"Provide your architectural review."
-        )
-        arch_review = self.ai.chat(arch_prompt, temperature=0)
-        print(f"[ARCHITECT]: {arch_review}")
+        for round in range(3):
+            # Pedant's turn
+            pedant_prompt = f"{self.PERSONAS['Pedant']}\n\nContext:\n{context}\n\nDiff:\n{diff}\n\n"
+            if current_arch is not None:
+                pedant_prompt += f"Architect's previous review: {current_arch}\n"
+            if current_skeptic is not None:
+                pedant_prompt += f"Skeptic's previous review: {current_skeptic}\n"
+            pedant_prompt += "\nProvide your review."
+            current_pedant = self.ai.chat(pedant_prompt, temperature=0)
+            print(f"[PEDANT ROUND {round+1}]: {current_pedant}")
 
-        # 3. The Skeptic's Review
-        skeptic_prompt = (
-            f"{self.PERSONAS['Skeptic']}\n\n"
-            f"Context:\n{context}\n\n"
-            f"Diff:\n{diff}\n\n"
-            f"Pedant says: {pedant_review}\n\n"
-            f"Architect says: {arch_review}\n\n"
-            f"Find the holes in this change."
-        )
-        skeptic_review = self.ai.chat(skeptic_prompt, temperature=0)
-        print(f"[SKEPTIC]: {skeptic_review}")
+            # Architect's turn
+            arch_prompt = f"{self.PERSONAS['Architect']}\n\nContext:\n{context}\n\nDiff:\n{diff}\n\n"
+            if current_pedant is not None:
+                arch_prompt += f"Pedant's review: {current_pedant}\n"
+            if current_skeptic is not None:
+                arch_prompt += f"Skeptic's review: {current_skeptic}\n"
+            arch_prompt += "\nProvide your review."
+            current_arch = self.ai.chat(arch_prompt, temperature=0)
+            print(f"[ARCHITECT ROUND {round+1}]: {current_arch}")
+
+            # Skeptic's turn
+            skeptic_prompt = f"{self.PERSONAS['Skeptic']}\n\nContext:\n{context}\n\nDiff:\n{diff}\n\n"
+            if current_pedant is not None:
+                skeptic_prompt += f"Pedant's review: {current_pedant}\n"
+            if current_arch is not None:
+                skeptic_prompt += f"Architect's review: {current_arch}\n"
+            skeptic_prompt += "\nFind the holes in this change."
+            current_skeptic = self.ai.chat(skeptic_prompt, temperature=0)
+            print(f"[SKEPTIC ROUND {round+1}]: {current_skeptic}")
 
         # 4. Synthesis (Final Verdict)
         synth_prompt = (
             f"{self.PERSONAS['Synthesizer']}\n\n"
             f"Context:\n{context}\n\n"
             f"Diff:\n{diff}\n\n"
-            f"Reports:\nPedant: {pedant_review}\nArchitect: {arch_review}\nSkeptic: {skeptic_review}\n\n"
+            f"Reports:\nPedant: {current_pedant}\nArchitect: {current_arch}\nSkeptic: {current_skeptic}\n\n"
             f"Produce a final Conventional Commit message and a brief summary of the verdict."
             f"{repair_context}"
         )
