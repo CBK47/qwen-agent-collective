@@ -13,7 +13,7 @@ Variety: high/low confidence, some expired (expires_at in the past),
 
 import psycopg2
 import psycopg2.extras
-from brain_client import _get_dsn
+from brain_client import _get_dsn, ingest_fact
 
 DEMO_AGENTS = ("echo", "shared")
 DEMO_NAMESPACES = ("echo.private", "shared.code-conventions", "shared.glossary")
@@ -123,29 +123,22 @@ APPROVED_FACTS = [
 ]
 
 
-INSERT_SQL = """
-    INSERT INTO memory_facts
-        (agent_id, user_id, memory_namespace, fact_type,
-         subject, predicate, object_text,
-         confidence, expires_at, status)
-    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-"""
-
-
 def seed():
     conn = psycopg2.connect(**_get_dsn())
     try:
         with conn.cursor() as cur:
             clear_demo_rows(cur)
-            cur.executemany(INSERT_SQL, APPROVED_FACTS)
-            count = len(APPROVED_FACTS)
         conn.commit()
-        print(f"[seed] Cleared prior demo rows and inserted {count} facts.")
     except Exception:
         conn.rollback()
         raise
     finally:
         conn.close()
+
+    # Ingest facts via the brain client's API
+    for fact in APPROVED_FACTS:
+        ingest_fact(*fact)
+    print(f"[seed] Inserted {len(APPROVED_FACTS)} facts via ingest API.")
 
 
 if __name__ == "__main__":
