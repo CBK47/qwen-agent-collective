@@ -95,6 +95,17 @@ class DashScopeClientTests(unittest.TestCase):
         self.assertIsInstance(response, str)
         self.assertTrue(len(response) > 0)
 
+    def test_real_embeddings(self):
+        api_key = os.getenv("DASHSCOPE_API_KEY")
+        if not api_key:
+            self.skipTest("DASHSCOPE_API_KEY not set")
+        client = DashScopeClient(config=self.config(api_key=api_key))
+        response = client.embed("Hello, world!")
+        self.assertIsInstance(response, list)
+        self.assertTrue(len(response) > 0)
+        for val in response:
+            self.assertIsInstance(val, float)
+
 
 if __name__ == "__main__":
     unittest.main()
