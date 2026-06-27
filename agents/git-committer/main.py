@@ -123,14 +123,3 @@ if __name__ == "__main__":
     
     result = agent.run(sample_diff)
     print(f"\nFINAL RESULT:\n{result.output}")
-def generate(
-    self, 
-    task: AgentTask, 
-    memory: MemoryBundle, 
-    *, 
-    previous_output: str, 
-    previous_validation: ValidationResult
-) -> str:
-    diff = task.instruction
-    context = memory.as_prompt_context()
-    # TODO: Implement debate loop by calling run_debate and returning synthesized commit message.
