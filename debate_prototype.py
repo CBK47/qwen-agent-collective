@@ -12,3 +12,7 @@ def synthesize_reviews(pedant_review: str, arch_review: str, skeptic_review: str
     """Synthesizes reviews into a final commit message."""
     # TODO: Implement synthesis logic using Synthesizer persona
     return "commit message"
+def synthesize_reviews(pedant_review: str, arch_review: str, skeptic_review: str) -> str:
+    """Synthesizes reviews into a final commit message."""
+    # TODO: Implement synthesis logic using Synthesizer persona
+    return "commit message"
