@@ -213,8 +213,9 @@ const langHint = { ".py": "python", ".mjs": "javascript", ".js": "javascript",
 let oldContent = "";
 if (existsSync(targetPath) && statSync(targetPath).isFile()) {
   oldContent = readFileSync(targetPath, "utf8");
-} else if (plan.action === "edit") {
-  plan.action = "create"; // claimed edit but file missing
+  plan.action = "edit"; // file exists — never let a stray "create" overwrite it blind
+} else {
+  plan.action = "create"; // file missing — it's genuinely new
 }
 const oldForPrompt = oldContent.slice(0, 9000);
 
@@ -270,10 +271,11 @@ if (!newContent || newContent.trim().length < 10) reject("model produced no usab
 const badHit = CONTENT_BLOCKED.find(b => newContent.includes(b));
 if (badHit) reject(`blocked content: ${badHit}`);
 
-// anti-truncation: a real edit should not collapse a substantial file
-if (plan.action === "edit" && oldContent.length > 200 &&
-    newContent.length < Math.max(60, oldContent.length * 0.5)) {
-  reject(`suspected truncation (old ${oldContent.length} → new ${newContent.length} bytes)`);
+// anti-truncation / anti-gutting: editing an existing file must not collapse it.
+// Applies whenever the file already had real content, regardless of claimed action.
+if (oldContent.length > 200 &&
+    newContent.length < Math.max(60, oldContent.length * 0.6)) {
+  reject(`suspected gutting (old ${oldContent.length} → new ${newContent.length} bytes)`);
 }
 if (newContent.length > 60_000) reject("output unreasonably large");
 
