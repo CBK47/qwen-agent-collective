@@ -14,9 +14,9 @@ import json
 import sys
 from datetime import datetime
 from pathlib import Path
+import namespaces
 
 ROOT = Path(__file__).resolve().parents[2]          # repo root
-LOG = Path(__file__).resolve().parent / "session-log.md"
 
 SYSTEM = (
     "You are memory-echo, the MemoryAgent for the qwen-agent-collective. "
@@ -74,20 +74,11 @@ def summarize(convo: str) -> str:
     return resp.choices[0].message.content.strip()
 
 
-def append_entry(session_id: str, bullets: str) -> None:
-    """Appends a session entry to the session log file.
+def ingest_facts(session_id: str, facts: str) -> None:
+    namespaces.ingest(session_id, facts)
 
-    If the log file does not exist, creates it with a header. Otherwise, appends a new entry with the current timestamp and session ID.
-
-    Args:
-        session_id: The session identifier (truncated to 8 characters in the header)
-        bullets: The summary content as bullet points (each starting with '- ')
-    """
-    if not LOG.exists():
-        LOG.write_text("# memory-echo · session log\n\nAppend-only TLDRs of Claude Code sessions, written by qwen-plus.\n")
-    stamp = datetime.now().strftime("%Y-%m-%d %H:%M")
-    header = f"\n## {stamp} · {session_id[:8] or 'unknown'}\n"
-    LOG.write_text(LOG.read_text() + header + bullets.rstrip() + "\n")
+def retrieve_facts(session_id: str) -> str:
+    return namespaces.retrieve(session_id)
 
 
 def main() -> int:
@@ -116,7 +107,7 @@ def main() -> int:
             return 0
         bullets = summarize(convo)
         if bullets:
-            append_entry(data.get("session_id", ""), bullets)
+            ingest_facts(data.get("session_id", ""), bullets)
     except Exception as e:  # ponytail: a hook must never block session exit
         sys.stderr.write(f"[memory-echo logger] skipped: {e}\n")
     return 0
