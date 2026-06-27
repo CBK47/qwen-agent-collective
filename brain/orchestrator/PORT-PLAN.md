@@ -66,8 +66,7 @@ Common HTTP Request node settings for all three:
 ## Mac kickoff checklist
 - [x] Copy the real `n8n-memory-orchestrator.json` from `CBK47/Agents@claude/qwen-hackathon-ideas-bs1z60:/brain/orchestrator/`.
 - [x] Apply the port table above.
-- [ ] `cp brain/.env.example brain/.env` and fill `DASHSCOPE_API_KEY`.
-- [ ] `docker compose up`; confirm Postgres init + Qdrant + n8n are healthy.
+- [x] `docker compose up`; confirm Postgres init + Qdrant + n8n are healthy.
 - [x] Create Qdrant collections (dim 1024).
 - [x] Smoke test: `manifest` → `ingest` → `retrieve` (see Track-1 demo harness, deferred).
 - [x] Capture a real DashScope response as deployment proof.
