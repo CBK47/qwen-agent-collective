@@ -5,7 +5,7 @@ from qdrant_client.models import PointStruct
 import uuid
 
 class Brain:
-    def __init__(self, pg_host, pg_port, pg_user, pg_password, pg_db, qdrant_host, qdrant_port):
+    def __init__(self, pg_host, pg_port, pg_user, pg_password, pg_db, qdrant_host, qdrant_port, collection_name="memories"):
         self.pg_conn = psycopg2.connect(
             host=pg_host,
             port=pg_port,
@@ -14,7 +14,7 @@ class Brain:
             database=pg_db
         )
         self.qdrant_client = QdrantClient(host=qdrant_host, port=qdrant_port)
-        self.collection_name = "memories"
+        self.collection_name = collection_name
 
     def ingest(self, content: str, embedding: list[float], metadata: dict):
         point_id = str(uuid.uuid4())
