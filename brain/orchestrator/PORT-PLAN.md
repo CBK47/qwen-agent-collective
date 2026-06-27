@@ -53,8 +53,13 @@ Common HTTP Request node settings for all three:
   5. Return an ingest receipt.
 
 ## Supporting stack (for your Mac)
-- `docker-compose.yml`: `postgres` (auto-runs `db/postgres-init.sql`), `qdrant`, `n8n`,
-  all wired from `.env`.
+
+| Service | Port | Notes |
+|---------|------|-------|
+| Postgres | 5432 | Auto-runs `db/postgres-init.sql` |
+| Qdrant | 6333 | Vector database |
+| n8n | 5678 | Workflow server |
+
 - Create Qdrant collections per `memory-manifest.yaml` (dim 1024, cosine).
 - Import the workflow into n8n; set the `DASHSCOPE_*` / `QWEN_*` / `POSTGRES_*` /
   `QDRANT_*` env vars on the n8n container.
