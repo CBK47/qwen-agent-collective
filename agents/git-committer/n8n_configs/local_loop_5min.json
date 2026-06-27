@@ -1,15 +1,15 @@
 {
   "id": "820f9614-5023-48f4-b225-2d1b05098038",
-  "name": "Local Loop - Review and Code (15 min)",
+  "name": "Local Loop - Review and Code (1 min, lock-guarded)",
   "nodes": [
     {
       "id": "ll-1",
-      "name": "Every 15 Minutes",
+      "name": "Every 1 Minute",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
       "position": [-400, 0],
       "parameters": {
-        "rule": { "interval": [{ "field": "minutes", "minutesInterval": 15 }] }
+        "rule": { "interval": [{ "field": "minutes", "minutesInterval": 1 }] }
       }
     },
     {
@@ -20,7 +20,7 @@
       "position": [-160, 0],
       "continueOnFail": true,
       "parameters": {
-        "command": "cd /home/cbk/qwen-agent-collective && OLLAMA_CODE_MODEL=qwen3-next-cbk:latest node agents/local_loop/run.mjs 2>&1"
+        "command": "LOCK=/tmp/local-loop-agent.lock\nif ! mkdir \"$LOCK\" 2>/dev/null; then\n  echo 'SKIP: already running'\n  exit 0\nfi\ntrap \"rmdir '$LOCK' 2>/dev/null || true\" EXIT\ncd /home/cbk/qwen-agent-collective && OLLAMA_CODE_MODEL=qwen3-next-cbk:latest node agents/local_loop/run.mjs 2>&1"
       }
     },
     {
@@ -30,12 +30,12 @@
       "typeVersion": 2,
       "position": [80, 0],
       "parameters": {
-        "jsCode": "const out = $input.first().json.stdout || '';\nconst success = out.includes('SUCCESS');\nconst committed = out.match(/\\[master [a-f0-9]+\\]/);\nreturn [{ json: { success, committed: committed ? committed[0] : null, output: out.slice(-2000) } }];"
+        "jsCode": "const out = $input.first().json.stdout || '';\nconst skipped = out.startsWith('SKIP:');\nconst success = out.includes('SUCCESS');\nconst committed = out.match(/\\[master [a-f0-9]+\\]/);\nreturn [{ json: { skipped, success, committed: committed ? committed[0] : null, output: out.slice(-2000) } }];"
       }
     }
   ],
   "connections": {
-    "Every 15 Minutes": { "main": [[{ "node": "Run Local Loop Agent", "type": "main", "index": 0 }]] },
+    "Every 1 Minute": { "main": [[{ "node": "Run Local Loop Agent", "type": "main", "index": 0 }]] },
     "Run Local Loop Agent": { "main": [[{ "node": "Log Result", "type": "main", "index": 0 }]] }
   },
   "active": true,
