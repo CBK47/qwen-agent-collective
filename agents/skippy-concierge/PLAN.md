@@ -23,4 +23,5 @@ acts locally on devices.
 One real DashScope call + one brain read/write:
 - [x] Brain stack + DashScope key; seed a couple of `devices` rows.
 - [x] Single text→action path over the device registry.
-- [ ] Add `qwen-vl` / `qwen2-audio` inputs + manual-grounded answers.
+- [x] Add `qwen-vl` / `qwen2-audio` inputs
+- [ ] manual-grounded answers
