@@ -1,0 +1,20 @@
+:root{--bg:#0b0f14;--card:#131a22;--ink:#e6edf3;--mut:#8b98a5;--line:#222c37}
+*{box-sizing:border-box}body{margin:0;font:16px/1.6 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--ink)}
+a{color:inherit;text-decoration:none}.wrap{max-width:980px;margin:0 auto;padding:40px 24px}
+header.site{display:flex;align-items:baseline;justify-content:space-between;gap:16px;border-bottom:1px solid var(--line);padding-bottom:18px;margin-bottom:28px}
+header.site h1{font-size:20px;margin:0;letter-spacing:.3px}header.site .sub{color:var(--mut);font-size:14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;transition:.15s transform,.15s border-color}
+.card:hover{transform:translateY(-3px)}
+.tag{font:12px/1 ui-monospace,monospace;color:var(--mut);text-transform:uppercase;letter-spacing:.12em}
+.card h2{margin:.5em 0 .2em;font-size:19px}.card p{color:var(--mut);font-size:14px;margin:.3em 0 1em}
+.pill{display:inline-block;font:12px/1 ui-monospace,monospace;padding:5px 9px;border-radius:999px;border:1px solid var(--line);color:var(--mut);margin:0 6px 6px 0}
+.hero{display:flex;align-items:center;gap:14px;margin-bottom:8px}.dot{width:14px;height:14px;border-radius:50%}
+.demo{margin-top:22px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px}
+.demo label{display:block;font-size:13px;color:var(--mut);margin-bottom:8px}
+.demo textarea{width:100%;min-height:84px;background:#0e141b;color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:12px;font:14px/1.5 ui-monospace,monospace;resize:vertical}
+.demo .row{display:flex;gap:10px;margin-top:12px;align-items:center}
+button.go{border:0;border-radius:10px;padding:11px 18px;font-weight:600;color:#0b0f14;cursor:pointer}
+.out{margin-top:14px;white-space:pre-wrap;font:13px/1.55 ui-monospace,monospace;color:var(--ink);min-height:22px}
+.note{color:var(--mut);font-size:12px}.back{color:var(--mut);font-size:14px}
+footer{margin-top:40px;color:var(--mut);font-size:13px;border-top:1px solid var(--line);padding-top:16px}

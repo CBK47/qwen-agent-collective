@@ -1,0 +1,29 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Committer — T3 · Agent Society</title><link rel="stylesheet" href="/style.css"></head>
+<body><div class="wrap">
+   <header class="site"><h1>Committer</h1><span class="sub">T3 · Agent Society</span></header>
+   <a class="back" href="/">← all agents</a>
+   <div class="hero" style="margin-top:18px"><span class="dot" style="background:#fdba74"></span>
+     <strong style="font-size:20px">A debating society for your diffs.</strong></div>
+   <p style="color:var(--mut);max-width:62ch">Pedant, Architect, and Skeptic personas review a diff against shared code conventions, then synthesize one Conventional Commit message.</p>
+   <div><span class="pill">qwen3-coder-plus</span><span class="pill">qwen-plus</span></div>
+   <div class="demo">
+     <label for="in">Review a diff</label>
+     <textarea id="in" placeholder="def add(a,b): return a-b"></textarea>
+     <div class="row"><button class="go" style="background:#fdba74" onclick="run()">Review</button>
+       <span class="note">calls <code>/api/git-committer</code> when the backend is wired</span></div>
+     <div class="out" id="out"></div>
+   </div>
+   <script>
+   async function run(){
+     const out=document.getElementById('out'), q=document.getElementById('in').value.trim();
+     if(!q){out.textContent='Enter something first.';return}
+     out.textContent='…';
+     try{
+       const r=await fetch('/api/git-committer',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({input:q})});
+       if(!r.ok) throw new Error('HTTP '+r.status);
+       const j=await r.json(); out.textContent=j.output||JSON.stringify(j,null,2);
+     }catch(e){ out.textContent='[demo] backend not wired yet ('+e.message+').\nThis console is ready; connect /api/git-committer to the Committer agent.'; }
+   }
+   </script><footer>qwen-agent-collective · five agents, one shared brain · <span class="note">Global AI Hackathon with Qwen Cloud</span></footer></div></body></html>

@@ -1,0 +1,29 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Echo — T1 · MemoryAgent</title><link rel="stylesheet" href="/style.css"></head>
+<body><div class="wrap">
+   <header class="site"><h1>Echo</h1><span class="sub">T1 · MemoryAgent</span></header>
+   <a class="back" href="/">← all agents</a>
+   <div class="hero" style="margin-top:18px"><span class="dot" style="background:#5eead4"></span>
+     <strong style="font-size:20px">Governed memory under a token budget.</strong></div>
+   <p style="color:var(--mut);max-width:62ch">Embeds memories, recalls them under a strict token budget, and forgets on schedule — the reference agent for the shared brain.</p>
+   <div><span class="pill">text-embedding-v3</span><span class="pill">qwen-plus</span></div>
+   <div class="demo">
+     <label for="in">Recall a memory</label>
+     <textarea id="in" placeholder="When is the hackathon due?"></textarea>
+     <div class="row"><button class="go" style="background:#5eead4" onclick="run()">Retrieve</button>
+       <span class="note">calls <code>/api/memory-echo</code> when the backend is wired</span></div>
+     <div class="out" id="out"></div>
+   </div>
+   <script>
+   async function run(){
+     const out=document.getElementById('out'), q=document.getElementById('in').value.trim();
+     if(!q){out.textContent='Enter something first.';return}
+     out.textContent='…';
+     try{
+       const r=await fetch('/api/memory-echo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({input:q})});
+       if(!r.ok) throw new Error('HTTP '+r.status);
+       const j=await r.json(); out.textContent=j.output||JSON.stringify(j,null,2);
+     }catch(e){ out.textContent='[demo] backend not wired yet ('+e.message+').\nThis console is ready; connect /api/memory-echo to the Echo agent.'; }
+   }
+   </script><footer>qwen-agent-collective · five agents, one shared brain · <span class="note">Global AI Hackathon with Qwen Cloud</span></footer></div></body></html>

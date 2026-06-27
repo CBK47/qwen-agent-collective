@@ -1,0 +1,29 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Translate — T4 · Autopilot</title><link rel="stylesheet" href="/style.css"></head>
+<body><div class="wrap">
+   <header class="site"><h1>Translate</h1><span class="sub">T4 · Autopilot</span></header>
+   <a class="back" href="/">← all agents</a>
+   <div class="hero" style="margin-top:18px"><span class="dot" style="background:#93c5fd"></span>
+     <strong style="font-size:20px">Glossary-honoring translation with HITL.</strong></div>
+   <p style="color:var(--mut);max-width:62ch">Translates with a shared glossary and translation memory; new terms route to a human-in-the-loop review queue before becoming shared.</p>
+   <div><span class="pill">qwen-plus</span></div>
+   <div class="demo">
+     <label for="in">Translate text</label>
+     <textarea id="in" placeholder="Hello, world"></textarea>
+     <div class="row"><button class="go" style="background:#93c5fd" onclick="run()">Translate</button>
+       <span class="note">calls <code>/api/open-translate</code> when the backend is wired</span></div>
+     <div class="out" id="out"></div>
+   </div>
+   <script>
+   async function run(){
+     const out=document.getElementById('out'), q=document.getElementById('in').value.trim();
+     if(!q){out.textContent='Enter something first.';return}
+     out.textContent='…';
+     try{
+       const r=await fetch('/api/open-translate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({input:q})});
+       if(!r.ok) throw new Error('HTTP '+r.status);
+       const j=await r.json(); out.textContent=j.output||JSON.stringify(j,null,2);
+     }catch(e){ out.textContent='[demo] backend not wired yet ('+e.message+').\nThis console is ready; connect /api/open-translate to the Translate agent.'; }
+   }
+   </script><footer>qwen-agent-collective · five agents, one shared brain · <span class="note">Global AI Hackathon with Qwen Cloud</span></footer></div></body></html>
