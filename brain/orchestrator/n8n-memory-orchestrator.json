@@ -1,0 +1,567 @@
+{
+  "name": "Local Echo Memory Orchestrator",
+  "nodes": [
+    {
+      "id": "cc050dd9-bc46-4ded-be1c-1b5c4eb39c51",
+      "name": "Overview",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1220,
+        -720
+      ],
+      "parameters": {
+        "width": 480,
+        "height": 420,
+        "content": "## Local Echo Memory Orchestrator\\n\\nWebhook actions:\\n- `manifest`\\n- `retrieve`\\n- `ingest`\\n\\nBackend memory API for Open WebUI / tools, not the main chat UI.\\n\\nExpected payload keys:\\n- `action`\\n- `agent` (`echo` or `skippy`)\\n- `session_id`\\n- `query` for retrieve\\n- `messages` for ingest\\n- optional `source_type`, `source_path`, `tags`\\n\\nMap credentials after import:\\n- PostgreSQL\\n- Qdrant\\n- Ollama"
+      }
+    },
+    {
+      "id": "a0cc4af5-1853-4bd2-b56b-cbf30dbd3ef2",
+      "name": "Langfuse Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1500,
+        -720
+      ],
+      "parameters": {
+        "width": 420,
+        "height": 260,
+        "content": "## Langfuse\\n\\nThis workflow avoids a hard dependency on the Langfuse community node so it imports cleanly.\\n\\nUse Langfuse first for prompt management, then add tracing from custom services or Open WebUI pipelines later."
+      }
+    },
+    {
+      "id": "964dc57b-4e72-4e64-b15d-3d0b7be17da4",
+      "name": "Memory API",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1040,
+        -420
+      ],
+      "parameters": {
+        "path": "local-echo-memory",
+        "httpMethod": "POST",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "webhookId": "local-echo-memory"
+    },
+    {
+      "id": "b60b31b6-24f2-4a29-ac9d-07b3a3977c98",
+      "name": "Normalize Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -820,
+        -420
+      ],
+      "parameters": {
+        "jsCode": "const body = $json.body ?? $json;\nconst agent = (body.agent || 'echo').toLowerCase();\nconst action = (body.action || 'manifest').toLowerCase();\nconst sessionId = body.session_id || `session_${Date.now()}`;\nconst userId = body.user_id || 'connor';\nconst map = {\n  echo: { chat: 'echo_chat_chunks', docs: 'echo_docs', notes: 'echo_obsidian', namespace: 'echo' },\n  skippy: { chat: 'skippy_chat_chunks', docs: 'skippy_home_docs', notes: 'skippy_obsidian', namespace: 'skippy' },\n};\nconst selected = map[agent] || map.echo;\nreturn [{\n  json: {\n    action,\n    agent,\n    user_id: userId,\n    session_id: sessionId,\n    query: body.query || '',\n    messages: body.messages || [],\n    source_type: body.source_type || 'chat',\n    source_path: body.source_path || null,\n    tags: body.tags || [],\n    collection_chat: selected.chat,\n    collection_docs: selected.docs,\n    collection_notes: selected.notes,\n    memory_namespace: selected.namespace,\n  }\n}];"
+      }
+    },
+    {
+      "id": "d2b459fd-541b-4e4f-a6dc-81ab87b47a67",
+      "name": "IF Retrieve?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -600,
+        -420
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.action }}",
+              "rightValue": "retrieve",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "2f046463-8717-47c3-9f47-51f764ff424e",
+      "name": "Fetch Structured Facts",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -340,
+        -560
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT fact_id, fact_type, subject, predicate, object_text, confidence, updated_at FROM memory_facts WHERE memory_namespace = '{{ $json.memory_namespace }}' AND status = 'approved' ORDER BY updated_at DESC LIMIT 25;",
+        "options": {}
+      },
+      "credentials": {
+        "postgres": {
+          "id": "REPLACE_ME",
+          "name": "Local Echo Postgres"
+        }
+      }
+    },
+    {
+      "id": "ec36e965-0108-4cb8-80d6-c0cbb823abb2",
+      "name": "Embed Query",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -80,
+        -560
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ ($env.OLLAMA_BASE_URL || 'http://ollama:11434') + '/api/embed' }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { model: $env.OLLAMA_EMBED_MODEL || 'embeddinggemma', input: $json.query } }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "9f4211e2-a2cf-4a7d-9066-f994d379f993",
+      "name": "Query Qdrant",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        180,
+        -560
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ ($env.QDRANT_BASE_URL || 'http://qdrant:6333') + '/collections/' + $json.collection_chat + '/points/query' }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { query: $('Embed Query').item.json.embeddings?.[0] || $('Embed Query').item.json.embedding || [], limit: 8, with_payload: true } }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "1623b72f-71be-43db-9d5b-14709949b8cc",
+      "name": "Build Retrieval Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        -560
+      ],
+      "parameters": {
+        "jsCode": "const facts = $('Fetch Structured Facts').all().map(i => i.json);\nconst rag = $json.result?.points || $json.result || [];\nreturn [{\n  json: {\n    action: 'retrieve',\n    agent: $('Normalize Payload').item.json.agent,\n    session_id: $('Normalize Payload').item.json.session_id,\n    memory_names: {\n      namespace: $('Normalize Payload').item.json.memory_namespace,\n      chat_collection: $('Normalize Payload').item.json.collection_chat,\n      docs_collection: $('Normalize Payload').item.json.collection_docs,\n      notes_collection: $('Normalize Payload').item.json.collection_notes\n    },\n    structured_facts: facts,\n    rag_hits: rag,\n    retrieval_bundle: {\n      structured_fact_count: facts.length,\n      rag_hit_count: Array.isArray(rag) ? rag.length : 0\n    }\n  }\n}];"
+      }
+    },
+    {
+      "id": "ebe3b781-1b3c-4099-8826-dfc5699521f3",
+      "name": "IF Manifest?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -340,
+        -240
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.action }}",
+              "rightValue": "manifest",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "37d8736b-f6c3-4387-b293-5e16feeea1a9",
+      "name": "Build Manifest",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -80,
+        -240
+      ],
+      "parameters": {
+        "jsCode": "const x = $json;\nreturn [{\n  json: {\n    action: 'manifest',\n    agent: x.agent,\n    session_id: x.session_id,\n    memory_namespace: x.memory_namespace,\n    qdrant: {\n      chat_collection: x.collection_chat,\n      docs_collection: x.collection_docs,\n      notes_collection: x.collection_notes\n    },\n    exports: [\n      `agent.${x.agent}.identity.md`,\n      `agent.${x.agent}.system-prompt.md`,\n      `agent.${x.agent}.retrieval-prompt.md`,\n      `${x.agent}.memory-facts.jsonl`,\n      `${x.agent}.memory-events.jsonl`,\n      `${x.agent}.session-summaries.jsonl`,\n      `${x.agent}.review-queue.jsonl`,\n      `${x.agent}.qdrant-collections.json`,\n      `${x.agent}.obsidian-export.md`\n    ]\n  }\n}];"
+      }
+    },
+    {
+      "id": "0944c2cb-f534-4415-9a6e-449c347425ef",
+      "name": "Prepare Transcript",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -80,
+        -20
+      ],
+      "parameters": {
+        "jsCode": "const messages = Array.isArray($json.messages) ? $json.messages : [];\nconst transcript = messages.map((m, idx) => {\n  const role = m.role || 'user';\n  const content = typeof m.content === 'string' ? m.content : JSON.stringify(m.content || {});\n  return `${idx + 1}. [${role}] ${content}`;\n}).join('\\n');\nreturn [{ json: { ...$json, transcript_text: transcript || '[no transcript provided]' } }];"
+      }
+    },
+    {
+      "id": "1fbf6a57-6c95-4dcb-861b-a62f2dbca17f",
+      "name": "Summarise & Extract",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        180,
+        -20
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ ($env.OLLAMA_BASE_URL || 'http://ollama:11434') + '/v1/chat/completions' }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={ { model: $env.OLLAMA_SUMMARY_MODEL || 'gpt-oss:20b', temperature: 0, response_format: { type: 'json_object' }, messages: [ { role: 'system', content: \"You are a memory extraction service for a local agent system.\\nReturn strict JSON with this schema:\\n{\\n  \\\"title\\\": string,\\n  \\\"summary_short\\\": string,\\n  \\\"summary_long\\\": string,\\n  \\\"facts\\\": [{\\\"fact_type\\\": string, \\\"subject\\\": string, \\\"predicate\\\": string, \\\"object_text\\\": string, \\\"confidence\\\": number}],\\n  \\\"events\\\": [{\\\"event_type\\\": string, \\\"title\\\": string, \\\"event_text\\\": string}],\\n  \\\"tasks\\\": [{\\\"title\\\": string, \\\"status\\\": string}],\\n  \\\"tags\\\": [string]\\n}\\nOnly include durable facts that are useful later.\" }, { role: 'user', content: $json.transcript_text } ] } }",
+        "options": {}
+      }
+    },
+    {
+      "id": "4bc4b4ab-300b-4f82-91b7-073d23f86e6c",
+      "name": "Parse Summary JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        -20
+      ],
+      "parameters": {
+        "jsCode": "const raw = $json.choices?.[0]?.message?.content || '{}';\nlet parsed;\ntry {\n  parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;\n} catch (e) {\n  parsed = {\n    title: 'parse_failed',\n    summary_short: String(raw).slice(0, 240),\n    summary_long: String(raw),\n    facts: [],\n    events: [],\n    tasks: [],\n    tags: ['parse_failed']\n  };\n}\nreturn [{ json: { ...$('Prepare Transcript').item.json, extracted: parsed } }];"
+      }
+    },
+    {
+      "id": "6d8d89ce-a49a-4eda-8cce-fcc415122d94",
+      "name": "Store Session Summary",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        700,
+        -140
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO sessions (session_id, agent_id, user_id, channel, source_app, started_at, ended_at, title, summary_short, summary_long, tags_json) VALUES ('{{ $json.session_id }}','{{ $json.agent }}','{{ $json.user_id }}','api','openwebui',NOW(),NOW(),'{{ ($json.extracted.title || '').replace(/'/g, \"''\") }}','{{ ($json.extracted.summary_short || '').replace(/'/g, \"''\") }}','{{ ($json.extracted.summary_long || '').replace(/'/g, \"''\") }}','{{ JSON.stringify($json.extracted.tags || []) }}'::jsonb) ON CONFLICT (session_id) DO UPDATE SET ended_at = NOW(), title = EXCLUDED.title, summary_short = EXCLUDED.summary_short, summary_long = EXCLUDED.summary_long, tags_json = EXCLUDED.tags_json;",
+        "options": {}
+      },
+      "credentials": {
+        "postgres": {
+          "id": "REPLACE_ME",
+          "name": "Local Echo Postgres"
+        }
+      }
+    },
+    {
+      "id": "d9c10bc6-68c5-49c8-8425-69f3df7156c3",
+      "name": "Store Memory Review Queue",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        700,
+        20
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO memory_review_queue (agent_id, session_id, candidate_type, payload_json, confidence, status, created_at) VALUES ('{{ $json.agent }}','{{ $json.session_id }}','session_extract','{{ JSON.stringify($json.extracted).replace(/'/g, \"''\") }}'::jsonb,0.75,'pending',NOW());",
+        "options": {}
+      },
+      "credentials": {
+        "postgres": {
+          "id": "REPLACE_ME",
+          "name": "Local Echo Postgres"
+        }
+      }
+    },
+    {
+      "id": "539c0748-64c1-4679-8f34-c127c1bfff75",
+      "name": "Embed Summary",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        960,
+        -20
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ ($env.OLLAMA_BASE_URL || 'http://ollama:11434') + '/api/embed' }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { model: $env.OLLAMA_EMBED_MODEL || 'embeddinggemma', input: $json.extracted.summary_long || $json.transcript_text } }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "d229b472-78c2-489a-9317-0e8913435724",
+      "name": "Upsert Summary To Qdrant",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1220,
+        -20
+      ],
+      "parameters": {
+        "method": "PUT",
+        "url": "={{ ($env.QDRANT_BASE_URL || 'http://qdrant:6333') + '/collections/' + $json.collection_chat + '/points?wait=true' }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { points: [ { id: $json.session_id, vector: $('Embed Summary').item.json.embeddings?.[0] || $('Embed Summary').item.json.embedding || [], payload: { agent: $json.agent, source_type: $json.source_type, source_path: $json.source_path, session_id: $json.session_id, doc_title: $json.extracted.title || 'session_summary', chunk_index: 0, tags: $json.extracted.tags || [], namespace: $json.memory_namespace, created_at: new Date().toISOString(), text: $json.extracted.summary_long || $json.transcript_text } } ] } }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "315b8310-b8b3-4e68-b817-981c59a07a30",
+      "name": "Build Ingest Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1480,
+        -20
+      ],
+      "parameters": {
+        "jsCode": "return [{\n  json: {\n    action: 'ingest',\n    agent: $('Parse Summary JSON').item.json.agent,\n    session_id: $('Parse Summary JSON').item.json.session_id,\n    stored: {\n      session_summary: true,\n      review_queue: true,\n      qdrant: true\n    },\n    memory_names: {\n      namespace: $('Parse Summary JSON').item.json.memory_namespace,\n      chat_collection: $('Parse Summary JSON').item.json.collection_chat,\n      docs_collection: $('Parse Summary JSON').item.json.collection_docs,\n      notes_collection: $('Parse Summary JSON').item.json.collection_notes\n    },\n    extracted_preview: {\n      title: $('Parse Summary JSON').item.json.extracted.title,\n      summary_short: $('Parse Summary JSON').item.json.extracted.summary_short,\n      fact_count: ($('Parse Summary JSON').item.json.extracted.facts || []).length,\n      event_count: ($('Parse Summary JSON').item.json.extracted.events || []).length,\n      task_count: ($('Parse Summary JSON').item.json.extracted.tasks || []).length\n    }\n  }\n}];"
+      }
+    },
+    {
+      "id": "df027f49-3d71-428e-88ae-d76ae3370d94",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.2,
+      "position": [
+        1760,
+        -220
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Memory API": {
+      "main": [
+        [
+          {
+            "node": "Normalize Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Payload": {
+      "main": [
+        [
+          {
+            "node": "IF Retrieve?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Retrieve?": {
+      "main": [
+        [
+          {
+            "node": "Fetch Structured Facts",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "IF Manifest?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Structured Facts": {
+      "main": [
+        [
+          {
+            "node": "Embed Query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embed Query": {
+      "main": [
+        [
+          {
+            "node": "Query Qdrant",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Qdrant": {
+      "main": [
+        [
+          {
+            "node": "Build Retrieval Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Retrieval Response": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Manifest?": {
+      "main": [
+        [
+          {
+            "node": "Build Manifest",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Transcript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Manifest": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Transcript": {
+      "main": [
+        [
+          {
+            "node": "Summarise & Extract",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Summarise & Extract": {
+      "main": [
+        [
+          {
+            "node": "Parse Summary JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Summary JSON": {
+      "main": [
+        [
+          {
+            "node": "Store Session Summary",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Store Memory Review Queue",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Embed Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embed Summary": {
+      "main": [
+        [
+          {
+            "node": "Upsert Summary To Qdrant",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert Summary To Qdrant": {
+      "main": [
+        [
+          {
+            "node": "Build Ingest Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Ingest Response": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true
+  },
+  "versionId": "b2c3786e-8623-444d-bc2b-2fc088ec8a06",
+  "meta": {
+    "template": "local-echo-memory-orchestrator",
+    "notes": "Map credentials and environment variables after import. Start by testing action=manifest."
+  },
+  "tags": []
+}

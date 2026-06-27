@@ -1,0 +1,466 @@
+{
+  "facts": [
+    {
+      "id": "f001",
+      "namespace": "shared.code-conventions",
+      "fact_type": "convention",
+      "subject": "TypeScript",
+      "predicate": "requires",
+      "object_text": "strict mode enabled in tsconfig.json",
+      "confidence": 0.98,
+      "status": "approved",
+      "created_at": "2025-01-10T09:00:00Z",
+      "expires_at": null
+    },
+    {
+      "id": "f002",
+      "namespace": "shared.code-conventions",
+      "fact_type": "convention",
+      "subject": "imports",
+      "predicate": "must use",
+      "object_text": "absolute paths via path aliases, never relative ../../ chains",
+      "confidence": 0.95,
+      "status": "approved",
+      "created_at": "2025-01-10T09:01:00Z",
+      "expires_at": null
+    },
+    {
+      "id": "f003",
+      "namespace": "shared.code-conventions",
+      "fact_type": "convention",
+      "subject": "API handlers",
+      "predicate": "must include",
+      "object_text": "zod validation on all request bodies",
+      "confidence": 0.97,
+      "status": "approved",
+      "created_at": "2025-01-10T09:02:00Z",
+      "expires_at": null
+    },
+    {
+      "id": "f004",
+      "namespace": "shared.glossary",
+      "fact_type": "definition",
+      "subject": "brain",
+      "predicate": "is defined as",
+      "object_text": "the shared memory layer — Postgres + Qdrant — storing facts and events for all agents",
+      "confidence": 1.0,
+      "status": "approved",
+      "created_at": "2025-01-10T09:05:00Z",
+      "expires_at": null
+    },
+    {
+      "id": "f005",
+      "namespace": "shared.glossary",
+      "fact_type": "definition",
+      "subject": "namespace",
+      "predicate": "is defined as",
+      "object_text": "a scoped partition of memory e.g. echo.private or shared.glossary",
+      "confidence": 1.0,
+      "status": "approved",
+      "created_at": "2025-01-10T09:06:00Z",
+      "expires_at": null
+    },
+    {
+      "id": "f006",
+      "namespace": "shared.glossary",
+      "fact_type": "definition",
+      "subject": "context budget",
+      "predicate": "is defined as",
+      "object_text": "the maximum number of facts surfaced to an agent in a single recall, to stay within token limits",
+      "confidence": 0.99,
+      "status": "approved",
+      "created_at": "2025-01-10T09:07:00Z",
+      "expires_at": null
+    },
+    {
+      "id": "f007",
+      "namespace": "echo.private",
+      "fact_type": "preference",
+      "subject": "echo",
+      "predicate": "prefers",
+      "object_text": "concise bullet-point answers over long prose explanations",
+      "confidence": 0.88,
+      "status": "approved",
+      "created_at": "2025-01-10T10:00:00Z",
+      "expires_at": null
+    },
+    {
+      "id": "f008",
+      "namespace": "echo.private",
+      "fact_type": "context",
+      "subject": "echo",
+      "predicate": "is working on",
+      "object_text": "sprint 14 — the memory orchestrator refactor",
+      "confidence": 0.92,
+      "status": "approved",
+      "created_at": "2025-01-10T10:01:00Z",
+      "expires_at": "2025-01-24T00:00:00Z"
+    },
+    {
+      "id": "f009",
+      "namespace": "echo.private",
+      "fact_type": "decision",
+      "subject": "echo",
+      "predicate": "decided",
+      "object_text": "use pgvector over Qdrant for embeddings below 10k docs",
+      "confidence": 0.75,
+      "status": "pending",
+      "created_at": "2025-01-10T10:05:00Z",
+      "expires_at": null
+    },
+    {
+      "id": "f010",
+      "namespace": "skippy.private",
+      "fact_type": "preference",
+      "subject": "skippy",
+      "predicate": "prefers",
+      "object_text": "verbose step-by-step reasoning before any code is written",
+      "confidence": 0.91,
+      "status": "approved",
+      "created_at": "2025-01-10T11:00:00Z",
+      "expires_at": null
+    },
+    {
+      "id": "f011",
+      "namespace": "skippy.private",
+      "fact_type": "context",
+      "subject": "skippy",
+      "predicate": "is responsible for",
+      "object_text": "the data pipeline — ingestion, chunking, and embedding of documents",
+      "confidence": 0.96,
+      "status": "approved",
+      "created_at": "2025-01-10T11:01:00Z",
+      "expires_at": null
+    },
+    {
+      "id": "f012",
+      "namespace": "devices",
+      "fact_type": "topology",
+      "subject": "prod-db-01",
+      "predicate": "is",
+      "object_text": "Postgres 15 primary, 32GB RAM, us-east-1",
+      "confidence": 0.99,
+      "status": "approved",
+      "created_at": "2025-01-10T08:00:00Z",
+      "expires_at": null
+    },
+    {
+      "id": "f013",
+      "namespace": "devices",
+      "fact_type": "topology",
+      "subject": "qdrant-01",
+      "predicate": "is",
+      "object_text": "Qdrant v1.8, 16GB RAM, co-located with prod-db-01",
+      "confidence": 0.99,
+      "status": "approved",
+      "created_at": "2025-01-10T08:01:00Z",
+      "expires_at": null
+    },
+    {
+      "id": "f014",
+      "namespace": "shared.code-conventions",
+      "fact_type": "convention",
+      "subject": "tests",
+      "predicate": "must achieve",
+      "object_text": "80% line coverage; use vitest with msw for HTTP mocking",
+      "confidence": 0.93,
+      "status": "approved",
+      "created_at": "2025-01-11T09:00:00Z",
+      "expires_at": null
+    },
+    {
+      "id": "f015",
+      "namespace": "echo.private",
+      "fact_type": "ephemeral",
+      "subject": "PR #42",
+      "predicate": "is blocked by",
+      "object_text": "review from skippy on the orchestrator schema changes",
+      "confidence": 0.85,
+      "status": "approved",
+      "created_at": "2025-01-11T14:00:00Z",
+      "expires_at": "2025-01-15T00:00:00Z"
+    },
+    {
+      "id": "f016",
+      "namespace": "shared.glossary",
+      "fact_type": "definition",
+      "subject": "fact_type",
+      "predicate": "enumerates",
+      "object_text": "convention | definition | preference | context | decision | topology | ephemeral",
+      "confidence": 1.0,
+      "status": "approved",
+      "created_at": "2025-01-11T09:10:00Z",
+      "expires_at": null
+    },
+    {
+      "id": "f017",
+      "namespace": "skippy.private",
+      "fact_type": "decision",
+      "subject": "skippy",
+      "predicate": "decided",
+      "object_text": "chunk size of 512 tokens with 64-token overlap for code files",
+      "confidence": 0.82,
+      "status": "approved",
+      "created_at": "2025-01-12T10:00:00Z",
+      "expires_at": null
+    },
+    {
+      "id": "f018",
+      "namespace": "devices",
+      "fact_type": "topology",
+      "subject": "orchestrator-api",
+      "predicate": "exposes",
+      "object_text": "REST endpoints: POST /ingest, POST /recall, DELETE /forget",
+      "confidence": 0.97,
+      "status": "approved",
+      "created_at": "2025-01-12T08:30:00Z",
+      "expires_at": null
+    },
+    {
+      "id": "f019",
+      "namespace": "echo.private",
+      "fact_type": "context",
+      "subject": "echo",
+      "predicate": "last noted",
+      "object_text": "sprint 13 retro: context window management was the #1 pain point",
+      "confidence": 0.7,
+      "status": "expired",
+      "created_at": "2024-12-20T10:00:00Z",
+      "expires_at": "2025-01-10T00:00:00Z"
+    },
+    {
+      "id": "f020",
+      "namespace": "shared.code-conventions",
+      "fact_type": "convention",
+      "subject": "database migrations",
+      "predicate": "must use",
+      "object_text": "prisma migrate dev; never hand-edit schema.prisma after first deploy",
+      "confidence": 0.96,
+      "status": "approved",
+      "created_at": "2025-01-13T09:00:00Z",
+      "expires_at": null
+    },
+    {
+      "id": "f021",
+      "namespace": "skippy.private",
+      "fact_type": "preference",
+      "subject": "skippy",
+      "predicate": "flags",
+      "object_text": "any PR touching the embedding pipeline should include a latency benchmark in the description",
+      "confidence": 0.89,
+      "status": "approved",
+      "created_at": "2025-01-13T11:00:00Z",
+      "expires_at": null
+    },
+    {
+      "id": "f022",
+      "namespace": "devices",
+      "fact_type": "topology",
+      "subject": "vector-index",
+      "predicate": "uses",
+      "object_text": "HNSW index, ef_construction=128, m=16 for 1536-dim embeddings",
+      "confidence": 0.94,
+      "status": "approved",
+      "created_at": "2025-01-13T08:30:00Z",
+      "expires_at": null
+    },
+    {
+      "id": "f023",
+      "namespace": "echo.private",
+      "fact_type": "decision",
+      "subject": "echo",
+      "predicate": "deprecated",
+      "object_text": "old hand-rolled vector similarity — replaced by Qdrant search",
+      "confidence": 0.6,
+      "status": "expired",
+      "created_at": "2024-12-01T10:00:00Z",
+      "expires_at": "2025-01-05T00:00:00Z"
+    },
+    {
+      "id": "f024",
+      "namespace": "shared.glossary",
+      "fact_type": "definition",
+      "subject": "confidence",
+      "predicate": "is defined as",
+      "object_text": "a float 0..1 representing how certain the brain is about a fact; below 0.5 triggers review",
+      "confidence": 1.0,
+      "status": "approved",
+      "created_at": "2025-01-14T09:00:00Z",
+      "expires_at": null
+    },
+    {
+      "id": "f025",
+      "namespace": "shared.code-conventions",
+      "fact_type": "convention",
+      "subject": "env vars",
+      "predicate": "must be declared in",
+      "object_text": ".env.example alongside the repo root; never commit .env",
+      "confidence": 0.99,
+      "status": "approved",
+      "created_at": "2025-01-14T09:05:00Z",
+      "expires_at": null
+    }
+  ],
+  "events": [
+    {
+      "event_id": "e001",
+      "event_type": "ingest",
+      "title": "Bootstrapping code conventions",
+      "event_text": "Three foundational code-convention facts arrive from onboarding docs — TypeScript strict mode, import aliases, Zod validation.",
+      "event_time": "2025-01-10T09:00:00Z",
+      "refs": ["f001", "f002", "f003"]
+    },
+    {
+      "event_id": "e002",
+      "event_type": "ingest",
+      "title": "Glossary seeded",
+      "event_text": "Core vocabulary terms ingested: brain, namespace, and context budget defined once and shared across all agents.",
+      "event_time": "2025-01-10T09:05:00Z",
+      "refs": ["f004", "f005", "f006"]
+    },
+    {
+      "event_id": "e003",
+      "event_type": "ingest",
+      "title": "Infrastructure topology logged",
+      "event_text": "Device facts arrive: prod-db-01, qdrant-01 registered. The brain now knows its own hardware.",
+      "event_time": "2025-01-10T08:00:00Z",
+      "refs": ["f012", "f013"]
+    },
+    {
+      "event_id": "e004",
+      "event_type": "ingest",
+      "title": "Echo's profile initialised",
+      "event_text": "Echo agent stores personal preferences and current sprint context.",
+      "event_time": "2025-01-10T10:00:00Z",
+      "refs": ["f007", "f008", "f009"]
+    },
+    {
+      "event_id": "e005",
+      "event_type": "ingest",
+      "title": "Skippy comes online",
+      "event_text": "Skippy registers work preferences and pipeline ownership facts.",
+      "event_time": "2025-01-10T11:00:00Z",
+      "refs": ["f010", "f011"]
+    },
+    {
+      "event_id": "e006",
+      "event_type": "forget",
+      "title": "Stale sprint-13 retrospective expires",
+      "event_text": "Echo's sprint-13 retro note was marked expires_at Jan 10. The brain lets it fade — low-confidence ephemeral facts don't survive.",
+      "event_time": "2025-01-10T00:01:00Z",
+      "refs": ["f019"]
+    },
+    {
+      "event_id": "e007",
+      "event_type": "ingest",
+      "title": "Test conventions added",
+      "event_text": "Coverage threshold and vitest+msw stack decision committed to shared conventions.",
+      "event_time": "2025-01-11T09:00:00Z",
+      "refs": ["f014", "f016"]
+    },
+    {
+      "event_id": "e008",
+      "event_type": "ingest",
+      "title": "PR block tracked",
+      "event_text": "Echo notes PR #42 is waiting on Skippy's review — short-lived, expires Jan 15.",
+      "event_time": "2025-01-11T14:00:00Z",
+      "refs": ["f015"]
+    },
+    {
+      "event_id": "e009",
+      "event_type": "recall",
+      "title": "Skippy asks: how should I chunk code files?",
+      "event_text": "Skippy queries the brain for chunking strategy. Relevant facts bubble up: code conventions, Skippy's own past decision, glossary terms.",
+      "event_time": "2025-01-12T09:45:00Z",
+      "refs": ["f002", "f003", "f011", "f017", "f005"]
+    },
+    {
+      "event_id": "e010",
+      "event_type": "ingest",
+      "title": "Skippy commits chunk-size decision",
+      "event_text": "After recalling context, Skippy ingests a firm decision: 512-token chunks, 64-token overlap.",
+      "event_time": "2025-01-12T10:00:00Z",
+      "refs": ["f017"]
+    },
+    {
+      "event_id": "e011",
+      "event_type": "ingest",
+      "title": "Orchestrator API topology registered",
+      "event_text": "The REST surface of the orchestrator is now a first-class brain fact.",
+      "event_time": "2025-01-12T08:30:00Z",
+      "refs": ["f018"]
+    },
+    {
+      "event_id": "e012",
+      "event_type": "forget",
+      "title": "Old vector-similarity code deprecated",
+      "event_text": "Echo's deprecated hand-rolled similarity fact finally expires. The brain clears the stale knowledge.",
+      "event_time": "2025-01-12T00:01:00Z",
+      "refs": ["f023"]
+    },
+    {
+      "event_id": "e013",
+      "event_type": "recall",
+      "title": "Echo asks: what do I need to know before touching the DB layer?",
+      "event_text": "Broad recall query — the brain surfaces migration conventions, Postgres topology, pgvector decision, env-var rules.",
+      "event_time": "2025-01-13T10:00:00Z",
+      "refs": ["f001", "f003", "f012", "f009", "f025", "f020"]
+    },
+    {
+      "event_id": "e014",
+      "event_type": "ingest",
+      "title": "Migration convention & env-var policy hardened",
+      "event_text": "Two new approved conventions arrive after the DB refactor: prisma migrate and .env.example discipline.",
+      "event_time": "2025-01-13T09:00:00Z",
+      "refs": ["f020", "f025"]
+    },
+    {
+      "event_id": "e015",
+      "event_type": "ingest",
+      "title": "HNSW index parameters locked in",
+      "event_text": "Vector index topology committed after benchmarking: ef_construction=128, m=16.",
+      "event_time": "2025-01-13T08:30:00Z",
+      "refs": ["f022"]
+    },
+    {
+      "event_id": "e016",
+      "event_type": "ingest",
+      "title": "Skippy's PR benchmark requirement added",
+      "event_text": "Skippy flags: any PR touching embedding pipeline must include latency numbers.",
+      "event_time": "2025-01-13T11:00:00Z",
+      "refs": ["f021"]
+    },
+    {
+      "event_id": "e017",
+      "event_type": "recall",
+      "title": "Echo asks: what are Skippy's review preferences?",
+      "event_text": "Context budget = 3. Brain finds 5 relevant facts but only the top 3 survive the cut: Skippy's verbose-reasoning preference, benchmark requirement, and pipeline ownership.",
+      "event_time": "2025-01-14T09:30:00Z",
+      "refs": ["f010", "f021", "f011", "f017", "f005"]
+    },
+    {
+      "event_id": "e018",
+      "event_type": "ingest",
+      "title": "Confidence definition added to glossary",
+      "event_text": "The brain learns about itself: confidence score semantics are now a glossary fact.",
+      "event_time": "2025-01-14T09:00:00Z",
+      "refs": ["f024"]
+    },
+    {
+      "event_id": "e019",
+      "event_type": "forget",
+      "title": "PR #42 block expires",
+      "event_text": "The PR block on echo's sprint was short-lived. Jan 15 arrived — the fact evaporates.",
+      "event_time": "2025-01-15T00:01:00Z",
+      "refs": ["f015"]
+    },
+    {
+      "event_id": "e020",
+      "event_type": "recall",
+      "title": "Full system recall: what does the brain know about itself?",
+      "event_text": "Final recall — the brain is queried for its own architecture. Glossary, topology, and orchestrator facts light up together.",
+      "event_time": "2025-01-15T12:00:00Z",
+      "refs": ["f004", "f005", "f006", "f012", "f013", "f018", "f022", "f024"]
+    }
+  ]
+}
