@@ -8,17 +8,17 @@ Ingests, embeds, and retrieves personal memories. The reference agent for the sh
 
 ## Setup Instructions
 
-1. **Initialize Brain Stack**:  
+1. **Configure API Key**:  
+   In the `agents/memory-echo` directory, create a `.env` file containing your DashScope API key:  
+   ```env
+   DASHSCOPE_API_KEY=your_api_key_here
+   ```
+
+2. **Initialize Brain Stack**:  
    Navigate to the `brain` directory and start the Docker services:  
    ```bash
    cd brain
    docker-compose up -d
-   ```
-
-2. **Configure API Key**:  
-   In the `agents/memory-echo` directory, create a `.env` file containing your DashScope API key:  
-   ```env
-   DASHSCOPE_API_KEY=your_api_key_here
    ```
 
 ## Signature Qwen Call
