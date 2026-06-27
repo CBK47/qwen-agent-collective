@@ -1,0 +1,138 @@
+{
+  "name": "Showrunner \u00b7 Nightly Recap",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "Showrunner nightly recap (Track-2)\n\nReads 24h of memory_events under a token budget, qwen-plus writes a recap 'episode', stored to showrunner.private (memory_facts). Doubles as blog-post material. Skips silently on a truly empty day.\nNeeds: Brain Postgres cred + DASHSCOPE_* + QWEN_CHAT_MODEL.",
+        "height": 200,
+        "width": 420
+      },
+      "id": "a800fe70-6546-4c32-8203-1b8fbdb12cac",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -360,
+        -60
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 23 * * *"
+            }
+          ]
+        }
+      },
+      "id": "97f9f3ef-391b-43bc-93b6-7fad0ef1113e",
+      "name": "Every night 23:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -360,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT agent_id, event_type, title, event_text, event_time FROM memory_events WHERE event_time > NOW() - INTERVAL '24 hours' ORDER BY event_time ASC LIMIT 200;",
+        "options": {}
+      },
+      "id": "91069d96-16cb-4aa1-986a-31fdfe0365a1",
+      "name": "Fetch today's events",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -120,
+        220
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "REPLACE_ME",
+          "name": "Brain Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const qwen = async (messages, model, opts = {}) => {\n  const base = ($env.DASHSCOPE_BASE_URL || 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1').replace(/\\/$/, '');\n  const res = await this.helpers.httpRequest({\n    method: 'POST', url: base + '/chat/completions',\n    headers: { Authorization: 'Bearer ' + ($env.DASHSCOPE_API_KEY || ''), 'Content-Type': 'application/json' },\n    body: Object.assign({ model, temperature: 0, messages }, opts), json: true,\n  });\n  return res.choices?.[0]?.message?.content ?? '';\n};\nconst esc = (s) => String(s).replace(/'/g, \"''\");\nconst rows = $input.all().map(i => i.json);\nconst events = rows.slice(0, 120).map(r =>\n  `- [${r.event_type}] ${r.agent_id}: ${(r.title || '').toString()} ${(r.event_text || '').toString().slice(0, 160)}`\n).join('\\n');\nconst sys = \"You are The Showrunner. Turn the agent society's day into a short, vivid recap episode in markdown: a '# title', 3-5 beat bullets, and a one-line teaser. Under 200 words. Invent nothing not in the events.\";\nconst out = await qwen(\n  [{ role: 'system', content: sys }, { role: 'user', content: 'Events (last 24h):\\n' + (events || '(a quiet day \u2014 note it briefly)') }],\n  ($env.QWEN_CHAT_MODEL || 'qwen-plus'), {});\nconst title = (out.match(/^#\\s*(.+)$/m)?.[1] || 'Daily recap').slice(0, 120);\nreturn [{ json: { recap_md: esc(out), episode_title: esc(title), event_count: rows.length } }];\n"
+      },
+      "id": "ce0b21c5-fbc4-414d-8f4c-e667053daa96",
+      "name": "Write recap episode",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        120,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO memory_facts (agent_id, memory_namespace, fact_type, subject, predicate, object_text, confidence, status) VALUES ('showrunner', 'showrunner.private', 'episode', '{{ $json.episode_title }}', 'recap', '{{ $json.recap_md }}', 0.900, 'approved');",
+        "options": {}
+      },
+      "id": "870c30aa-332b-4596-a413-4e359e4a2ed3",
+      "name": "Save episode",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        360,
+        220
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "REPLACE_ME",
+          "name": "Brain Postgres"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Every night 23:00": {
+      "main": [
+        [
+          {
+            "node": "Fetch today's events",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch today's events": {
+      "main": [
+        [
+          {
+            "node": "Write recap episode",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write recap episode": {
+      "main": [
+        [
+          {
+            "node": "Save episode",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "f7e02a34-a513-47e7-b07c-9eabb9d4351f",
+  "meta": {},
+  "tags": []
+}
