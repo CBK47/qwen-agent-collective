@@ -127,8 +127,8 @@ const planRaw = await ollama([
     '  "goal": "<imperative, specific, <=70 chars — becomes the commit subject>",\n' +
     '  "details": "<2-4 sentences: exactly what to change and why it is valuable>"\n' +
     "}" },
-  { role: "user", content: ctx },
-], { temperature: 0.4, numPredict: 1200 });
+  { role: "user", content: ctx + "\n\n/no_think\nRespond now with ONLY the JSON object." },
+], { temperature: 0.4, numPredict: 3000 });
 
 function parsePlan(text) {
   // Scan for every balanced {...} block (thinking text may contain stray braces),
