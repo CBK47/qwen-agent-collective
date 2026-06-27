@@ -51,7 +51,7 @@ Common HTTP Request node settings for all three:
   4. **Embed Summary** (DashScope) → upsert point to Qdrant.
   5. Return an ingest receipt.
 
-## Supporting stack (for your Mac)
+## Shared Deploy Harness Port Assignments
 
 | Service | Port | Notes |
 |---------|------|-------|
@@ -62,11 +62,3 @@ Common HTTP Request node settings for all three:
 - Create Qdrant collections per `memory-manifest.yaml` (dim 1024, cosine).
 - Import the workflow into n8n; set the `DASHSCOPE_*` / `QWEN_*` / `POSTGRES_*` /
   `QDRANT_*` env vars on the n8n container.
-
-## Mac kickoff checklist
-- [x] Copy the real `n8n-memory-orchestrator.json` from `CBK47/Agents@claude/qwen-hackathon-ideas-bs1z60:/brain/orchestrator/`.
-- [x] Apply the port table above.
-- [x] `docker compose up`; confirm Postgres init + Qdrant + n8n are healthy.
-- [x] Create Qdrant collections (dim 1024).
-- [x] Smoke test: `manifest` → `ingest` → `retrieve` (see Track-1 demo harness, deferred).
-- [x] Capture a real DashScope response as deployment proof.
