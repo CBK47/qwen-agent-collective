@@ -1,7 +1,6 @@
 import os
 from shared.dashscope import chat
 
-# Define Personas
 PERSONAS = {
     "Pedant": "You are 'The Pedant'. Your sole focus is style, naming conventions, and strict adherence to the project's house rules. Be nitpicky. If a variable name is slightly off or a comment is missing, point it out.",
     "Architect": "You are 'The Architect'. You care about system design, complexity, scalability, and logic flow. Ignore style; focus on whether this code actually makes sense and doesn't introduce technical debt.",
@@ -9,7 +8,27 @@ PERSONAS = {
     "Synthesizer": "You are the Synthesis Agent. You will receive reports from a Pedant, an Architect, and a Skeptic. Your goal is to resolve their disagreements and produce a final, polished Conventional Commit message."
 }
 
-def run_debate(diff):
+def synthesize_reviews(diff: str, pedant_review: str, arch_review: str, skeptic_review: str) -> str:
+    """Synthesizes reviews from Pedant, Architect, and Skeptic into a final Conventional Commit message.
+
+    Args:
+        diff: The code diff being reviewed.
+        pedant_review: Review from the Pedant persona.
+        arch_review: Review from the Architect persona.
+        skeptic_review: Review from the Skeptic persona.
+
+    Returns:
+        A string containing the final commit message and summary.
+    """
+    synth_prompt = f"{PERSONAS['Synthesizer']}\n\nDiff:\n{diff}\n\nReports:\nPedant: {pedant_review}\nArchitect: {arch_review}\nSkeptic: {skeptic_review}\n\nProduce a final Conventional Commit message and a brief summary of the verdict."
+    return chat(synth_prompt)
+
+def run_debate(diff: str) -> None:
+    """Runs a debate between multiple personas to review a code diff.
+
+    Args:
+        diff: The code diff to be reviewed.
+    """
     print(f"--- Starting Debate for Diff ---\n{diff}\n")
     
     # 1. The Pedant's Review
@@ -28,8 +47,7 @@ def run_debate(diff):
     print(f"SKEPTIC: {skeptic_review}\n")
 
     # 4. Synthesis (Final Verdict)
-    synth_prompt = f"{PERSONAS['Synthesizer']}\n\nDiff:\n{diff}\n\nReports:\nPedant: {pedant_review}\nArchitect: {arch_review}\nSkeptic: {skeptic_review}\n\nProduce a final Conventional Commit message and a brief summary of the verdict."
-    final_verdict = chat(synth_prompt)
+    final_verdict = synthesize_reviews(diff, pedant_review, arch_review, skeptic_review)
     print(f"--- FINAL VERDICT ---\n{final_verdict}")
 
 if __name__ == "__main__":
@@ -43,34 +61,3 @@ if __name__ == "__main__":
 +     return float(price * (1 + tax))
     """
     run_debate(sample_diff)
-        skeptic_prompt = f"{PERSONAS['Skeptic']}\n\nDiff:\n{diff}\n\nPedant says: {pedant_review}\n\nArchitect says: {arch_review}\n\nProvide your skeptical review."
-        skeptic_review = chat(skeptic_prompt)
-        print(f"SKEPTIC: {skeptic_review}\n")
-def synthesize_reviews(diff, pedant_review, arch_review, skeptic_review):
-    \"\"\"Synthesizes reviews from Pedant, Architect, and Skeptic to produce a final verdict.
-
-    TODO: Implement the actual synthesis logic using the chat function with the appropriate prompt.
-    \"\"\"
-    # TODO: Implement the synthesis logic
-    return "Synthesis not yet implemented"
-def run_debate():
-    # TODO: Implement synthesis step using Synthesizer persona to generate final commit message
-def synthesize_reviews(pedant_review: str, arch_review: str, skeptic_review: str) -> str:
-    """Synthesizes reviews into a final commit message."""
-    # TODO: Implement synthesis logic using Synthesizer persona
-    return "feat: stubbed synthesis"
-import os
-from shared.dashscope import chat
-
-PERSONAS = {
-    "Pedant": "You are 'The Pedant'. Your sole focus is style, naming conventions, and strict adherence to the project's house rules. Be nitpicky. If a variable name is slightly off or a comment is missing, point it out.",
-    "Architect": "You are 'The Architect'. You care about system design, complexity, scalability, and logic flow. Ignore style; focus on whether this code actually makes sense and doesn't introduce technical debt.",
-    "Skeptic": "You are 'The Skeptic'. Your job is to find reasons why this change should be REJECTED. Look for edge cases, bugs, or simpler ways to achieve the same result. Be a devil's advocate.",
-    "Synthesizer": "You are the Synthesis Agent. You will receive reports from a Pedant, an Architect, and a Skeptic. Your goal is to resolve their disagreements and produce a final, polished Conventional Commit message."
-}
-
-def run_debate(diff):
-    print(f"--- Starting Debate for Diff ---\n{diff}\n")
-    
-    # 1. The Pedant's Review
-    pedant_prompt = f"{PERSONAS['Pedant']}\n
