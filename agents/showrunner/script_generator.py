@@ -1,5 +1,9 @@
 from brain_storage import get_recent_events
 import subprocess
+import dashscope
+import os
+
+dashscope.api_key = os.getenv('DASHSCOPE_API_KEY')
 
 def format_time(seconds):
     total_seconds = int(seconds)
@@ -10,10 +14,17 @@ def format_time(seconds):
 
 def generate_script(limit=10):
     events = get_recent_events(limit=limit)
-    script_lines = []
+    prompt = "Generate a script based on the following events:\n"
     for event in events:
-        script_lines.append(f"{event['timestamp']} - {event['type']}: {event['summary']}")
-    return "\n".join(script_lines)
+        prompt += f"{event['timestamp']} - {event['type']}: {event['summary']}\n"
+    response = dashscope.Generation.call(
+        model='qwen-turbo',
+        prompt=prompt
+    )
+    if response.status_code == 200:
+        return response.output.text
+    else:
+        return f"Error generating script: {response.message}"
 
 def render_video(script, resolution="1280x720", duration=5, style="font=Arial:fontsize=24:fontcolor=white"):
     lines = script.split('\n')
