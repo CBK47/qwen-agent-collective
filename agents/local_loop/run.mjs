@@ -28,6 +28,11 @@ const OLLAMA = (process.env.OLLAMA_URL || "http://172.20.0.1:11434").replace(/\/
 const MODEL = process.env.OLLAMA_CODE_MODEL || "qwen3-next-cbk:latest";
 
 // Files / dirs the loop must never write to or commit-pollute.
+// Full-file rewrite is safe only for small/medium files. Larger, mature files
+// (e.g. the 19KB shared client) must not be wholesale-rewritten by a flaky local model.
+const MAX_REWRITE = 7000; // bytes
+const fileBytes = (f) => { try { return statSync(join(REPO, f)).size; } catch { return 0; } };
+
 const PROTECTED = [
   "agents/local_loop/run.mjs", "agents/local_loop/run.py",
   ".env", ".git", "node_modules", "package-lock.json", "package.json",
@@ -177,7 +182,7 @@ const inNoise = /(^|\/)(node_modules|venv|__pycache__|\.git)\//.test(target) ||
 
 function rotationPick() {
   const ok = f => !recentlyTouched.has(f) && !PROTECTED.some(p => f === p || f.startsWith(p + "/")) &&
-    !f.startsWith(".github/");
+    !f.startsWith(".github/") && fileBytes(f) <= MAX_REWRITE;
   return inventory.find(f => /\.py$/.test(f) && /^(agents|shared)\//.test(f) && ok(f)) ||
     inventory.find(f => /\.md$/.test(f) && /^agents\//.test(f) && ok(f)) ||
     inventory.find(f => /\.py$/.test(f) && ok(f)) ||
@@ -185,6 +190,9 @@ function rotationPick() {
 }
 if (isProtected || escapes || inNoise) {
   log(`Planner chose a protected/invalid target (${target}); rotating to a safe file.`);
+  target = rotationPick();
+} else if (fileBytes(target) > MAX_REWRITE) {
+  log(`Target ${target} is ${fileBytes(target)}B — too large for safe full-rewrite; rotating.`);
   target = rotationPick();
 }
 plan.target = target;
@@ -218,7 +226,7 @@ if (existsSync(targetPath) && statSync(targetPath).isFile()) {
 } else {
   plan.action = "create"; // file missing — it's genuinely new
 }
-const oldForPrompt = oldContent.slice(0, 9000);
+const oldForPrompt = oldContent; // target is size-capped, so show the whole file
 
 const codeRaw = await ollama([
   { role: "system", content:
@@ -239,7 +247,7 @@ const codeRaw = await ollama([
       ? `Current contents:\n\`\`\`${langHint}\n${oldForPrompt}\n\`\`\`\n\n` +
         `Return the FULL updated file between the markers.`
       : `This is a NEW file. Return its FULL initial contents between the markers.`) },
-], { temperature: 0.1, numPredict: 8000 });
+], { temperature: 0.1, numPredict: 10000 });
 
 function extractFile(text) {
   const m = text.match(/<<<FILE\s*\n([\s\S]*?)\nFILE>>>/);
