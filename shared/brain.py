@@ -170,40 +170,48 @@ class Brain:
         if not text or not text.strip():
             raise BrainError("ingest() requires non-empty text")
 
-        with self.pg.cursor() as cur:
-            cur.execute(
-                """
-                INSERT INTO memory_facts
-                  (agent_id, user_id, memory_namespace, fact_type, subject,
-                   predicate, object_text, confidence, status, source_session_id, expires_at)
-                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-                RETURNING fact_id
-                """,
-                (agent_id, user_id, namespace, fact_type, subject, predicate,
-                 text, confidence, status, source_session_id, expires_at),
-            )
-            fact_id = cur.fetchone()[0]
-        self.pg.commit()
-
+        # Embed first: if embedding fails, nothing is written (no orphan row).
         vector = self._as_vector(dashscope_embed(text))
         collection = _collection_for(namespace)
         self._ensure_collection(collection)
-        self.qdrant.upsert(
-            collection_name=collection,
-            points=[PointStruct(
-                id=fact_id,
-                vector=vector,
-                payload={
-                    "fact_id": fact_id,
-                    "agent_id": agent_id,
-                    "namespace": namespace,
-                    "fact_type": fact_type,
-                    "text": text,
-                    "status": status,
-                    "expires_at": expires_at.isoformat() if expires_at else None,
-                },
-            )],
-        )
+
+        # Keep the two stores consistent: do the Postgres INSERT and the Qdrant
+        # upsert, and only COMMIT Postgres if the upsert succeeded — otherwise
+        # roll the row back so a fact never exists without its vector.
+        try:
+            with self.pg.cursor() as cur:
+                cur.execute(
+                    """
+                    INSERT INTO memory_facts
+                      (agent_id, user_id, memory_namespace, fact_type, subject,
+                       predicate, object_text, confidence, status, source_session_id, expires_at)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                    RETURNING fact_id
+                    """,
+                    (agent_id, user_id, namespace, fact_type, subject, predicate,
+                     text, confidence, status, source_session_id, expires_at),
+                )
+                fact_id = cur.fetchone()[0]
+            self.qdrant.upsert(
+                collection_name=collection,
+                points=[PointStruct(
+                    id=fact_id,
+                    vector=vector,
+                    payload={
+                        "fact_id": fact_id,
+                        "agent_id": agent_id,
+                        "namespace": namespace,
+                        "fact_type": fact_type,
+                        "text": text,
+                        "status": status,
+                        "expires_at": expires_at.isoformat() if expires_at else None,
+                    },
+                )],
+            )
+            self.pg.commit()
+        except Exception:
+            self.pg.rollback()
+            raise
         LOGGER.info("ingested fact %s into %s", fact_id, namespace)
         return fact_id
 
