@@ -2,6 +2,7 @@ import re
 from typing import Any, Mapping
 from shared.agent import BaseAgent, AgentSpec, AgentTask, MemoryBundle, ValidationResult, ReviewResult, AgentResult
 from shared.dashscope import DashScopeClient
+import os
 
 class GitCommitterAgent(BaseAgent):
     """
@@ -112,7 +113,8 @@ if __name__ == "__main__":
         agent_id="git-committer", 
         name="Git Committer", 
         role=" commit message synthesizer",
-        model=None # uses default from DashScopeClient
+        model=None,
+        api_key=os.getenv("DASHSCOPE_API_KEY")
     )
     
     # Mocking memory store for a quick test
