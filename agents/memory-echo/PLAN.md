@@ -20,6 +20,6 @@ Qdrant: `echo_private`, `echo_chat_chunks`, `echo_docs`.
 
 ## MVP (breadth-first)
 One real DashScope call + one brain read/write:
-- [ ] Bring up the brain stack (`brain/docker-compose.yml`) + DashScope key.
+- [x] Bring up the brain stack (`brain/docker-compose.yml`) + DashScope key.
 - [x] Implement the brain client call for ingest then retrieve.
 - [x] Track-1 demo harness: ingest facts → expire stale → recall under a tight budget.
