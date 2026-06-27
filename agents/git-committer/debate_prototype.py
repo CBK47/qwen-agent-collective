@@ -30,25 +30,26 @@ def run_debate(diff: str) -> None:
     Args:
         diff: The code diff to be reviewed.
     """
-    print(f"--- Starting Debate for Diff ---\n{diff}\n")
+    parsed_diff = conventions.parse_diff(diff)
+    print(f"--- Starting Debate for Diff ---\n{parsed_diff}\n")
     
     # 1. The Pedant's Review
-    pedant_context = f"Review this diff:\n{diff}"
+    pedant_context = f"Review this diff:\n{parsed_diff}"
     pedant_review = review_single_role("Pedant", pedant_context)
     print(f"PEDANT: {pedant_review}\n")
 
     # 2. The Architect's Review (receives the diff + pedant's notes for context)
-    arch_context = f"Diff:\n{diff}\n\nPedant says: {pedant_review}\n\nProvide your architectural review."
+    arch_context = f"Diff:\n{parsed_diff}\n\nPedant says: {pedant_review}\n\nProvide your architectural review."
     arch_review = review_single_role("Architect", arch_context)
     print(f"ARCHITECT: {arch_review}\n")
 
     # 3. The Skeptic's Review (receives all previous notes)
-    skeptic_context = f"Diff:\n{diff}\n\nPedant says: {pedant_review}\n\nArchitect says: {arch_review}\n\nFind the holes in this change."
+    skeptic_context = f"Diff:\n{parsed_diff}\n\nPedant says: {pedant_review}\n\nArchitect says: {arch_review}\n\nFind the holes in this change."
     skeptic_review = review_single_role("Skeptic", skeptic_context)
     print(f"SKEPTIC: {skeptic_review}\n")
 
     # 4. Synthesis (Final Verdict)
-    final_verdict = synthesize_reviews(diff, pedant_review, arch_review, skeptic_review)
+    final_verdict = synthesize_reviews(parsed_diff, pedant_review, arch_review, skeptic_review)
     print(f"--- FINAL VERDICT ---\n{final_verdict}")
 
 if __name__ == "__main__":
