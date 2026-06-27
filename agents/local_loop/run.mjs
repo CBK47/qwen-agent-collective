@@ -179,6 +179,11 @@ const isProtected = PROTECTED.some(p => target === p || target.startsWith(p + "/
 const escapes = !targetPath.startsWith(REPO + "/");
 const inNoise = /(^|\/)(node_modules|venv|__pycache__|\.git)\//.test(target) ||
   target.startsWith("reports/");
+// Real secret env files (.env, .env.local, …) — but allow templates (.env.example/.sample/.template).
+const tbase = basename(target);
+const isEnvSecret = tbase.startsWith(".env") && !/\.(example|sample|template)$/.test(tbase);
+// Anything git-ignored must never be a target (covers .env, secrets, build artifacts).
+const isIgnored = spawnSync("git", ["check-ignore", "-q", target], { cwd: REPO }).status === 0;
 
 function rotationPick() {
   const ok = f => !recentlyTouched.has(f) && !PROTECTED.some(p => f === p || f.startsWith(p + "/")) &&
@@ -188,8 +193,8 @@ function rotationPick() {
     inventory.find(f => /\.py$/.test(f) && ok(f)) ||
     "agents/git-committer/README.md";
 }
-if (isProtected || escapes || inNoise) {
-  log(`Planner chose a protected/invalid target (${target}); rotating to a safe file.`);
+if (isProtected || escapes || inNoise || isEnvSecret || isIgnored) {
+  log(`Planner chose a protected/secret/ignored target (${target}); rotating to a safe file.`);
   target = rotationPick();
 } else if (fileBytes(target) > MAX_REWRITE) {
   log(`Target ${target} is ${fileBytes(target)}B — too large for safe full-rewrite; rotating.`);
