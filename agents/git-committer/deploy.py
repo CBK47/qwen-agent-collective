@@ -1,3 +1,4 @@
+import os
 from shared import deploy_harness
 
 def main():
@@ -11,7 +12,7 @@ def main():
         'security_group_id': 'sg-12345678',
         'subnet_id': 'subnet-12345678',
         'env_vars': {
-            'GITHUB_TOKEN': 'your_token_here',
+            'GITHUB_TOKEN': os.environ['GITHUB_TOKEN'],
             'OTHER_VAR': 'value'
         }
     }
