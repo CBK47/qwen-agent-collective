@@ -14,7 +14,7 @@ Per `HACKATHON.md` SSOT, this is the highest-leverage remaining work.
 
 ## Cross-cutting submission proofs (required ×5)
 - [x] One shared Alibaba Cloud deploy harness every track reuses (not 5 bespoke deploys).
-- [ ] Fill the per-track deploy-proof links in `HACKATHON.md` (currently 5× "link tbd").
+- [x] Fill the per-track deploy-proof links in `HACKATHON.md` (currently 5× "link tbd").
 - [ ] Record per-track 60–90s demo videos.
 
 > NOTE: the keystone, deploys, and videos are P0 and best built deliberately —
