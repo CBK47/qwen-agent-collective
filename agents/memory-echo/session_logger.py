@@ -93,7 +93,11 @@ def retrieve_facts(session_id: str) -> str:
         ttl = timedelta(hours=24)  # 24 hours TTL
         if current_time - timestamp > ttl:
             return ""
-        return data['content']
+        content = data['content']
+        # Truncate to 5000 characters to stay within token constraints
+        if len(content) > 5000:
+            content = content[:5000]
+        return content
     except Exception as e:
         return ""
 
