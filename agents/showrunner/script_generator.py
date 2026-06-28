@@ -5,7 +5,15 @@ import os
 
 dashscope.api_key = os.getenv('DASHSCOPE_API_KEY')
 
-def format_time(seconds):
+def format_time(seconds: float) -> str:
+    """Converts seconds to a formatted time string in HH:MM:SS,mmm format.
+
+    Args:
+        seconds: The total number of seconds to format.
+
+    Returns:
+        A string in the format HH:MM:SS,mmm.
+    """
     total_seconds = int(seconds)
     milliseconds = int((seconds - total_seconds) * 1000)
     hours = total_seconds // 3600
@@ -13,7 +21,15 @@ def format_time(seconds):
     seconds = total_seconds % 60
     return f"{hours:02d}:{minutes:02d}:{seconds:02d},{milliseconds:03d}"
 
-def generate_script(limit=10):
+def generate_script(limit: int = 10) -> str:
+    """Generates a script based on memory events.
+
+    Args:
+        limit: The maximum number of events to retrieve.
+
+    Returns:
+        The generated script text or an error message if the API call fails.
+    """
     events = get_memory_events(limit=limit)
     events.sort(key=lambda x: x['timestamp'])
     prompt = "Generate a script based on the following events:\n"
@@ -31,7 +47,18 @@ def generate_script(limit=10):
     else:
         return f"Error generating script: {response.message}"
 
-def render_video(script, resolution="1280x720", duration=5, style="font=Arial:fontsize=24:fontcolor=white"):
+def render_video(script: str, resolution: str = "1280x720", duration: int = 5, style: str = "font=Arial:fontsize=24:fontcolor=white") -> None:
+    """Renders a video from the script using subtitles.
+
+    Args:
+        script: The script text to render.
+        resolution: The resolution of the output video (e.g., "1280x720").
+        duration: The duration in seconds for each line of the script.
+        style: The subtitle style parameters for ffmpeg.
+
+    Returns:
+        None. The video is saved as 'output.mp4'.
+    """
     lines = script.split('\n')
     srt_content = []
     for i, line in enumerate(lines):
