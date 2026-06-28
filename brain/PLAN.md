@@ -13,7 +13,7 @@ Per `HACKATHON.md` SSOT, this is the highest-leverage remaining work.
 > Qdrant collections are created per namespace on first ingest (dim 1024, cosine).
 
 ## Cross-cutting submission proofs (required ×5)
-- [ ] One shared Alibaba Cloud deploy harness every track reuses (not 5 bespoke deploys).
+- [x] One shared Alibaba Cloud deploy harness every track reuses (not 5 bespoke deploys).
 - [ ] Fill the per-track deploy-proof links in `HACKATHON.md` (currently 5× "link tbd").
 - [ ] Record per-track 60–90s demo videos.
 
