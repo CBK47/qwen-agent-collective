@@ -20,3 +20,28 @@ Output: translated text with glossary terms locked
 |---|---|---|
 | `shared.glossary` | read/write | Canonical term translations used by all agents |
 | `open-translate.private` | read/write | Per-project translation memory and style preferences |
+
+## WebUI Setup and Usage
+
+To launch the WebUI interface:
+
+1. Navigate to the project directory:
+   ```
+   cd agents/open-translate
+   ```
+
+2. Install dependencies (if not already installed):
+   ```
+   pip install -r requirements.txt
+   ```
+
+3. Start the WebUI server:
+   ```
+   python webui.py
+   ```
+
+   The console will output the server address (e.g., `Running on http://localhost:8000`).
+
+4. Open your browser and navigate to the displayed URL.
+
+5. The interface will display a text input field, language selection dropdown, and translation output area. Enter source text, select target language, and click "Translate" to see the result.
