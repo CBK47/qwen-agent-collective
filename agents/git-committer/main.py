@@ -30,7 +30,7 @@ class GitCommitterAgent(BaseAgent):
         context = memory.as_prompt_context()
         
         # Retrieve code conventions from brain client
-        code_conventions = self.retrieve('code-conventions')
+        code_conventions = self.retrieve('code-conventions') or ""
         
         # Handle iteration context
         repair_context = ""
