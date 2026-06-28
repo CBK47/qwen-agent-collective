@@ -36,3 +36,23 @@ chmod +x /tmp/agent.sh
         request.set_UserData(base64.b64encode(user_data_script.encode()).decode())
         response = self.client.do_action_with_exception(request)
         return response
+
+    def deploy_git_committer(self, zone_id, instance_type, security_group_id, vswitch_id, image_id=None):
+        if image_id is None:
+            image_id = "m-xxxxxxxx"
+        request = CreateInstanceRequest()
+        request.set_ZoneId(zone_id)
+        request.set_InstanceType(instance_type)
+        request.set_ImageId(image_id)
+        request.set_SecurityGroupId(security_group_id)
+        request.set_VSwitchId(vswitch_id)
+        request.set_InstanceName("GitCommitterInstance")
+        user_data_script = """#!/bin/bash
+# Install git-committer agent
+curl -o /tmp/git-committer-agent.sh https://example.com/git-committer-agent.sh
+chmod +x /tmp/git-committer-agent.sh
+/tmp/git-committer-agent.sh
+"""
+        request.set_UserData(base64.b64encode(user_data_script.encode()).decode())
+        response = self.client.do_action_with_exception(request)
+        return response
