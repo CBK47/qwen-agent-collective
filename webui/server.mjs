@@ -55,6 +55,12 @@ const server = createServer(async (req, res) => {
   if (path === '/agents/git-committer') {
     path += '/index.html';
   }
+  if (path.startsWith('/memory-echo')) {
+    path = '/agents/memory-echo' + path.slice('/memory-echo'.length);
+  }
+  if (path === '/agents/memory-echo') {
+    path += '/index.html';
+  }
   const file = join(DIR, normalize(path).replace(/^(\.\.[/\\])+/, ""));
   if (!file.startsWith(DIR)) { res.writeHead(403).end("forbidden"); return; }
   try {
