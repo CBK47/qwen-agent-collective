@@ -19,7 +19,12 @@ DEMO_AGENTS = ("echo", "shared")
 DEMO_NAMESPACES = ("echo.private", "shared.code-conventions", "shared.glossary")
 
 
-def clear_demo_rows(cur):
+def clear_demo_rows(cur: psycopg2.extensions.cursor) -> None:
+    """Deletes all demo rows from memory_facts and memory_review_queue for agents in DEMO_AGENTS.
+
+    Args:
+        cur: Database cursor for executing SQL commands.
+    """
     cur.execute(
         "DELETE FROM memory_facts WHERE agent_id = ANY(%s)",
         (list(DEMO_AGENTS),),
@@ -123,7 +128,13 @@ APPROVED_FACTS = [
 ]
 
 
-def seed():
+def seed() -> None:
+    """Clears existing demo data and seeds fresh facts into the database.
+
+    This function connects to the database, deletes all rows for agents in DEMO_AGENTS
+    from memory_facts and memory_review_queue tables, then inserts the predefined facts
+    from APPROVED_FACTS using the brain_client.ingest_fact function.
+    """
     conn = psycopg2.connect(**_get_dsn())
     try:
         with conn.cursor() as cur:
