@@ -34,6 +34,9 @@ const server = createServer(async (req, res) => {
 
   let path = decodeURIComponent(url.pathname);
   if (path === "/") path = "/index.html";
+  if (path.startsWith('/git-committer')) {
+    path = '/agents/git-committer' + path.slice('/git-committer'.length);
+  }
   const file = join(DIR, normalize(path).replace(/^(\.\.[/\\])+/, ""));
   if (!file.startsWith(DIR)) { res.writeHead(403).end("forbidden"); return; }
   try {
