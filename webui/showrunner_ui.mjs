@@ -5,7 +5,7 @@ export function createShowrunnerUI() {
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 20px;
-            background-color: #f5f5f5;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
         }
         .showrunner-container {
             max-width: 800px;
@@ -13,13 +13,31 @@ export function createShowrunnerUI() {
             background: white;
             padding: 20px;
             border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         }
-        h1 {
-            color: #333;
+        .logo {
+            font-size: 28px;
+            font-weight: bold;
+            background: linear-gradient(45deg, #6a11cb, #2575fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-align: center;
+            margin-bottom: 5px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #555;
+            font-size: 14px;
+            margin-bottom: 20px;
         }
         .input-area {
             margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #333;
         }
         textarea {
             width: 100%;
@@ -27,17 +45,36 @@ export function createShowrunnerUI() {
             padding: 10px;
             border: 1px solid #ddd;
             border-radius: 4px;
+            transition: border-color 0.3s;
+        }
+        textarea:focus {
+            border-color: #6a11cb;
+            outline: none;
+        }
+        .button-container {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
         }
         button {
             padding: 10px 15px;
-            background: #007bff;
+            background: linear-gradient(45deg, #6a11cb, #2575fc);
             color: white;
             border: none;
             border-radius: 4px;
             cursor: pointer;
+            transition: transform 0.2s;
         }
         button:hover {
-            background: #0056b3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        button:active {
+            transform: translateY(1px);
+        }
+        .clear-btn {
+            background: #e0e0e0;
+            color: #333;
         }
         .output-area {
             margin-top: 20px;
@@ -46,6 +83,8 @@ export function createShowrunnerUI() {
             border: 1px solid #ddd;
             border-radius: 4px;
             white-space: pre-wrap;
+            font-family: monospace;
+            line-height: 1.5;
         }
     `;
     document.head.appendChild(style);
@@ -53,9 +92,15 @@ export function createShowrunnerUI() {
     const container = document.createElement('div');
     container.className = 'showrunner-container';
 
-    const header = document.createElement('h1');
-    header.textContent = 'Showrunner Demo';
-    container.appendChild(header);
+    const logo = document.createElement('div');
+    logo.className = 'logo';
+    logo.textContent = 'ScriptGen AI';
+    container.appendChild(logo);
+
+    const subtitle = document.createElement('p');
+    subtitle.className = 'subtitle';
+    subtitle.textContent = 'AI-Powered Scriptwriting Assistant';
+    container.appendChild(subtitle);
 
     const inputArea = document.createElement('div');
     inputArea.className = 'input-area';
@@ -69,10 +114,21 @@ export function createShowrunnerUI() {
     inputArea.appendChild(textarea);
     container.appendChild(inputArea);
 
-    const button = document.createElement('button');
-    button.id = 'generate-btn';
-    button.textContent = 'Generate Script';
-    container.appendChild(button);
+    const buttonContainer = document.createElement('div');
+    buttonContainer.className = 'button-container';
+
+    const generateButton = document.createElement('button');
+    generateButton.id = 'generate-btn';
+    generateButton.textContent = 'Generate Script';
+
+    const clearButton = document.createElement('button');
+    clearButton.id = 'clear-btn';
+    clearButton.className = 'clear-btn';
+    clearButton.textContent = 'Clear';
+
+    buttonContainer.appendChild(generateButton);
+    buttonContainer.appendChild(clearButton);
+    container.appendChild(buttonContainer);
 
     const outputArea = document.createElement('div');
     outputArea.className = 'output-area';
@@ -82,12 +138,15 @@ export function createShowrunnerUI() {
 
     document.body.appendChild(container);
 
-    button.addEventListener('click', async () => {
+    generateButton.addEventListener('click', async () => {
         const prompt = textarea.value;
         if (!prompt) {
             alert('Please enter a prompt');
             return;
         }
+
+        generateButton.disabled = true;
+        generateButton.textContent = 'Generating...';
 
         try {
             const response = await fetch('/api/generate', {
@@ -101,6 +160,14 @@ export function createShowrunnerUI() {
         } catch (error) {
             console.error('Error:', error);
             outputArea.textContent = 'Error generating script. Please try again.';
+        } finally {
+            generateButton.disabled = false;
+            generateButton.textContent = 'Generate Script';
         }
+    });
+
+    clearButton.addEventListener('click', () => {
+        textarea.value = '';
+        outputArea.textContent = 'Generated script will appear here...';
     });
 }
