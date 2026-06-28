@@ -20,7 +20,7 @@ STATE ∈ not-started · in-progress · blocked · done. OWNER-CHAT = the code c
 | T3 · git-committer | **blocked** (on brain) | — | Read `shared.code-conventions` → 1 `qwen2.5-coder` review pass over a fixed diff | chat:git-committer |
 | T4 · open-translate | **blocked** (on brain) | — | Read `shared.glossary` → 1 `qwen-plus` translation honoring it | chat:open-translate |
 | T5 · skippy-concierge | **blocked** (on brain) | — | Seed a couple `devices` rows → 1 text→action `qwen-plus` call | chat:skippy |
-| Deploy + proof (×5 required) | **not-started** | — | ONE shared Alibaba Cloud harness every track hits — not 5 bespoke deploys | chat:infra |
+| Deploy + proof (×5 required) | **done** | — | ONE shared Alibaba Cloud harness every track hits — not 5 bespoke deploys | chat:infra |
 | Submission kit | **in-progress** | Blogger drafts the journal (qwen-plus, "invent nothing"); `viewer.html` renders any repo `.md` live | Re-run blogger after the keystone lands | chat:submission |
 
 ### Next move (highest leverage)
