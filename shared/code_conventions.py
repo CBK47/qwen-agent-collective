@@ -31,8 +31,11 @@ CONVENTIONS: dict[str, Any] = _mod.CONVENTIONS
 def _added_lines(diff: str) -> list[tuple[int, str]]:
     """Return (1-based added-line index, text) for ``+`` lines in a unified diff.
 
-    Plain (non-diff) input is treated as if every line were added, so the same
-    checker works on a bare code snippet too.
+    Args:
+        diff: A unified diff string or a raw code snippet.
+
+    Returns:
+        List of tuples (line number, line text) for added lines.
     """
     if not any(line.startswith(("+++", "@@", "diff --git")) for line in diff.splitlines()):
         return list(enumerate(diff.splitlines(), start=1))
