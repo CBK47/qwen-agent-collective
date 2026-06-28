@@ -23,7 +23,7 @@ import pathlib
 # Allow `from shared.dashscope import ...` when called as a script from any cwd.
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2]))
 
-from shared.dashscope import DashScopeClient  # noqa: E402
+from shared.brain import BrainClient  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Identity / base prompt (from prompts/git-committer/system.md + identity.md)
@@ -88,7 +88,14 @@ _BASELINE_SYSTEM = (
 
 
 def _parse_issues(raw: str) -> list[dict]:
-    """Parse issues list from model output; return [] on any failure."""
+    """Parse the model's JSON response into a list of issues.
+
+    Parameters:
+        raw: The raw JSON string from the model.
+
+    Returns:
+        A list of issue dictionaries, or an empty list if parsing fails.
+    """
     try:
         data = json.loads(raw)
         return data.get("issues") or []
@@ -96,30 +103,43 @@ def _parse_issues(raw: str) -> list[dict]:
         return []
 
 
-def run_role_reviewers(diff: str, client: DashScopeClient) -> list[dict]:
-    """Run ≥3 role reviewers over the diff; return list of {role, issues}.
+def run_role_reviewers(diff: str, client: BrainClient, conventions: str) -> list[dict]:
+    """Run role-specific reviewers (correctness, security, style) over the provided diff.
 
-    Note: runs sequentially here. The n8n version fans out in parallel via
-    Promise.all — a production Python version could use concurrent.futures.
+    Parameters:
+        diff: The unified diff string to review.
+        client: BrainClient instance for making API calls.
+        conventions: Code conventions string to guide the reviewers.
+
+    Returns:
+        A list of dictionaries, each containing 'role' and 'issues' keys.
     """
     results = []
     for role, brief in _ROLE_BRIEFS:
-        system = f"{_BASE_IDENTITY}\n\nYou are the {role} reviewer. {brief}{_ISSUES_SUFFIX}"
+        system = f"{_BASE_IDENTITY}\n\nYou are the {role} reviewer. {brief}\n\nCode Conventions:\n{conventions}\n{_ISSUES_SUFFIX}"
         prompt = f"Diff:\n{diff}"
         raw = client.chat(
             messages=[
                 {"role": "system", "content": system},
                 {"role": "user", "content": prompt},
             ],
-            model=client.config.coder_model,
+            model="qwen2.5-coder",
             temperature=0,
         )
         results.append({"role": role, "issues": _parse_issues(raw)})
     return results
 
 
-def run_negotiation(role_findings: list[dict], client: DashScopeClient) -> dict:
-    """Merge role findings into a single verdict using the chat model."""
+def run_negotiation(role_findings: list[dict], client: BrainClient) -> dict:
+    """Merge findings from role reviewers into a single verdict.
+
+    Parameters:
+        role_findings: List of findings from each role reviewer.
+        client: BrainClient instance for making API calls.
+
+    Returns:
+        A dictionary with 'verdict', 'summary', and 'ranked_issues' keys.
+    """
     merged = [
         {**issue, "role": finding["role"]}
         for finding in role_findings
@@ -130,7 +150,7 @@ def run_negotiation(role_findings: list[dict], client: DashScopeClient) -> dict:
             {"role": "system", "content": _NEGOTIATION_SYSTEM},
             {"role": "user", "content": "Reviewer findings:\n" + json.dumps(merged)},
         ],
-        model=client.config.chat_model,
+        model="qwen2.5-coder",
         temperature=0,
     )
     try:
@@ -143,26 +163,42 @@ def run_negotiation(role_findings: list[dict], client: DashScopeClient) -> dict:
         }
 
 
-def run_baseline(diff: str, client: DashScopeClient) -> list[dict]:
-    """Single-agent baseline reviewer over the same diff."""
+def run_baseline(diff: str, client: BrainClient, conventions: str) -> list[dict]:
+    """Run a single-agent baseline review over the same diff.
+
+    Parameters:
+        diff: The unified diff string to review.
+        client: BrainClient instance for making API calls.
+        conventions: Code conventions string to guide the reviewer.
+
+    Returns:
+        A list of issue dictionaries.
+    """
+    system = f"{_BASE_IDENTITY} You are doing a single-pass holistic review covering correctness, security, and style/test coverage together. Code Conventions:\n{conventions}\n{_ISSUES_SUFFIX}"
     raw = client.chat(
         messages=[
-            {"role": "system", "content": _BASELINE_SYSTEM},
+            {"role": "system", "content": system},
             {"role": "user", "content": f"Diff:\n{diff}"},
         ],
-        model=client.config.coder_model,
+        model="qwen2.5-coder",
         temperature=0,
     )
     return _parse_issues(raw)
 
 
-def review_diff(diff: str, client: DashScopeClient | None = None) -> dict:
-    """Full pipeline: role reviewers → negotiation → baseline metric.
+def review_diff(diff: str, client: BrainClient | None = None) -> dict:
+    """Run the full review pipeline on a given diff.
 
-    Returns a dict with keys: verdict, role_findings, metric.
-    Returns an error dict (with 'error' key) and raises SystemExit(1) on empty diff.
+    Parameters:
+        diff: The unified diff string to review.
+        client: Optional BrainClient instance. If None, a new client is created.
+
+    Returns:
+        A dictionary with keys:
+            - 'verdict', 'role_findings', 'metric' for successful review
+            - 'error' if the diff is empty or invalid
     """
-    client = client or DashScopeClient()
+    client = client or BrainClient()
 
     if not diff or not diff.strip():
         return {"error": "empty diff — nothing to review", "verdict": None}
@@ -170,14 +206,17 @@ def review_diff(diff: str, client: DashScopeClient | None = None) -> dict:
     # Truncate very large diffs to match n8n's 12 000-char ceiling.
     diff = diff[:12_000]
 
+    # Fetch code conventions from BrainClient
+    conventions = client.get_code_conventions()
+
     # --- Role reviewers (parallel in n8n; sequential here) ---
-    role_findings = run_role_reviewers(diff, client)
+    role_findings = run_role_reviewers(diff, client, conventions)
 
     # --- Negotiation ---
     verdict = run_negotiation(role_findings, client)
 
     # --- Baseline ---
-    baseline_issues = run_baseline(diff, client)
+    baseline_issues = run_baseline(diff, client, conventions)
 
     team_count = sum(len(f["issues"]) for f in role_findings)
     baseline_count = len(baseline_issues)
@@ -199,6 +238,17 @@ def review_diff(diff: str, client: DashScopeClient | None = None) -> dict:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Main entry point for the CLI.
+
+    Parses command-line arguments, reads the diff from file or stdin,
+    processes it through the review pipeline, and outputs the result as JSON.
+
+    Args:
+        argv: Optional list of command-line arguments. If None, sys.argv is used.
+
+    Returns:
+        Exit code (0 for success, 1 for error).
+    """
     parser = argparse.ArgumentParser(
         description="GIT-Committer multi-agent PR reviewer. Reads a unified diff and prints a JSON verdict."
     )

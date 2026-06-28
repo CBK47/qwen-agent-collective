@@ -284,6 +284,27 @@ class Brain:
                 break
         return results
 
+    def purge_expired(self) -> None:
+        now = _now()
+        try:
+            with self.pg.cursor() as cur:
+                cur.execute(
+                    "SELECT fact_id, memory_namespace FROM memory_facts WHERE expires_at IS NOT NULL AND expires_at <= %s",
+                    (now,)
+                )
+                expired_facts = cur.fetchall()
+                for fact_id, namespace in expired_facts:
+                    collection = _collection_for(namespace)
+                    # Vector first so a mid-purge crash can't leave an orphaned
+                    # embedding that would resurface in retrieve(); the PG row
+                    # remains as the recoverable source of truth until commit.
+                    self.qdrant.delete(collection_name=collection, points_selector=[fact_id])
+                    cur.execute("DELETE FROM memory_facts WHERE fact_id = %s", (fact_id,))
+            self.pg.commit()
+        except Exception:
+            self.pg.rollback()
+            raise
+
     # ── events (showrunner reads these) ───────────────────────────────────────
     def recent_events(self, *, agent_id: str | None = None, limit: int = 20) -> list[dict[str, Any]]:
         """Return recent ``memory_events`` rows (newest first), for dramatization."""
@@ -360,6 +381,14 @@ class BrainClient:
             mems = self.brain.retrieve(key.replace("_", " "), namespace=ns, top_k=top_k)
             return "\n".join(m.text for m in mems)
         except Exception:  # noqa: BLE001 — conventions are optional context
+            return ""
+
+    def get_code_conventions(self, top_k: int = 10) -> str:
+        """Retrieve code conventions from the brain DB."""
+        try:
+            mems = self.brain.retrieve("code conventions", namespace="shared.code-conventions", top_k=top_k)
+            return "\n".join(m.text for m in mems)
+        except Exception:
             return ""
 
 

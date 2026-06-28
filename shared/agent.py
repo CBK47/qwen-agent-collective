@@ -150,11 +150,27 @@ class BaseAgent:
         ai: DashScopeClient | None = None,
         memory: MemoryStore | None = None,
     ):
+        """Initialize the BaseAgent instance.
+
+        Args:
+            spec: Agent specification containing configuration details.
+            ai: Optional AI client; defaults to a new DashScopeClient if not provided.
+            memory: Optional memory store; defaults to NullMemoryStore if not provided.
+        """
         self.spec = spec
         self.ai = ai or DashScopeClient()
         self.memory = memory or NullMemoryStore()
 
     def run(self, instruction: str, **metadata: Any) -> AgentResult:
+        """Execute the agent's workflow for the given instruction.
+
+        Args:
+            instruction: The task instruction for the agent to process.
+            **metadata: Additional metadata for the task.
+
+        Returns:
+            AgentResult containing the outcome of the agent's execution.
+        """
         task = AgentTask(instruction=instruction, metadata=metadata)
         started = time.monotonic()
         memory = self.read_project_context(task)
@@ -202,9 +218,23 @@ class BaseAgent:
         return result
 
     def read_project_context(self, task: AgentTask) -> MemoryBundle:
+        """Read the project context from the memory store for the given task.
+
+        Args:
+            task: The task for which to read the memory context.
+
+        Returns:
+            MemoryBundle containing the project context.
+        """
         return self.memory.read(self.spec, task)
 
     def write_project_memory(self, task: AgentTask, result: AgentResult) -> None:
+        """Write the result to the project memory store.
+
+        Args:
+            task: The task associated with the result.
+            result: The result to store in memory.
+        """
         self.memory.write(self.spec, task, result)
 
     def generate(
@@ -215,6 +245,17 @@ class BaseAgent:
         previous_output: str,
         previous_validation: ValidationResult,
     ) -> str:
+        """Generate a response based on the task and memory context.
+
+        Args:
+            task: The task to process.
+            memory: Current memory context for the agent.
+            previous_output: The output from the previous generation step (if any).
+            previous_validation: The result of the previous validation step.
+
+        Returns:
+            The generated output string.
+        """
         repair_context = ""
         if previous_output or previous_validation.output:
             repair_context = (
@@ -241,6 +282,16 @@ class BaseAgent:
         )
 
     def self_review(self, task: AgentTask, output: str, memory: MemoryBundle) -> ReviewResult:
+        """Review the generated output for correctness and quality.
+
+        Args:
+            task: The task being processed.
+            output: The generated output to review.
+            memory: Current memory context for the agent.
+
+        Returns:
+            ReviewResult indicating whether the output is acceptable and any review notes.
+        """
         prompt = (
             f"You are reviewing output from {self.spec.name}.\n"
             "Return exactly one line starting with PASS: or FAIL:, followed by a short reason.\n\n"
@@ -262,5 +313,15 @@ class BaseAgent:
         return ReviewResult(ok=text.upper().startswith("PASS:"), notes=text)
 
     def validate(self, task: AgentTask, output: str) -> ValidationResult:
-        """Override in concrete agents to run tests, lint, schema checks, etc."""
+        """Validate the generated output against specific criteria.
+
+        This method should be overridden by concrete agent implementations to perform validation checks.
+
+        Args:
+            task: The task being processed.
+            output: The generated output to validate.
+
+        Returns:
+            ValidationResult indicating whether the output is valid and any associated details.
+        """
         return ValidationResult(ok=bool(output.strip()), output="non-empty output")

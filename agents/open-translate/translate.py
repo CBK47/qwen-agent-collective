@@ -7,9 +7,7 @@ Usage:
 
 Workflow:
     1. Ingest document (md/txt) and segment by paragraph.
-    2. Load glossary from local glossary.json.
-       # TODO: wire to brain shared.glossary via retrieve/ingest using
-       #       shared.namespaces.SHARED_GLOSSARY ("shared.glossary")
+    2. Load glossary from brain shared.glossary via retrieve.
     3. Pre-translate: locate glossary terms in each segment.
     4. Translate each segment via DashScopeClient.chat (qwen-plus).
     5. Post-translate: enforce glossary terms (replace any misses).
@@ -34,12 +32,9 @@ from typing import Any
 # Ensure repo root is importable when running the script directly.
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2]))
 
+from shared.brain import BrainClient
 from shared.dashscope import DashScopeClient  # noqa: E402
-from shared.namespaces import SHARED_GLOSSARY  # noqa: E402  # noqa: F401 — seam marker
 
-_GLOSSARY_PATH = pathlib.Path(__file__).resolve().parent / "glossary.json"
-
-# Threshold below which a segment is flagged for human review.
 CONFIDENCE_THRESHOLD = 0.75
 
 
@@ -64,22 +59,11 @@ class Segment:
 # ---------------------------------------------------------------------------
 
 
-def load_glossary(target_language: str, glossary_path: pathlib.Path = _GLOSSARY_PATH) -> dict[str, str]:
-    """Load term→translation pairs for the target language from the local JSON.
-
-    # TODO: wire to brain shared.glossary via retrieve/ingest using
-    #       shared.namespaces.SHARED_GLOSSARY ("shared.glossary")
-    #       Replace this function body with a brain retrieve call once the
-    #       brain stack is live.  The return type (dict[str,str]) stays the same.
-    """
-    if not glossary_path.exists():
-        return {}
-    with glossary_path.open(encoding="utf-8") as fh:
-        raw = json.load(fh)
-    tm = raw.get("translation_memory", {})
-    # Case-insensitive match on language name.
-    for key, pairs in tm.items():
-        if key.lower() == target_language.lower():
+def load_glossary(target_language: str) -> dict[str, str]:
+    brain_client = BrainClient()
+    glossary_data = brain_client.retrieve('shared.glossary')
+    for lang, pairs in glossary_data.items():
+        if lang.lower() == target_language.lower():
             return {k.lower(): v for k, v in pairs.items()}
     return {}
 
@@ -249,9 +233,18 @@ class OpenTranslateAgent:
         *,
         interactive: bool = False,
     ) -> tuple[list[Segment], str]:
-        """Translate *text* to *target_language*.
+        """Translate the input text to the target language.
 
-        Returns (segments, published_output).
+        Args:
+            text: The source text to be translated.
+            target_language: The language to translate into (e.g., "French", "Spanish").
+            glossary: Optional dictionary of glossary terms (source term → translated term) for enforcement. If None, no glossary is used.
+            interactive: If True, pause for human review of flagged segments during the HITL checkpoint.
+
+        Returns:
+            A tuple containing:
+                - segments: List of Segment objects with translation results and metadata.
+                - published_output: The final translated document as a string, assembled from segments.
         """
         if glossary is None:
             glossary = {}
