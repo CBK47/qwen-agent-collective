@@ -1,8 +1,9 @@
 import re
 from typing import Any, Mapping
-from shared.agent import BaseAgent, AgentSpec, AgentTask, MemoryBundle, ValidationResult, ReviewResult, AgentResult
+from shared.agent import BaseAgent, AgentSpec, AgentTask, MemoryBundle, ValidationResult, ReviewResult, AgentResult, NullMemoryStore
 from shared.dashscope import DashScopeClient
 import os
+from flask import Flask, request
 
 class GitCommitterAgent(BaseAgent):
     """
@@ -111,24 +112,32 @@ class GitCommitterAgent(BaseAgent):
                 output="No valid Conventional Commit message found. Expected format: 'feat: add something' or 'fix(ui): fix bug'"
             )
 
+app = Flask(__name__)
+
+spec = AgentSpec(
+    agent_id="git-committer", 
+    name="Git Committer", 
+    role=" commit message synthesizer",
+    model=None,
+    api_key=os.getenv("DASHSCOPE_API_KEY")
+)
+    
+agent = GitCommitterAgent(spec=spec, memory=NullMemoryStore())
+
+@app.route('/')
+def home():
+    return """
+    <form action="/submit" method="post">
+        <textarea name="diff" rows="10" cols="50"></textarea>
+        <input type="submit" value="Submit">
+    </form>
+    """
+
+@app.route('/submit', methods=['POST'])
+def submit():
+    diff = request.form['diff']
+    result = agent.run(diff)
+    return f"<pre>{result.output}</pre>"
+
 if __name__ == "__main__":
-    # Simple test run
-    spec = AgentSpec(
-        agent_id="git-committer", 
-        name="Git Committer", 
-        role=" commit message synthesizer",
-        model=None,
-        api_key=os.getenv("DASHSCOPE_API_KEY")
-    )
-    
-    # Mocking memory store for a quick test
-    from shared.agent import NullMemoryStore
-    agent = GitCommitterAgent(spec=spec, memory=NullMemoryStore())
-    
-    sample_diff = """- def add(a, b): return a + b
-+ def add(a: int, b: int) -> int:
-+     \"\"\"Adds two integers.\"\"\"
-+     return a + b"""
-    
-    result = agent.run(sample_diff)
-    print(f"\nFINAL RESULT:\n{result.output}")
+    app.run(debug=True)
