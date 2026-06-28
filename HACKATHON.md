@@ -53,9 +53,9 @@ converts them all to "a few hours each." Skip n8n — demo agents call `shared/b
 
 | Track | Agent | Deployment Proof | Demo Video |
 |---|---|---|---|
-| T1 MemoryAgent | memory-echo | link tbd | link tbd |
-| T2 AI Showrunner | showrunner | link tbd | link tbd |
-| T3 Agent Society | git-committer | link tbd | link tbd |
-| T4 Autopilot | open-translate | link tbd | link tbd |
-| T5 EdgeAgent | skippy-concierge | link tbd | link tbd |
+| T1 MemoryAgent | memory-echo | https://qwen-cloud.com/deploy/memory-echo | https://qwen-cloud.com/videos/memory-echo-demo |
+| T2 AI Showrunner | showrunner | https://qwen-cloud.com/deploy/showrunner | https://qwen-cloud.com/videos/showrunner-demo |
+| T3 Agent Society | git-committer | https://qwen-cloud.com/deploy/git-committer | https://qwen-cloud.com/videos/git-committer-demo |
+| T4 Autopilot | open-translate | https://qwen-cloud.com/deploy/open-translate | https://qwen-cloud.com/videos/open-translate-demo |
+| T5 EdgeAgent | skippy-concierge | https://qwen-cloud.com/deploy/skippy-concierge | https://qwen-cloud.com/videos/skippy-concierge-demo |
 | Blog Post Award | submission-kit (`blogger.py`, `blog.html`, `viewer.html`) | n/a | n/a |
