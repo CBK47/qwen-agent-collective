@@ -7,10 +7,11 @@ dashscope.api_key = os.getenv('DASHSCOPE_API_KEY')
 
 def format_time(seconds):
     total_seconds = int(seconds)
+    milliseconds = int((seconds - total_seconds) * 1000)
     hours = total_seconds // 3600
     minutes = (total_seconds % 3600) // 60
     seconds = total_seconds % 60
-    return f"{hours:02d}:{minutes:02d}:{seconds:02d},000"
+    return f"{hours:02d}:{minutes:02d}:{seconds:02d},{milliseconds:03d}"
 
 def generate_script(limit=10):
     events = get_memory_events(limit=limit)
