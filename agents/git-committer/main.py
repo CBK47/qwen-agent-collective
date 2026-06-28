@@ -4,6 +4,7 @@ from shared.agent import BaseAgent, AgentSpec, AgentTask, MemoryBundle, Validati
 from shared.dashscope import DashScopeClient
 import os
 from flask import Flask, request
+from shared.code_conventions import get_code_conventions
 
 class GitCommitterAgent(BaseAgent):
     """
@@ -30,8 +31,8 @@ class GitCommitterAgent(BaseAgent):
         diff = task.instruction
         context = memory.as_prompt_context()
         
-        # Retrieve code conventions from brain client
-        code_conventions = self.retrieve('code-conventions') or ""
+        # Retrieve code conventions from shared module
+        code_conventions = get_code_conventions()
         
         # Handle iteration context
         repair_context = ""
