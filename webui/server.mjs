@@ -22,14 +22,29 @@ const server = createServer(async (req, res) => {
 
   if (req.method === "POST" && url.pathname.startsWith("/api/")) {
     const agent = url.pathname.slice(5);
-    res.writeHead(AGENTS.includes(agent) ? 501 : 404, { "Content-Type": "application/json" });
-    res.end(JSON.stringify({
-      ok: false,
-      output: AGENTS.includes(agent)
-        ? `${agent} backend not wired yet — connect this endpoint to the agent's runner.`
-        : "unknown agent",
-    }));
-    return;
+    if (agent === 'memory-echo') {
+      let body = '';
+      req.on('data', chunk => {
+        body += chunk.toString();
+      });
+      req.on('end', () => {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: true, output: body }));
+      });
+      return;
+    }
+    if (AGENTS.includes(agent)) {
+      res.writeHead(501, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({
+        ok: false,
+        output: `${agent} backend not wired yet — connect this endpoint to the agent's runner.`
+      }));
+      return;
+    } else {
+      res.writeHead(404, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false, output: "unknown agent" }));
+      return;
+    }
   }
 
   let path = decodeURIComponent(url.pathname);
