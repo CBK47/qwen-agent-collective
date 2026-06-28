@@ -36,4 +36,4 @@ One real DashScope call + one brain read/write:
 - [ ] Deploy proof on the shared Alibaba Cloud harness (required for submission)
 - [ ] Record a 60–90s demo video (required for submission)
 
-- [ ] Fix `debate_prototype.py`: it imports the nonexistent `brain.conventions`; either inline the personas or point it at the working `review.py` pipeline.
+- [x] Fix `debate_prototype.py`: it imports the nonexistent `brain.conventions`; either inline the personas or point it at the working `review.py` pipeline.
