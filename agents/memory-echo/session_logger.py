@@ -67,7 +67,7 @@ def summarize(convo: str) -> str:
         model=CHAT_MODEL,
         messages=[
             {"role": "system", "content": SYSTEM},
-            {"role": "user", "content": convo[-30000:]},  # last ~30k chars is plenty
+            {"role": "user", "content": convo[-4000:]},  # last ~4k chars for token budget
         ],
         timeout=30,
     )
