@@ -12,7 +12,7 @@ ponytail: reuses shared.dashscope (auth/endpoint/model) instead of a new client.
 """
 import json
 import sys
-from datetime import datetime, timedelta
+from datetime import timedelta
 from pathlib import Path
 from shared.brain import ingest, retrieve
 
@@ -75,31 +75,15 @@ def summarize(convo: str) -> str:
 
 
 def ingest_facts(session_id: str, facts: str) -> None:
-    current_time = datetime.utcnow().isoformat()
-    data = {
-        'timestamp': current_time,
-        'content': facts
-    }
-    ingest(session_id, json.dumps(data))
+    ingest(session_id, facts, ttl=24*3600)
 
 def retrieve_facts(session_id: str) -> str:
-    data_str = retrieve(session_id)
-    if not data_str:
+    content = retrieve(session_id)
+    if not content:
         return ""
-    try:
-        data = json.loads(data_str)
-        timestamp = datetime.fromisoformat(data['timestamp'])
-        current_time = datetime.utcnow()
-        ttl = timedelta(hours=24)  # 24 hours TTL
-        if current_time - timestamp > ttl:
-            return ""
-        content = data['content']
-        # Truncate to 5000 characters to stay within token constraints
-        if len(content) > 5000:
-            content = content[:5000]
-        return content
-    except Exception as e:
-        return ""
+    if len(content) > 5000:
+        content = content[:5000]
+    return content
 
 
 def main() -> int:
