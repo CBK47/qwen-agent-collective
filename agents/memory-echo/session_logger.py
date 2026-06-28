@@ -119,12 +119,16 @@ def main() -> int:
         return 0
     sys.path.insert(0, str(ROOT))
     try:
+        session_id = data.get("session_id", "")
         convo = extract(path)
         if not convo.strip():
             return 0
+        previous_facts = retrieve_facts(session_id)
+        if previous_facts:
+            convo = f"Previous session facts:\n{previous_facts}\nCurrent session:\n{convo}"
         bullets = summarize(convo)
         if bullets:
-            ingest_facts(data.get("session_id", ""), bullets)
+            ingest_facts(session_id, bullets)
     except Exception as e:  # ponytail: a hook must never block session exit
         sys.stderr.write(f"[memory-echo logger] skipped: {e}\n")
     return 0
