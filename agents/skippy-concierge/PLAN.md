@@ -27,7 +27,7 @@ One real DashScope call + one brain read/write:
 - [x] manual-grounded answers
 
 ## Phase 2 — submission-grade (the real demoable track)
-- [ ] Seed `devices` rows → one text→action `qwen-plus` call over the registry via the brain client
+- [x] Seed `devices` rows → one text→action `qwen-plus` call over the registry via the brain client
 - [ ] Custom WebUI front-end for this agent — branded, interactive demo surface (the public face for the video)
 - [ ] Deploy proof on the shared Alibaba Cloud harness (required for submission)
 - [ ] Record a 60–90s demo video (required for submission)
