@@ -21,6 +21,20 @@ Ingests, embeds, and retrieves personal memories. The reference agent for the sh
    docker-compose up -d
    ```
 
+## WebUI Usage
+
+After starting the brain stack, access the WebUI at `http://localhost:3000`. The interface includes:
+
+- **Memory Input Form**: Enter raw text to store as a memory. The system automatically embeds and stores it in the `echo.private` namespace.
+
+- **Search Interface**: Type queries to retrieve relevant memories. Results are ranked and summarized by the Qwen model before display.
+
+- **Namespace Viewer**: Browse stored memories in `echo.private` and view read-only entries from `shared.*` namespaces.
+
+- **Demo Mode**: A guided tour of features for new users, ideal for demo presentations.
+
+The demo video demonstrates these interactive features with real-world examples.
+
 ## Signature Qwen Call
 
 ```
