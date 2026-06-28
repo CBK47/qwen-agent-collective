@@ -3,6 +3,7 @@ from shared import deploy_harness
 
 def main():
     config = {
+        'cloud_provider': 'alibaba',
         'agent_name': 'git-committer',
         'image': 'registry.cn-hangzhou.aliyuncs.com/git-committer/webui:latest',
         'ports': [8080],
