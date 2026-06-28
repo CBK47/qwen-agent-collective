@@ -16,7 +16,7 @@ from __future__ import annotations
 import importlib.util
 import re
 from pathlib import Path
-from typing import Any
+from typing import Any, TypedDict
 
 # ── re-export CONVENTIONS from the dashed canonical file ──────────────────────
 _CANON = Path(__file__).with_name("code-conventions.py")
@@ -28,6 +28,15 @@ CONVENTIONS: dict[str, Any] = _mod.CONVENTIONS
 
 
 # ── lightweight diff review ───────────────────────────────────────────────────
+class Finding(TypedDict):
+    line: int
+    rule: str
+    message: str
+
+class ReviewResult(TypedDict):
+    ok: bool
+    findings: list[Finding]
+
 def _added_lines(diff: str) -> list[tuple[int, str]]:
     """Return (1-based added-line index, text) for ``+`` lines in a unified diff.
 
@@ -46,19 +55,22 @@ def _added_lines(diff: str) -> list[tuple[int, str]]:
     return out
 
 
-def review_diff(diff: str) -> dict[str, Any]:
+def review_diff(diff: str) -> ReviewResult:
     """Statically check a diff/snippet against :data:`CONVENTIONS`.
 
     Args:
         diff: A unified diff or a raw code snippet.
 
     Returns:
-        dict with ``ok`` (bool) and ``findings`` (list of
-        ``{"line", "rule", "message"}``). Dependency-free and deterministic, so
-        it is safe to call from demos, tests, and the git-committer pipeline.
+        A dictionary with:
+            - 'ok': True if no issues found, False otherwise
+            - 'findings': List of issues found, each as a dict with:
+                'line': line number (int)
+                'rule': rule name (str)
+                'message': description of the issue (str)
     """
     max_len = CONVENTIONS["style"]["max_line_length"]
-    findings: list[dict[str, Any]] = []
+    findings: list[Finding] = []
 
     for lineno, text in _added_lines(diff):
         if len(text) > max_len:
