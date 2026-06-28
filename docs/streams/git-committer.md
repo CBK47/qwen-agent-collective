@@ -9,6 +9,17 @@
 - **Brain namespace:** writes `git-committer.private`; reads/writes
   `shared.code-conventions` (via review queue).
 
+## Code Conventions Integration
+
+The `git-committer` agent uses the Brain's `shared.code-conventions` namespace to standardize code reviews. During the parallel review phase, each role agent (correctness, security, style/test-coverage) reads the current conventions to inform their analysis. For example:
+
+- The style agent checks formatting rules and naming conventions stored in the conventions.
+- The security agent refers to predefined patterns for vulnerabilities.
+
+After negotiation, any agreed-upon updates to the conventions are written back to `shared.code-conventions` via the Brain client. This ensures all future reviews benefit from the latest standards, creating a self-improving system.
+
+The integration is handled through the Brain's namespace API, with agents using `brain.read` and `brain.write` to access and update conventions as needed.
+
 ## Current state
 - Not started. Lives at `agents/git-committer/` in `qwen-agent-collective`.
 - Brain + namespace contract available.
