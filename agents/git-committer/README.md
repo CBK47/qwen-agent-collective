@@ -19,6 +19,29 @@ To use the git-committer agent with DashScope, follow these steps:
    DASHSCOPE_API_KEY=your_api_key_here
    ```
 
+## Alibaba Cloud Deployment
+
+To deploy the git-committer agent to Alibaba Cloud infrastructure, follow these steps:
+
+1. **Obtain Alibaba Cloud Credentials**: Log in to the [Alibaba Cloud Console](https://account.aliyun.com/login/login.htm) and navigate to the RAM (Resource Access Management) section to create an AccessKey ID and Secret. Ensure the account has necessary permissions for deploying resources.
+
+2. **Update .env File**: Add the following lines to your `.env` file in the project root:
+
+   ```
+   ALIBABA_CLOUD_ACCESS_KEY_ID=your_access_key_id
+   ALIBABA_CLOUD_ACCESS_KEY_SECRET=your_access_key_secret
+   ```
+
+3. **Run Deployment Script**: Execute the deployment command:
+
+   ```
+   python deploy.py --region cn-hangzhou --instance-type ecs.g7.large
+   ```
+
+   Replace `cn-hangzhou` with your desired region and `ecs.g7.large` with the appropriate instance type.
+
+4. **Verify Deployment**: After deployment, verify the agent is running by checking the instance status in the Alibaba Cloud Console or using SSH to connect to the instance and check the agent logs.
+
 ## WebUI Frontend
 
 The git-committer now includes a WebUI for easier interaction. To start the WebUI:
