@@ -15,6 +15,7 @@ def format_time(seconds):
 
 def generate_script(limit=10):
     events = get_memory_events(limit=limit)
+    events.sort(key=lambda x: x['timestamp'])
     prompt = "Generate a script based on the following events:\n"
     for event in events:
         prompt += f"{format_time(event['timestamp'])} - {event['type']}: {event['summary']}\n"
