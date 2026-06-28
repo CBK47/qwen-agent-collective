@@ -16,7 +16,7 @@ def generate_script(limit=10):
     events = get_memory_events(limit=limit)
     prompt = "Generate a script based on the following events:\n"
     for event in events:
-        prompt += f"{event['timestamp']} - {event['type']}: {event['summary']}\n"
+        prompt += f"{format_time(event['timestamp'])} - {event['type']}: {event['summary']}\n"
     response = dashscope.Generation.call(
         model='qwen-plus',
         prompt=prompt
