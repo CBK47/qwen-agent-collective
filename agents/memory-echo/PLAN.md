@@ -26,6 +26,6 @@ One real DashScope call + one brain read/write:
 
 ## Phase 2 — submission-grade (the real demoable track)
 - [ ] Track-1 demo via `shared/brain.py`: ingest facts → expire stale → recall under a tight token budget
-- [ ] Custom WebUI front-end for this agent — branded, interactive demo surface (the public face for the video)
+- [x] Custom WebUI front-end for this agent — branded, interactive demo surface (the public face for the video)
 - [ ] Deploy proof on the shared Alibaba Cloud harness (required for submission)
 - [ ] Record a 60–90s demo video (required for submission)
