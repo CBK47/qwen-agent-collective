@@ -21,6 +21,26 @@ Ingests, embeds, and retrieves personal memories. The reference agent for the sh
    docker-compose up -d
    ```
 
+## Alibaba Cloud Deployment
+
+1. **Configure Required Environment Variables**:  
+   In the `agents/memory-echo` directory, update the `.env` file with your Alibaba Cloud credentials and DashScope API key:  
+   ```env
+   ALIBABA_CLOUD_ACCESS_KEY_ID=your_access_key_id
+   ALIBABA_CLOUD_ACCESS_KEY_SECRET=your_access_key_secret
+   ALIBABA_CLOUD_REGION=cn-hangzhou
+   DASHSCOPE_API_KEY=your_api_key_here
+   ```
+
+2. **Deploy to Alibaba Cloud**:  
+   Run the deployment script:  
+   ```bash
+   python deploy.py --cloud alibaba
+   ```
+
+3. **Verification**:  
+   Access the WebUI at the public IP or domain provided by Alibaba Cloud (e.g., `http://<public-ip>:3000`). Test memory ingestion and retrieval to confirm successful deployment.
+
 ## WebUI Usage
 
 After starting the brain stack, access the WebUI at `http://localhost:3000`. The interface includes:
