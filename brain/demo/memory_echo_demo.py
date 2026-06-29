@@ -8,9 +8,9 @@ def main():
         "What's the weather like today?",
         "Tell me a joke."
     ]
-    for input in sample_inputs:
-        print(f"User: {input}")
-        response = agent.process(input)
+    for query in sample_inputs:
+        print(f"User: {query}")
+        response = agent.process(query)
         print(f"Agent: {response}")
         print("\n" + "-"*50 + "\n")
         time.sleep(2)
