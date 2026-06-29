@@ -70,3 +70,24 @@ Check the agent logs for successful initialization and test the agent by sending
 ```bash
 curl -X POST http://localhost:8000/generate -H "Content-Type: application/json" -d '{"context": "Generate a script for a sci-fi episode"}'
 ```
+
+## Demo
+
+To run the demo script and generate a sample output, execute the following command in the `agents/showrunner` directory:
+
+```bash
+python demo.py --num_events 5
+```
+
+This command will generate a sample episode outline with 5 events. Example output:
+
+```
+Episode Outline: "Starlight Odyssey"
+- Event 1: The crew detects an unknown signal from deep space.
+- Event 2: Dr. Chen identifies the signal as a potential extraterrestrial message.
+- Event 3: The team debates whether to respond to the signal.
+- Event 4: A decision is made to send a response, but the ship's systems malfunction.
+- Event 5: The crew works to repair the systems while the signal continues to transmit.
+```
+
+This ensures users can validate functionality and meet submission requirements.
