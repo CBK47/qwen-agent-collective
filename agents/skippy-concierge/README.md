@@ -45,6 +45,18 @@ To run the Skippy Concierge demo:
    python brain/demo/skippy_demo.py
    ```
 
+Example output:
+
+```text
+$ python brain/demo/skippy_demo.py
+> Please upload an image or enter a text query:
+[User uploads a photo of a smart thermostat]
+Agent: Detected device: Nest Thermostat E. Checking manual...
+Step 1: Check if the thermostat is powered on. If not, ensure the batteries are installed correctly.
+Step 2: If the display is blank, verify the wiring connections to the R and C terminals.
+For more details, see section 3.1 of the manual.
+```
+
 ## Signature Qwen Calls
 
 ```
