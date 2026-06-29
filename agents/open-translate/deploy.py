@@ -93,5 +93,6 @@ while True:
         break
     time.sleep(5)
 
+public_ip = instances[0]['PublicIpAddress']
 print(f"Deployment successful! Instance ID: {instance_id}")
-print(f"Open-translate agent is now accessible at http://<public-ip>")
+print(f"Open-translate agent is now accessible at http://{public_ip}")
