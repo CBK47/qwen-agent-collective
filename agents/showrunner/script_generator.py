@@ -30,6 +30,8 @@ def generate_script(limit: int = 10) -> str:
     Returns:
         The generated script text or an error message if the API call fails.
     """
+    if not dashscope.api_key:
+        raise ValueError("DASHSCOPE_API_KEY environment variable is not set")
     events = get_memory_events(limit=limit)
     events.sort(key=lambda x: x['timestamp'])
     prompt = "Generate a script based on the following events:\n"
