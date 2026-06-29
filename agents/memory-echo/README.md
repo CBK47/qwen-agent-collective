@@ -55,6 +55,26 @@ After starting the brain stack, access the WebUI at `http://localhost:3000`. The
 
 The demo video demonstrates these interactive features with real-world examples.
 
+## Demo Video Recording
+
+To generate a demo video for presentations:
+
+1. Ensure the brain stack is running (see Setup Instructions step 2).
+
+2. Navigate to the `brain/demo` directory:
+
+   ```bash
+   cd brain/demo
+   ```
+
+3. Execute the recording script:
+
+   ```bash
+   python memory_echo_demo.py
+   ```
+
+This will produce a video file demonstrating the agent's functionality.
+
 ## Signature Qwen Call
 
 ```
