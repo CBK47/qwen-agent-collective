@@ -1,5 +1,9 @@
 import argparse
 from showrunner.agent import ShowrunnerAgent
+import pyautogui
+import cv2
+import numpy as np
+import threading
 
 def main():
     parser = argparse.ArgumentParser()
@@ -15,7 +19,28 @@ def main():
 
     agent.load_script(script_content)
     print("Generating video...")
+
+    recording = True
+    screen_size = pyautogui.size()
+    fourcc = cv2.VideoWriter_fourcc(*'XVID')
+    out = cv2.VideoWriter('demo_recording.avi', fourcc, 20.0, screen_size)
+
+    def record_screen():
+        while recording:
+            screenshot = pyautogui.screenshot()
+            frame = np.array(screenshot)
+            frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+            out.write(frame)
+        out.release()
+
+    recording_thread = threading.Thread(target=record_screen)
+    recording_thread.start()
+
     video_path = agent.generate_video(output_dir="demo_output")
+
+    recording = False
+    recording_thread.join()
+
     print(f"Demo video generated at {video_path}")
 
 if __name__ == "__main__":
