@@ -75,7 +75,7 @@ def summarize(convo: str) -> str:
 
 
 def ingest_facts(session_id: str, facts: str) -> None:
-    ingest(session_id, facts, ttl=24*3600)
+    ingest(session_id, facts, 1000)
 
 def retrieve_facts(session_id: str) -> str:
     content = retrieve(session_id)
