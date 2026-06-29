@@ -16,20 +16,30 @@ def main():
     
     client = AcsClient(access_key, access_secret, region_id)
     
+    security_group_id = os.environ.get('ALIYUN_SECURITY_GROUP_ID')
+    if not security_group_id:
+        raise ValueError("ALIYUN_SECURITY_GROUP_ID must be set")
+    
+    keypair_name = os.environ.get('ALIYUN_KEYPAIR_NAME')
+    if not keypair_name:
+        raise ValueError("ALIYUN_KEYPAIR_NAME must be set")
+    
+    repo_url = os.environ.get('MEMORY_ECHO_REPO', 'https://github.com/your-repo/memory-echo.git')
+    
     request = CreateInstanceRequest.CreateInstanceRequest()
     request.set_ImageId('ubuntu_20_04_x64_20G_alibase_20230515.vhd')
     request.set_InstanceType('ecs.g6.large')
-    request.set_SecurityGroupId('sg-xxxxxx')
+    request.set_SecurityGroupId(security_group_id)
     request.set_InstanceName('memory-echo-agent')
     request.set_InternetMaxBandwidthOut(10)
     request.set_SystemDiskCategory('cloud_efficiency')
     request.set_SystemDiskSize(40)
-    request.set_KeyPairName('memory-echo-keypair')
+    request.set_KeyPairName(keypair_name)
     
-    userdata_script = """#!/bin/bash
+    userdata_script = f"""#!/bin/bash
     apt-get update
     apt-get install -y git python3-pip
-    git clone https://github.com/your-repo/memory-echo.git
+    git clone {repo_url}
     cd memory-echo
     pip install -r requirements.txt
     nohup python3 agent.py > /var/log/memory-echo.log 2>&1 &
