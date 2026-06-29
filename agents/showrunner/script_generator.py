@@ -41,7 +41,9 @@ def generate_script(limit: int = 10) -> str:
     )
     if response.status_code == 200:
         script_text = response.output.text
-        with open('showrunner.private', 'w') as f:
+        script_dir = os.path.dirname(__file__)
+        file_path = os.path.join(script_dir, 'showrunner.private')
+        with open(file_path, 'w') as f:
             f.write(script_text)
         return script_text
     else:
