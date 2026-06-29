@@ -284,7 +284,7 @@ class Brain:
                 break
         return results
 
-    def purge_expired(self) -> None:
+    def expire_stale(self) -> None:
         now = _now()
         try:
             with self.pg.cursor() as cur:
@@ -295,11 +295,10 @@ class Brain:
                 expired_facts = cur.fetchall()
                 for fact_id, namespace in expired_facts:
                     collection = _collection_for(namespace)
-                    # Vector first so a mid-purge crash can't leave an orphaned
-                    # embedding that would resurface in retrieve(); the PG row
-                    # remains as the recoverable source of truth until commit.
-                    self.qdrant.delete(collection_name=collection, points_selector=[fact_id])
+                    # Delete PG row first so a mid-purge crash doesn't leave an orphaned vector;
+                    # the vector store is cleaned up after the database is updated.
                     cur.execute("DELETE FROM memory_facts WHERE fact_id = %s", (fact_id,))
+                    self.qdrant.delete(collection_name=collection, points_selector=[fact_id])
             self.pg.commit()
         except Exception:
             self.pg.rollback()
@@ -322,6 +321,9 @@ class Brain:
                     (limit,),
                 )
             return [dict(r) for r in cur.fetchall()]
+
+    def get_memory_events(self, *, agent_id: str | None = None, limit: int = 20) -> list[dict[str, Any]]:
+        return self.recent_events(agent_id=agent_id, limit=limit)
 
     def close(self) -> None:
         if self._pg and not self._pg.closed:
@@ -383,14 +385,17 @@ class BrainClient:
         except Exception:  # noqa: BLE001 — conventions are optional context
             return ""
 
-    def get_code_conventions(self, top_k: int = 10) -> str:
-        """Retrieve code conventions from the brain DB."""
+    def get_code_conventions(self) -> str:
+        """Retrieve code conventions from the shared file."""
+        return self.get_file_content('shared/code_conventions.py')
+
+    def get_file_content(self, file_path: str) -> str:
+        """Retrieve the content of a file from the repository."""
         try:
-            mems = self.brain.retrieve("code conventions", namespace="shared.code-conventions", top_k=top_k)
-            return "\n".join(m.text for m in mems)
+            full_path = ROOT / file_path
+            return full_path.read_text()
         except Exception:
             return ""
-
 
 def _selftest() -> None:
     """Idempotent end-to-end proof: ingest a few facts, recall under a budget.
