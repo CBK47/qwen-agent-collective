@@ -30,8 +30,14 @@ class Glossary:
     def load_from_file(self, path: str) -> None:
         """Load glossary entries from a JSON file.
 
+        This method reads a JSON file containing a dictionary of source-target pairs and updates the Glossary's entries with the loaded data, replacing any existing entries.
+
         Args:
             path (str): Path to the JSON file containing entries.
+
+        Raises:
+            FileNotFoundError: If the specified file does not exist.
+            json.JSONDecodeError: If the file content is not valid JSON.
         """
         with open(path, 'r') as f:
             self.entries = json.load(f)
