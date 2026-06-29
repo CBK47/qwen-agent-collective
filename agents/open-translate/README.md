@@ -35,13 +35,31 @@ To launch the WebUI interface:
    pip install -r requirements.txt
    ```
 
-3. Start the WebUI server:
+3. Set your API key environment variable. For example:
+
+   ```
+   export QWEN_API_KEY='your-api-key-here'
+   ```
+
+   (On Windows, use `set QWEN_API_KEY='your-api-key-here'`)
+
+4. Start the WebUI server:
    ```
    python webui.py
    ```
 
    The console will output the server address (e.g., `Running on http://localhost:8000`).
 
-4. Open your browser and navigate to the displayed URL.
+5. Open your browser and navigate to the displayed URL.
 
-5. The interface will display a text input field, language selection dropdown, and translation output area. Enter source text, select target language, and click "Translate" to see the result.
+6. The interface will display a text input field, language selection dropdown, and translation output area. Enter source text, select target language, and click "Translate" to see the result.
+
+## Command-Line Usage
+
+To translate text via the command line:
+
+```
+python cli.py --text "Hello world" --target-language "es"
+```
+
+This will output the translated text to the console.
