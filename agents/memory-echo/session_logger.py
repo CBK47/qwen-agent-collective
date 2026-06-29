@@ -81,8 +81,6 @@ def retrieve_facts(session_id: str) -> str:
     content = retrieve(session_id)
     if not content:
         return ""
-    if len(content) > 5000:
-        content = content[:5000]
     return content
 
 
