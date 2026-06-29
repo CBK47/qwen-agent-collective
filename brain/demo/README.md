@@ -4,19 +4,26 @@ A self-contained, narrated proof-of-concept for three core MemoryAgent beats —
 **Accumulate**, **Forget**, and **Recall** — running against a real Postgres 16
 instance with no model backend and no n8n.
 
-## One-command run
+## Showrunner Demo
+
+Run the complete demo with a single command:
 
 ```bash
 cd brain/demo
 bash run.sh
 ```
 
-This script:
+This script automates the entire process:
 1. Starts Postgres 16 via `docker compose` (mounts the real schema from `../db/postgres-init.sql`)
 2. Waits for the healthcheck to pass
-3. `pip install`s `psycopg2-binary`
-4. Seeds idempotent fixtures (`seed_facts.py`)
-5. Runs `track1_demo.py` (exits 0 on success)
+3. Installs required Python dependencies (`psycopg2-binary`)
+4. Seeds the database with initial facts using `seed_facts.py`
+5. Executes the `track1_demo.py` script, which runs the three core beats (Accumulate, Forget, Recall) with detailed logging and assertions
+
+**Expected behavior**:
+- The script will output detailed logs for each of the three beats (Accumulate, Forget, Recall), including counts of facts processed, approval/rejection decisions, and token budget usage.
+- After successful execution, it will print "All assertions passed" and exit with code 0.
+- If any step fails (e.g., database connection issues, assertion failures), it will print an error message and exit with a non-zero code.
 
 To tear down afterwards:
 
