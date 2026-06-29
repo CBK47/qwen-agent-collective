@@ -8,6 +8,10 @@ def main():
     print("Device turned on")
     status = device.get_status()
     print(f"Current status: {status}")
+    device.set_temperature(72)
+    print("Temperature set to 72 degrees")
+    status = device.get_status()
+    print(f"Updated status: {status}")
     device.turn_off()
     print("Device turned off")
 
