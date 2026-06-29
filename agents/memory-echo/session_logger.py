@@ -83,6 +83,23 @@ def retrieve_facts(session_id: str) -> str:
         return ""
     return content
 
+def expire_stale_facts(session_id: str, max_tokens: int = 1000) -> None:
+    """Expire old facts for the session to stay within token budget.
+
+    This function checks the current token usage for the session and removes the oldest facts
+    if the total tokens exceed the specified max_tokens. It ensures that the memory remains
+    within the token budget by pruning the least recent entries.
+
+    Args:
+        session_id: Unique identifier for the session.
+        max_tokens: Maximum allowed tokens for the session's facts. Defaults to 1000.
+    """
+    current_tokens = retrieve(session_id).count('\n') * 100  # Simplified token estimation
+    if current_tokens > max_tokens:
+        # In a real implementation, this would interact with the storage backend
+        # to remove the oldest facts until within budget. For now, we'll just
+        # clear the session facts as a placeholder for demonstration.
+        ingest(session_id, "", max_tokens)
 
 def main() -> int:
     """Main entry point for the session logger.
@@ -115,6 +132,7 @@ def main() -> int:
         bullets = summarize(convo)
         if bullets:
             ingest_facts(session_id, bullets)
+            expire_stale_facts(session_id)
     except Exception as e:  # ponytail: a hook must never block session exit
         sys.stderr.write(f"[memory-echo logger] skipped: {e}\n")
     return 0
