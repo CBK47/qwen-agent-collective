@@ -27,6 +27,8 @@ To run the WebUI locally:
    npm run dev
    ```
 
+4. Open your browser and navigate to `http://localhost:3000` to access the WebUI.
+
 The WebUI is used in the demo video to showcase the multimodal capabilities of the agent, demonstrating real-time interaction with device images, voice commands, and text queries to provide contextual assistance.
 
 ## Signature Qwen Calls
