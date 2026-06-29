@@ -30,7 +30,7 @@ export class SkippyUI {
         margin: 0;
         font-size: 24px;
       }
-      .seed-section, .device-list-section, .action-section {
+      .seed-section, .device-list-section, .action-section, .response-section {
         background: #f8f9fa;
         padding: 15px;
         border-radius: 6px;
@@ -166,6 +166,18 @@ export class SkippyUI {
 
     container.appendChild(actionSection);
 
+    const responseSection = document.createElement('div');
+    responseSection.className = 'response-section';
+    const responseTitle = document.createElement('h2');
+    responseTitle.textContent = 'Response';
+    responseSection.appendChild(responseTitle);
+
+    const responseList = document.createElement('ul');
+    responseList.id = 'response-list';
+    responseSection.appendChild(responseList);
+
+    container.appendChild(responseSection);
+
     document.body.appendChild(container);
   }
 
@@ -178,6 +190,9 @@ export class SkippyUI {
   }
 
   executeAction(action, params) {
-    console.log(`Executing action: ${action} with params: ${params}`);
+    const responseList = document.getElementById('response-list');
+    const listItem = document.createElement('li');
+    listItem.textContent = `Action: ${action}, Params: ${params}`;
+    responseList.appendChild(listItem);
   }
 }
