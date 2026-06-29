@@ -3,6 +3,8 @@ from aliyunsdkcore.client import AcsClient
 from aliyunsdkfc.request.v20230228.CreateFunctionRequest import CreateFunctionRequest
 from aliyunsdkfc.request.v20230228.GetServiceRequest import GetServiceRequest
 from aliyunsdkfc.request.v20230228.CreateServiceRequest import CreateServiceRequest
+from aliyunsdkfc.request.v20230228.GetFunctionRequest import GetFunctionRequest
+from aliyunsdkfc.request.v20230228.UpdateFunctionRequest import UpdateFunctionRequest
 
 def main():
     access_key = os.getenv('ALIBABA_CLOUD_ACCESS_KEY_ID')
@@ -35,17 +37,35 @@ def main():
         else:
             raise
 
-    request = CreateFunctionRequest()
-    request.set_ServiceName(service_name)
-    request.set_FunctionName(function_name)
-    request.set_Runtime(runtime)
-    request.set_Handler(handler)
+    try:
+        get_function_request = GetFunctionRequest()
+        get_function_request.set_ServiceName(service_name)
+        get_function_request.set_FunctionName(function_name)
+        client.do_action_with_exception(get_function_request)
+        
+        update_request = UpdateFunctionRequest()
+        update_request.set_ServiceName(service_name)
+        update_request.set_FunctionName(function_name)
+        update_request.set_Runtime(runtime)
+        update_request.set_Handler(handler)
+        if oss_bucket and oss_object:
+            update_request.set_CodeOSSBucket(oss_bucket)
+            update_request.set_CodeOSSObject(oss_object)
+        response = client.do_action_with_exception(update_request)
+    except Exception as e:
+        if 'Function not found' in str(e) or '404' in str(e):
+            create_request = CreateFunctionRequest()
+            create_request.set_ServiceName(service_name)
+            create_request.set_FunctionName(function_name)
+            create_request.set_Runtime(runtime)
+            create_request.set_Handler(handler)
+            if oss_bucket and oss_object:
+                create_request.set_CodeOSSBucket(oss_bucket)
+                create_request.set_CodeOSSObject(oss_object)
+            response = client.do_action_with_exception(create_request)
+        else:
+            raise
 
-    if oss_bucket and oss_object:
-        request.set_CodeOSSBucket(oss_bucket)
-        request.set_CodeOSSObject(oss_object)
-
-    response = client.do_action_with_exception(request)
     print(response)
 
 if __name__ == '__main__':
