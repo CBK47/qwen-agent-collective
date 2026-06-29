@@ -10,11 +10,17 @@ Reviews staged diffs and writes conventional commit messages, following shared c
 
 To use the git-committer agent with DashScope, follow these steps:
 
-1. **Obtain API Key**: Log in to the [DashScope console](https://dashscope.console.aliyun.com/) and navigate to the API Key section to generate or retrieve your API key.
+1. **Install dependencies**:
 
-2. **Create .env File**: In the root directory of the project, create a `.env` file if it doesn't already exist.
+   ```
+   pip install -r requirements.txt
+   ```
 
-3. **Set API Key**: Add the following line to the `.env` file, replacing `your_api_key_here` with your actual DashScope API key:
+2. **Obtain API Key**: Log in to the [DashScope console](https://dashscope.console.aliyun.com/) and navigate to the API Key section to generate or retrieve your API key.
+
+3. **Create .env File**: In the root directory of the project, create a `.env` file if it doesn't already exist.
+
+4. **Set API Key**: Add the following line to the `.env` file, replacing `your_api_key_here` with your actual DashScope API key:
    ```
    DASHSCOPE_API_KEY=your_api_key_here
    ```
