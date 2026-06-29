@@ -4,12 +4,97 @@ export class SkippyUI {
   }
 
   render() {
+    const style = document.createElement('style');
+    style.textContent = `
+      .skippy-ui-container {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+        background: #ffffff;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      }
+      .header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 20px;
+      }
+      .header img {
+        width: 40px;
+        height: 40px;
+        margin-right: 10px;
+      }
+      h1 {
+        color: #007bff;
+        margin: 0;
+        font-size: 24px;
+      }
+      .seed-section, .device-list-section, .action-section {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 6px;
+        margin-bottom: 20px;
+      }
+      h2 {
+        color: #333;
+        margin-top: 0;
+        margin-bottom: 10px;
+        font-size: 18px;
+      }
+      button {
+        background: #007bff;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background 0.3s;
+      }
+      button:hover {
+        background: #0056b3;
+      }
+      input {
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        width: 100%;
+        margin-bottom: 10px;
+      }
+      ul {
+        list-style-type: none;
+        padding: 0;
+      }
+      li {
+        padding: 10px;
+        border-bottom: 1px solid #eee;
+        display: flex;
+        justify-content: space-between;
+      }
+      li:last-child {
+        border-bottom: none;
+      }
+      #action-select {
+        width: 100%;
+        padding: 8px;
+        margin-bottom: 10px;
+      }
+    `;
+    document.head.appendChild(style);
+
     const container = document.createElement('div');
     container.className = 'skippy-ui-container';
 
-    const header = document.createElement('h1');
-    header.textContent = 'Skippy Concierge';
-    container.appendChild(header);
+    const headerDiv = document.createElement('div');
+    headerDiv.className = 'header';
+    const logo = document.createElement('img');
+    logo.src = 'https://via.placeholder.com/40x40/007bff/ffffff?text=SK';
+    logo.alt = 'Skippy Logo';
+    const title = document.createElement('h1');
+    title.textContent = 'Skippy Concierge';
+    headerDiv.appendChild(logo);
+    headerDiv.appendChild(title);
+    container.appendChild(headerDiv);
 
     const seedSection = document.createElement('div');
     seedSection.className = 'seed-section';
