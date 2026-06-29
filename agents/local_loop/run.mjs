@@ -37,6 +37,13 @@ const PROTECTED = [
   "agents/local_loop/run.mjs", "agents/local_loop/run.py",
   ".env", ".git", "node_modules", "package-lock.json", "package.json",
   "yarn.lock", "pnpm-lock.yaml",
+  // Finished / keystone files the loop kept "simplifying" into regressions
+  // (e.g. gutting the git-committer delta metric, self-importing demos,
+  // breaking the brain keystone import). Off-limits — edit by hand.
+  "shared/brain.py", "shared/code_conventions.py", "shared/code-conventions.py",
+  "agents/git-committer/review.py",
+  "brain/demo/brain_client.py", "brain/demo/track1_demo.py", "brain/demo/seed_facts.py",
+  "agents/showrunner/recap.py",
 ];
 // Destructive / dangerous substrings rejected in generated file content.
 const CONTENT_BLOCKED = [

@@ -31,7 +31,7 @@ One real DashScope call + one brain read/write:
 - [x] Add the multi-role negotiation loop + verdict synthesis.
 
 ## Phase 2 — submission-grade (the real demoable track)
-- [ ] Read `shared.code-conventions` via the brain client → one `qwen2.5-coder` review pass over a fixed diff
+- [x] Read `shared.code-conventions` via the brain client → one `qwen2.5-coder` review pass over a fixed diff (done: `review.py` pulls conventions via `BrainClient.get_code_conventions` and runs multi-role `qwen2.5-coder` passes with a negotiated verdict + delta metric)
 - [x] Custom WebUI front-end for this agent — branded, interactive demo surface (the public face for the video)
 - [x] Deploy proof on the shared Alibaba Cloud harness (required for submission)
 - [ ] Record a 60–90s demo video (required for submission)
