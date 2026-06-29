@@ -64,6 +64,38 @@ python cli.py --text "Hello world" --target-language "es"
 
 This will output the translated text to the console.
 
+## Demo
+
+### CLI Demo
+
+1. Ensure you have the agent set up with the API key (see [Command-Line Usage](#command-line-usage) for prerequisites).
+
+2. Run the following command to translate "Hello world" to Spanish:
+
+   ```
+   python cli.py --text "Hello world" --target-language "es"
+   ```
+
+3. The expected output is:
+
+   ```
+   Hola mundo
+   ```
+
+### WebUI Demo
+
+1. Start the WebUI server as described in [WebUI Setup and Usage](#webui-setup-and-usage).
+
+2. Open the WebUI in your browser at `http://localhost:8000`.
+
+3. Enter "Hello world" in the text input field.
+
+4. Select "Spanish" from the language dropdown.
+
+5. Click "Translate".
+
+6. The translated text "Hola mundo" will appear in the output area.
+
 ## Alibaba Cloud Deployment
 
 To deploy the open-translate agent on Alibaba Cloud:
