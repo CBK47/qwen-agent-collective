@@ -21,20 +21,20 @@ def format_time(seconds: float) -> str:
     seconds = total_seconds % 60
     return f"{hours:02d}:{minutes:02d}:{seconds:02d},{milliseconds:03d}"
 
-def generate_script(limit: int = 10) -> str:
+def generate_script(num_events: int = 10) -> str:
     """Generates a script based on memory events.
 
     Args:
-        limit: The maximum number of events to retrieve.
+        num_events: The maximum number of events to retrieve.
 
     Returns:
         The generated script text or an error message if the API call fails.
     """
-    if limit <= 0:
-        raise ValueError("limit must be a positive integer")
+    if num_events <= 0:
+        raise ValueError("num_events must be a positive integer")
     if not dashscope.api_key:
         raise ValueError("DASHSCOPE_API_KEY environment variable is not set")
-    events = get_memory_events(limit=limit)
+    events = get_memory_events(limit=num_events)
     events.sort(key=lambda x: x['timestamp'])
     prompt = "Generate a script based on the following events:\n"
     for event in events:
