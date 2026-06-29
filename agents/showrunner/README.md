@@ -21,15 +21,17 @@ Output: formatted script or episode outline
 | `shared.*` | read | All shared agent events and facts used as narrative source material |
 | `showrunner.private` | read/write | Show bible, episode history, and style guide |
 
-## Deployment on Alibaba Cloud
+## Deployment
 
-### Prerequisites
+### Alibaba Cloud
+
+#### Prerequisites
 
 - Alibaba Cloud account with **Model Studio** access
 - Alibaba Cloud CLI (`aliyun`) configured with your AccessKey
 - Python 3.8+ installed
 
-### Step 1: Configure Credentials
+#### Step 1: Configure Credentials
 
 Set your Alibaba Cloud credentials as environment variables:
 
@@ -40,7 +42,7 @@ export ALIBABA_CLOUD_ACCESS_KEY_SECRET="your_access_key_secret"
 
 You can generate these credentials in the [Alibaba Cloud RAM console](https://ram.console.aliyun.com/users).
 
-### Step 2: Deploy the Agent
+#### Step 2: Deploy the Agent
 
 1. Clone the repository:
 
@@ -61,7 +63,7 @@ pip install -r requirements.txt
 python showrunner.py
 ```
 
-### Step 3: Verification
+#### Step 3: Verification
 
 Check the agent logs for successful initialization and test the agent by sending a sample request:
 
