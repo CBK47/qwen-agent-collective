@@ -29,3 +29,7 @@ One real DashScope call + one brain read/write:
 - [x] Custom WebUI front-end for this agent — branded, interactive demo surface (the public face for the video)
 - [x] Deploy proof on the shared Alibaba Cloud harness (required for submission)
 - [ ] Record a 60–90s demo video (required for submission)
+  - [ ] Run the demo script to generate content
+  - [ ] Capture screen recording of the WebUI demo
+  - [ ] Trim the recording to 60–90 seconds
+  - [ ] Upload the trimmed video to the submission platform
