@@ -6,6 +6,29 @@
 
 Multimodal concierge agent - handles image, audio, and text inputs to answer questions about devices, manuals, and home systems. Runs on-device where possible; falls back to cloud models for heavy tasks.
 
+## WebUI
+
+The Skippy Concierge WebUI provides a user-friendly interface for interacting with the concierge agent. It allows users to upload images, record audio, and input text queries to receive step-by-step assistance for device troubleshooting and information.
+
+To run the WebUI locally:
+
+1. Navigate to the `webui` directory:
+   ```bash
+   cd webui
+   ```
+
+2. Install dependencies (if not already installed):
+   ```bash
+   npm install
+   ```
+
+3. Start the development server:
+   ```bash
+   npm run dev
+   ```
+
+The WebUI is used in the demo video to showcase the multimodal capabilities of the agent, demonstrating real-time interaction with device images, voice commands, and text queries to provide contextual assistance.
+
 ## Signature Qwen Calls
 
 ```
