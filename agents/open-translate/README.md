@@ -63,3 +63,47 @@ python cli.py --text "Hello world" --target-language "es"
 ```
 
 This will output the translated text to the console.
+
+## Alibaba Cloud Deployment
+
+To deploy the open-translate agent on Alibaba Cloud:
+
+1. Log in to the [Alibaba Cloud Console](https://account.alibabacloud.com).
+
+2. Create an ECS instance with a suitable configuration (e.g., Ubuntu 20.04 or later). Ensure the security group allows inbound traffic on port 8000 (or the port used by the WebUI).
+
+3. Connect to your ECS instance via SSH (replace 'ubuntu' with the appropriate username if needed):
+   ```
+   ssh -i your-key.pem ubuntu@your-instance-ip
+   ```
+
+4. Install Python and pip (if not already installed):
+   ```
+   sudo apt update
+   sudo apt install python3 python3-pip -y
+   ```
+
+5. Clone the repository:
+   ```
+   git clone https://github.com/your-repo/open-translate.git
+   cd open-translate
+   ```
+
+6. Install dependencies:
+   ```
+   pip install -r requirements.txt
+   ```
+
+7. Set your Alibaba Cloud Qwen API key as an environment variable. You can obtain the API key from the [Model Studio](https://help.aliyun.com/zh/model-studio/developer-reference/quick-start) dashboard:
+   ```
+   export QWEN_API_KEY='your-alibaba-cloud-api-key'
+   ```
+
+   (On Windows, use `set QWEN_API_KEY='your-alibaba-cloud-api-key'`)
+
+8. Start the WebUI server:
+   ```
+   python webui.py
+   ```
+
+9. Access the WebUI via your browser at `http://<your-instance-ip>:8000`.
