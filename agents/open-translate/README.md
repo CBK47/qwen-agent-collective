@@ -68,7 +68,7 @@ This will output the translated text to the console.
 
 ### CLI Demo
 
-1. Ensure you have the agent set up with the API key (see [Command-Line Usage](#command-line-usage) for prerequisites).
+1. Ensure you have the agent set up with the API key (see [WebUI Setup and Usage](#webui-setup-and-usage) for prerequisites).
 
 2. Run the following command to translate "Hello world" to Spanish:
 
