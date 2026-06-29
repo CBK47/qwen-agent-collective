@@ -28,4 +28,4 @@ One real DashScope call + one brain read/write:
 - [x] Read `shared.glossary` via the brain client → one `qwen-plus` translation honoring it; new terms → review queue
 - [x] Custom WebUI front-end for this agent — branded, interactive demo surface (the public face for the video)
 - [x] Deploy proof on the shared Alibaba Cloud harness (required for submission)
-- [ ] Record a 60–90s demo video (required for submission)
+- [x] Record a 60–90s demo video (required for submission)
