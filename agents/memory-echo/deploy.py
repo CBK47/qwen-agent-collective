@@ -30,7 +30,7 @@ def main():
     
     repo_url = os.environ.get('MEMORY_ECHO_REPO', 'https://github.com/your-repo/memory-echo.git')
     
-    request = CreateInstanceRequest.CreateInstanceRequest()
+    request = CreateInstanceRequest()
     request.set_ImageId('ubuntu_20_04_x64_20G_alibase_20230515.vhd')
     request.set_InstanceType('ecs.g6.large')
     request.set_SecurityGroupId(security_group_id)
@@ -57,7 +57,7 @@ def main():
     instance_id = response_dict['InstanceId']
     print(f"Created instance {instance_id}")
     
-    describe_request = DescribeInstancesRequest.DescribeInstancesRequest()
+    describe_request = DescribeInstancesRequest()
     describe_request.set_InstanceIds(json.dumps([instance_id]))
     
     while True:
