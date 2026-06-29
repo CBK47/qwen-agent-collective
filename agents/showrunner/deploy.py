@@ -1,6 +1,8 @@
 import os
 from aliyunsdkcore.client import AcsClient
 from aliyunsdkfc.request.v20230228.CreateFunctionRequest import CreateFunctionRequest
+from aliyunsdkfc.request.v20230228.GetServiceRequest import GetServiceRequest
+from aliyunsdkfc.request.v20230228.CreateServiceRequest import CreateServiceRequest
 
 def main():
     access_key = os.getenv('ALIBABA_CLOUD_ACCESS_KEY_ID')
@@ -12,11 +14,26 @@ def main():
     handler = os.getenv('FC_HANDLER', 'main.handler')
     oss_bucket = os.getenv('OSS_BUCKET')
     oss_object = os.getenv('OSS_OBJECT')
+    role_arn = os.getenv('FC_ROLE_ARN')
 
-    if not all([access_key, access_secret, region, service_name, function_name]):
+    if not all([access_key, access_secret, region, service_name, function_name, role_arn]):
         raise ValueError("Missing required environment variables for Alibaba Cloud deployment")
 
     client = AcsClient(access_key, access_secret, region)
+
+    try:
+        get_service_request = GetServiceRequest()
+        get_service_request.set_ServiceName(service_name)
+        client.do_action_with_exception(get_service_request)
+    except Exception as e:
+        if 'Service not found' in str(e) or '404' in str(e):
+            create_service_request = CreateServiceRequest()
+            create_service_request.set_ServiceName(service_name)
+            create_service_request.set_Description('Showrunner service')
+            create_service_request.set_Role(role_arn)
+            client.do_action_with_exception(create_service_request)
+        else:
+            raise
 
     request = CreateFunctionRequest()
     request.set_ServiceName(service_name)
