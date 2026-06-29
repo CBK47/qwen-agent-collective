@@ -20,6 +20,10 @@ def main():
     if not security_group_id:
         raise ValueError("ALIYUN_SECURITY_GROUP_ID must be set")
     
+    vswitch_id = os.environ.get('ALIYUN_VSWITCH_ID')
+    if not vswitch_id:
+        raise ValueError("ALIYUN_VSWITCH_ID must be set")
+    
     keypair_name = os.environ.get('ALIYUN_KEYPAIR_NAME')
     if not keypair_name:
         raise ValueError("ALIYUN_KEYPAIR_NAME must be set")
@@ -30,6 +34,7 @@ def main():
     request.set_ImageId('ubuntu_20_04_x64_20G_alibase_20230515.vhd')
     request.set_InstanceType('ecs.g6.large')
     request.set_SecurityGroupId(security_group_id)
+    request.set_VSwitchId(vswitch_id)
     request.set_InstanceName('memory-echo-agent')
     request.set_InternetMaxBandwidthOut(10)
     request.set_SystemDiskCategory('cloud_efficiency')
