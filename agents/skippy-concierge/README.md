@@ -31,6 +31,20 @@ To run the WebUI locally:
 
 The WebUI is used in the demo video to showcase the multimodal capabilities of the agent, demonstrating real-time interaction with device images, voice commands, and text queries to provide contextual assistance.
 
+## Demo
+
+To run the Skippy Concierge demo:
+
+1. Navigate to the project root directory (where the `brain` folder is located).
+2. Install required dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+3. Execute the demo:
+   ```bash
+   python brain/demo/skippy_demo.py
+   ```
+
 ## Signature Qwen Calls
 
 ```
