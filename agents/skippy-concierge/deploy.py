@@ -14,7 +14,7 @@ def deploy():
     service_name = 'skippy-concierge'
     create_service_req = CreateServiceRequest()
     create_service_req.set_ServiceName(service_name)
-    create_service_req.set_Role('acs:ram::1234567890123456:role/aliyunfcdefaultrole')
+    create_service_req.set_Role(os.getenv('ALIYUN_ROLE_ARN'))
     create_service_req.set_Description('Skippy Concierge Service for Alibaba Cloud')
     response = client.do_action_with_exception(create_service_req)
     print(f"Service created: {response}")
