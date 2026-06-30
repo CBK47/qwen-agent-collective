@@ -4,7 +4,13 @@ import sys
 import requests
 import os
 
-def main():
+def main() -> None:
+    """Main entry point for the glossary ingestion script.
+
+    Reads a glossary file provided as a command-line argument, processes each line to extract term and definition,
+    and sends them to the Brain API for ingestion. Handles tab or comma-separated values, and reports success or failure
+    for each term.
+    """
     if len(sys.argv) != 2:
         print("Usage: python ingest_glossary.py <glossary_file>")
         sys.exit(1)
