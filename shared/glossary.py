@@ -10,6 +10,8 @@ class Glossary:
     def add_entry(self, source: str, target: str) -> None:
         """Add a source term and its translation to the glossary.
 
+        If the source term already exists, its translation will be overwritten.
+
         Args:
             source (str): The source term to add.
             target (str): The corresponding translation for the source term.
