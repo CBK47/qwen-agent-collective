@@ -31,6 +31,31 @@ To run the WebUI locally:
 
 The WebUI is used in the demo video to showcase the multimodal capabilities of the agent, demonstrating real-time interaction with device images, voice commands, and text queries to provide contextual assistance.
 
+## Video Upload
+
+The Skippy Concierge supports video uploads for analyzing device operations and troubleshooting scenarios. Users can upload video files to receive step-by-step guidance based on the content.
+
+**Required Parameters:**
+
+- `video_file`: A video file in MP4 format (max 10MB, 30 seconds duration).
+
+**Example Usage:**
+
+1. In the WebUI, click the "Upload Video" button.
+2. Select a video file from your device.
+3. The agent will process the video and provide relevant instructions.
+
+Example interaction:
+
+```
+> Please upload a video or enter a text query:
+[User uploads a video of a malfunctioning washing machine]
+Agent: Detected issue: Washing machine not draining water. Checking manual...
+Step 1: Check the drain hose for blockages.
+Step 2: Ensure the pump filter is clean and properly installed.
+For more details, see section 5.2 of the manual.
+```
+
 ## Demo
 
 To run the Skippy Concierge demo:
