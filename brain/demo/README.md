@@ -25,6 +25,17 @@ This script automates the entire process:
 - After successful execution, it will print "All assertions passed" and exit with code 0.
 - If any step fails (e.g., database connection issues, assertion failures), it will print an error message and exit with a non-zero code.
 
+**Screen Recording for Submissions**:
+To capture the demo execution for submission videos, set the `RECORD_SCREEN` environment variable before running the demo:
+
+```bash
+export RECORD_SCREEN=1
+cd brain/demo
+bash run.sh
+```
+
+This will generate a video file in the `screenshots/` directory, which can be submitted as part of your project demonstration.
+
 To tear down afterwards:
 
 ```bash
