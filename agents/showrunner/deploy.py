@@ -1,4 +1,5 @@
 import os
+import oss2
 from aliyunsdkcore.client import AcsClient
 from aliyunsdkfc.request.v20230228.CreateFunctionRequest import CreateFunctionRequest
 from aliyunsdkfc.request.v20230228.GetServiceRequest import GetServiceRequest
@@ -64,6 +65,20 @@ def main():
                 create_request.set_CodeOSSObject(oss_object)
             response = client.do_action_with_exception(create_request)
         else:
+            raise
+
+    video_file = os.getenv('VIDEO_FILE')
+    video_object = os.getenv('VIDEO_OBJECT', 'video.mp4')
+    if video_file:
+        try:
+            auth = oss2.Auth(access_key, access_secret)
+            endpoint = f'oss-{region}.aliyuncs.com'
+            bucket = oss2.Bucket(auth, endpoint, oss_bucket)
+            with open(video_file, 'rb') as f:
+                bucket.put_object(video_object, f)
+            print(f"Video uploaded successfully to {oss_bucket}/{video_object}")
+        except Exception as e:
+            print(f"Error uploading video: {str(e)}")
             raise
 
     print(response)
