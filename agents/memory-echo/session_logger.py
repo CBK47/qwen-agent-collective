@@ -14,9 +14,11 @@ import json
 import sys
 from datetime import timedelta
 from pathlib import Path
-from shared.brain import ingest, retrieve
 
 ROOT = Path(__file__).resolve().parents[2]          # repo root
+
+SESSIONS_DIR = ROOT / 'sessions'
+SESSIONS_DIR.mkdir(parents=True, exist_ok=True)
 
 SYSTEM = (
     "You are memory-echo, the MemoryAgent for the qwen-agent-collective. "
@@ -75,13 +77,14 @@ def summarize(convo: str) -> str:
 
 
 def ingest_facts(session_id: str, facts: str) -> None:
-    ingest(session_id, facts, 1000)
+    session_file = SESSIONS_DIR / f"{session_id}.txt"
+    session_file.write_text(facts)
 
 def retrieve_facts(session_id: str) -> str:
-    content = retrieve(session_id)
-    if not content:
-        return ""
-    return content
+    session_file = SESSIONS_DIR / f"{session_id}.txt"
+    if session_file.exists():
+        return session_file.read_text()
+    return ""
 
 def expire_stale_facts(session_id: str, max_tokens: int = 1000) -> None:
     """Expire old facts for the session to stay within token budget.
@@ -94,12 +97,10 @@ def expire_stale_facts(session_id: str, max_tokens: int = 1000) -> None:
         session_id: Unique identifier for the session.
         max_tokens: Maximum allowed tokens for the session's facts. Defaults to 1000.
     """
-    current_tokens = retrieve(session_id).count('\n') * 100  # Simplified token estimation
+    current_content = retrieve_facts(session_id)
+    current_tokens = current_content.count('\n') * 100  # Simplified token estimation
     if current_tokens > max_tokens:
-        # In a real implementation, this would interact with the storage backend
-        # to remove the oldest facts until within budget. For now, we'll just
-        # clear the session facts as a placeholder for demonstration.
-        ingest(session_id, "", max_tokens)
+        ingest_facts(session_id, "")
 
 def main() -> int:
     """Main entry point for the session logger.
