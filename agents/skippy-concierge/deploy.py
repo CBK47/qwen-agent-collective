@@ -34,6 +34,12 @@ def deploy():
                     zipf.write(os.path.join(root, file))
     bucket.put_object_from_file('code.zip', 'code.zip')
     
+    # Upload trimmed video to OSS
+    video_file = 'trimmed_video.mp4'
+    if os.path.exists(video_file):
+        bucket.put_object_from_file(video_file, video_file)
+        print(f"Uploaded video: {video_file}")
+    
     # Deploy FC service and function
     service_name = 'skippy-concierge'
     create_service_req = CreateServiceRequest()
