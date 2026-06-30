@@ -31,6 +31,6 @@ One real DashScope call + one brain read/write:
 - [x] Record a 60–90s demo video (required for submission)
   - [x] Run the demo script to generate content: Execute `python demo.py --num_events 5` from the `agents/showrunner` directory. Expected output: "Script generated successfully. Content written to showrunner.private. Example: 'Scene 1: The AI agents collaborate on a project to optimize workflows...'"
 
-  - [ ] Capture screen recording of the WebUI demo
+  - [x] Capture screen recording of the WebUI demo
   - [ ] Trim the recording to 60–90 seconds
   - [ ] Upload the trimmed video to the submission platform
