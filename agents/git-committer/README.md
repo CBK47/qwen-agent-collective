@@ -76,6 +76,36 @@ Once the WebUI is running, follow these steps to interact with the agent:
 
 This visual interface streamlines the commit process and helps ensure adherence to project conventions.
 
+## Video Upload
+
+The git-committer agent now supports uploading and analyzing video files to generate commit messages based on visual content. This feature extends the agent's capabilities to handle multimedia assets alongside code changes.
+
+### Required Parameters
+
+- **Video File Path**: The local path to the video file to be processed (e.g., `/path/to/video.mp4`).
+
+- **DashScope API Key**: Must be configured in the `.env` file (see Setup section).
+
+### Usage Examples
+
+1. **WebUI Integration**:
+
+   - After starting the WebUI (`python webui.py`), navigate to the "Video Upload" tab.
+
+   - Select a video file from your system; the agent will automatically analyze it and display a suggested commit message.
+
+   - Review the message and click "Commit" to finalize the changes.
+
+2. **Command Line**:
+
+   ```
+   python review.py --video /path/to/video.mp4
+   ```
+
+   This command processes the video and generates a commit message. If there are staged code changes, the agent combines both the code and video analysis for the commit message.
+
+This feature enables comprehensive commit documentation for projects involving multimedia content, ensuring all changes are properly tracked and described.
+
 ## Review Pipeline
 
 The `review.py` script is the core component of the review process. It follows these steps:
