@@ -5,17 +5,19 @@ import brain
 
 dashscope.api_key = os.getenv('DASHSCOPE_API_KEY')
 
-def translate_with_glossary(text: str) -> str:
+def translate(text: str, source_lang: str, target_lang: str) -> str:
     """
-    Translates the given text to Chinese using a predefined glossary for specific terms.
+    Translates the given text from source language to target language using a predefined glossary for specific terms.
 
-    This function first replaces any terms found in the glossary from brain's storage with their corresponding translations (sorted by term length descending to avoid partial matches). Then, it uses the Dashscope translation API to translate the processed text to Chinese.
+    This function first replaces any terms found in the glossary from brain's storage with their corresponding translations (sorted by term length descending to avoid partial matches). Then, it uses the Dashscope translation API to translate the processed text.
 
     Args:
         text (str): The input text to translate.
+        source_lang (str): The source language code (e.g., 'en', 'ja').
+        target_lang (str): The target language code (e.g., 'zh', 'fr').
 
     Returns:
-        str: The translated text in Chinese.
+        str: The translated text in the target language.
     """
     glossary = brain.get_glossary()
     new_terms = []
@@ -41,6 +43,7 @@ def translate_with_glossary(text: str) -> str:
     response = Translation.call(
         model='qwen-turbo',
         source_text=text,
-        target_lang='zh'
+        source_lang=source_lang,
+        target_lang=target_lang
     )
     return response.output.translations[0].translation
