@@ -37,3 +37,11 @@ To initialize the brain stack:
    ```bash
    docker-compose up -d
    ```
+
+## Agent Demos
+
+- [Echo](demo/echo/README.md)
+- [Skippy](demo/skippy/README.md)
+- [Maya](demo/maya/README.md)
+- [Jake](demo/jake/README.md)
+- [Luna](demo/luna/README.md)
