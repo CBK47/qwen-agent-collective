@@ -27,3 +27,22 @@ class Brain:
             self.total_tokens -= oldest[1]
         self.facts.append((current_time, token_count, fact_data))
         self.total_tokens += token_count
+
+def main():
+    """
+    Main entry point for the Brain system.
+
+    This function initializes the Brain instance with a token budget and processes incoming facts,
+    ensuring that the total token count does not exceed the budget by evicting the oldest facts as needed.
+
+    Parameters:
+        None
+
+    Returns:
+        None
+    """
+    brain = Brain(token_budget=1000)
+    brain.add_fact("Sample fact", 50)
+
+if __name__ == '__main__':
+    main()
