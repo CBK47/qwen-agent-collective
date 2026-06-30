@@ -33,4 +33,4 @@ One real DashScope call + one brain read/write:
 - [x] Run skippy_demo.py to launch the demo interface
 - [x] Capture screen recording of the demo interaction (including voice commands if applicable)
 - [x] Trim the recording to 60-90 seconds, focusing on key demo points
-- [ ] Upload the trimmed video to the submission platform
+- [x] Upload the trimmed video to the submission platform
