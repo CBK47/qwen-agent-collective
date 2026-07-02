@@ -213,7 +213,7 @@ class OpenTranslateAgent:
 
     def __init__(
         self,
-        client: Any | None = None,
+        client: DashScopeClient | None = None,
         source_language: str = "English",
         qa_overlap_threshold: float = 0.4,
     ) -> None:
