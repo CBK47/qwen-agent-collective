@@ -33,6 +33,7 @@ One real DashScope call + one brain read/write:
 ## Phase 2 — submission-grade (the real demoable track)
 - [x] Read `shared.code-conventions` via the brain client → one `qwen2.5-coder` review pass over a fixed diff (done: `review.py` pulls conventions via `BrainClient.get_code_conventions` and runs multi-role `qwen2.5-coder` passes with a negotiated verdict + delta metric)
 - [x] Custom WebUI front-end for this agent — branded, interactive demo surface (the public face for the video)
-- [x] Record a 60–90s demo video (required for submission)
+- [ ] Deploy proof on the shared Alibaba Cloud harness (required for submission) — NOT DONE
+- [ ] Record a 60–90s demo video (required for submission) — NOT RECORDED
 
-- [x] Fix `debate_prototype.py`: it imports the nonexistent `brain.conventions`; either inline the personas or point it at the working `review.py` pipeline.
+- [ ] Fix `debate_prototype.py`: still fails with `No module named 'review'` — NOT DONE

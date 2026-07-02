@@ -27,9 +27,5 @@ One real DashScope call + one brain read/write:
 ## Phase 2 — submission-grade (the real demoable track)
 - [x] Track-1 demo via `shared/brain.py`: ingest facts → expire stale → recall under a tight token budget
 - [x] Custom WebUI front-end for this agent — branded, interactive demo surface (the public face for the video)
-- [x] Record a 60–90s demo video (required for submission):
-    - Use OBS Studio to capture the WebUI with clear audio narration
-    - Trim the video to 60–90 seconds using Shotcut, focusing on key interactions
-    - Add subtitles for accessibility
-    - Upload to the designated Alibaba Cloud OSS bucket
-    - Confirm the video meets all submission requirements
+- [ ] Deploy on Alibaba Cloud (requires `oss2`/aliyunsdkcore — NOT DONE)
+- [ ] Record a 60–90s demo video (required for submission) — NOT RECORDED

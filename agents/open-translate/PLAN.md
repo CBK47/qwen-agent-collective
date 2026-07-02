@@ -25,7 +25,7 @@ One real DashScope call + one brain read/write:
 - [x] Wire translation-memory reuse + the HITL approval path to `shared.glossary`.
 
 ## Phase 2 — submission-grade (the real demoable track)
-- [x] Read `shared.glossary` via the brain client → one `qwen-plus` translation honoring it; new terms → review queue
+- [x] `translate.py` CLI verified (`--help` OK); glossary + QA-gate path implemented (NOTE: broken duplicate `translator.py` exists — delete it)
 - [x] Custom WebUI front-end for this agent — branded, interactive demo surface (the public face for the video)
-- [x] Deploy proof on the shared Alibaba Cloud harness (required for submission)
-- [x] Record a 60–90s demo video (required for submission)
+- [ ] Deploy proof on the shared Alibaba Cloud harness (required for submission) — NOT DONE
+- [ ] Record a 60–90s demo video (required for submission) — NOT RECORDED

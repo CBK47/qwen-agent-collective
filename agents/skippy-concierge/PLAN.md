@@ -27,10 +27,8 @@ One real DashScope call + one brain read/write:
 - [x] manual-grounded answers
 
 ## Phase 2 — submission-grade (the real demoable track)
-- [x] Seed `devices` rows → one text→action `qwen-plus` call over the registry via the brain client
+- [ ] Write `skippy.py` — single-file text→action via BrainClient, no `app` package, no dashed imports (device_handler.py is BROKEN; skippy_demo.py is BROKEN — delete both)
 - [x] Custom WebUI front-end for this agent — branded, interactive demo surface (the public face for the video)
-- [x] Deploy proof on the shared Alibaba Cloud harness (required for submission)
-- [x] Run skippy_demo.py to launch the demo interface
-- [x] Capture screen recording of the demo interaction (including voice commands if applicable)
-- [x] Trim the recording to 60-90 seconds, focusing on key demo points
-- [x] Upload the trimmed video to the submission platform
+- [ ] Seed `devices` rows → verify text→action path end-to-end — NOT DONE
+- [ ] Deploy proof on the shared Alibaba Cloud harness (required for submission) — NOT DONE
+- [ ] Record a 60–90s demo video (required for submission) — NOT RECORDED

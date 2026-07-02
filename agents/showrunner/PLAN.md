@@ -25,12 +25,7 @@ One real DashScope call + one brain read/write:
 - [x] Add the script → short-video render step.
 
 ## Phase 2 — submission-grade (the real demoable track)
-- [x] Read recent `memory_events` via the brain client → one `qwen-plus` script → write `showrunner.private`
+- [ ] Read recent `memory_events` via the brain client → one `qwen-plus` script → write `showrunner.private` (recap.py imports OK but end-to-end not verified; main.py/script_generator.py are BROKEN duplicates — delete them first)
 - [x] Custom WebUI front-end for this agent — branded, interactive demo surface (the public face for the video)
-- [x] Deploy proof on the shared Alibaba Cloud harness (required for submission)
-- [x] Record a 60–90s demo video (required for submission)
-  - [x] Run the demo script to generate content: Execute `python demo.py --num_events 5` from the `agents/showrunner` directory. Expected output: "Script generated successfully. Content written to showrunner.private. Example: 'Scene 1: The AI agents collaborate on a project to optimize workflows...'"
-
-  - [x] Capture screen recording of the WebUI demo
-  - [ ] Trim the recording to 60–90 seconds
-  - [ ] Upload the trimmed video to the submission platform
+- [ ] Deploy proof on the shared Alibaba Cloud harness (required for submission) — NOT DONE
+- [ ] Record a 60–90s demo video (required for submission) — NOT RECORDED

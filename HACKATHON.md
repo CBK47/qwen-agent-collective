@@ -8,20 +8,20 @@ One shared brain + five specialist Qwen agents on DashScope.
 
 ## PM Status Board — SSOT
 
-Refresh this table every PM session. Last refresh: **2026-06-26** (~12 working days left).
+Refresh this table every PM session. Last refresh: **2026-07-02** (~6 working days left). Loops PAUSED; prod-readiness review complete → see `REVIEW.md`.
 STATE ∈ not-started · in-progress · blocked · done. OWNER-CHAT = the code chat that does NEXT ACTION.
 
 | Track / Layer | STATE | LAST DECISION | NEXT ACTION (one step) | OWNER-CHAT |
 |---|---|---|---|---|
-| Spine `shared/` | **done** | DashScope Singapore compatible endpoint; chat + embeddings live, smoke passes | Freeze the client API — agents import, never fork it | — |
-| **Brain runtime** ⭐ keystone | **done** (unblocks all 5) | `shared/brain.py` built + proven E2E (ingest→retrieve with embeddings + governance + token budget) against live Postgres+Qdrant | Wire each track's demo onto `brain.ingest/retrieve` (now ~a few hours each) | chat:brain |
-| T1 · memory-echo | **in-progress** | `session_logger.py` ships as a SessionEnd hook (live qwen-plus) — this is NOT the Track-1 MVP | Once brain client exists: ingest → expire stale → recall-under-budget demo harness | chat:memory-echo |
-| T2 · showrunner | **blocked** (on brain) | — | Read recent `memory_events` → 1 `qwen-plus` script → write `showrunner.private` | chat:showrunner |
-| T3 · git-committer | **blocked** (on brain) | — | Read `shared.code-conventions` → 1 `qwen2.5-coder` review pass over a fixed diff | chat:git-committer |
-| T4 · open-translate | **blocked** (on brain) | — | Read `shared.glossary` → 1 `qwen-plus` translation honoring it | chat:open-translate |
-| T5 · skippy-concierge | **blocked** (on brain) | — | Seed a couple `devices` rows → 1 text→action `qwen-plus` call | chat:skippy |
-| Deploy + proof (×5 required) | **done** | — | ONE shared Alibaba Cloud harness every track hits — not 5 bespoke deploys | chat:infra |
-| Submission kit | **in-progress** | Blogger drafts the journal (qwen-plus, "invent nothing"); `viewer.html` renders any repo `.md` live | Re-run blogger after the keystone lands | chat:submission |
+| Spine `shared/` | **done** | DashScope Singapore compatible endpoint; chat + embeddings live, smoke passes | Frozen — agents import, never fork | — |
+| **Brain runtime** ⭐ keystone | **done** | `shared/brain.py` E2E verified: ingest→retrieve, Postgres+Qdrant, governance, token budget | — | — |
+| T1 · memory-echo | **in-progress** | `session_logger.py` + `brain/demo/track1_demo.py` work; WebUI renders | Fix cwd-relative import in demo; wire `/api/memory-echo` properly | chat:memory-echo |
+| T2 · showrunner | **in-progress** | `recap.py` imports OK (needs brain live); broken duplicates `main.py`/`script_generator.py` exist | Delete broken duplicates; confirm recap.py runs end-to-end against live brain | chat:showrunner |
+| T3 · git-committer | **in-progress** | `review.py` solid — multi-role + delta metric verified; WebUI renders | Fix `debate_prototype.py` import; wire `/api/git-committer` endpoint | chat:git-committer |
+| T4 · open-translate | **in-progress** | `translate.py` CLI verified (`--help` OK); broken duplicate `translator.py` exists | Delete `translator.py`; wire `/api/open-translate` endpoint | chat:open-translate |
+| T5 · skippy-concierge | **blocked** | `device_handler.py` broken (`from app import db`); `skippy_demo.py` broken (dashed pkg); no working entrypoint | Write a real single-file `skippy.py` (text→action via BrainClient, no `app`, no dashes) | chat:skippy |
+| Deploy + proof (×5 required) | **not-started** | `deploy.py` files all fail — missing `aliyunsdkcore`/`oss2` SDKs; **0/5 deployed** | Decision needed: genuinely deploy on Alibaba Cloud, OR pivot to honest local-first story | chat:infra |
+| Submission kit | **in-progress** | Blogger + `blog.html` + `viewer.html` exist; videos not recorded yet | Record 5 videos once per-track demos run end-to-end | chat:submission |
 
 ### Next move (highest leverage)
 **Build the keystone brain client.** It is the single dependency under four blocked tracks; landing it
@@ -45,17 +45,20 @@ converts them all to "a few hours each." Skip n8n — demo agents call `shared/b
 | 2026-06-26 | **Decision — keystone:** the next build is `shared/brain.py` (`ingest`/`retrieve`) over Postgres+Qdrant; it unblocks T2–T5. |
 | 2026-06-26 | **Decision — scope cut:** n8n orchestrator removed from the critical path (demo agents call the brain client in-process); n8n is polish-if-time only. |
 | 2026-06-26 | **Decision — deploy:** one shared Alibaba Cloud harness for proof+video across all tracks, not 5 bespoke deploys. |
+| 2026-07-02 | **Loops PAUSED** — paused all 3 n8n coding-agent workflows (incl. 2 unguarded ones that were the root cause of keystone churn). Deep prod-readiness review → `REVIEW.md`. Reconciled all PLAN.md/HACKATHON.md checkboxes to reality. 0/5 deployed, 0/5 videos. Working: keystone, git-committer, translate.py CLI, T1 demo, WebUIs render. Blocked: skippy (no working entrypoint). |
 | _ongoing_ | Log real milestones here through 2026-07-09. |
 
 ---
 
 ## Per-track submission proofs (required for each track)
 
+**Status as of 2026-07-02: 0/5 deployed, 0/5 videos recorded.**
+
 | Track | Agent | Deployment Proof | Demo Video |
 |---|---|---|---|
-| T1 MemoryAgent | memory-echo | https://qwen-cloud.com/deploy/memory-echo | https://qwen-cloud.com/videos/memory-echo-demo |
-| T2 AI Showrunner | showrunner | https://qwen-cloud.com/deploy/showrunner | https://qwen-cloud.com/videos/showrunner-demo |
-| T3 Agent Society | git-committer | https://qwen-cloud.com/deploy/git-committer | https://qwen-cloud.com/videos/git-committer-demo |
-| T4 Autopilot | open-translate | https://qwen-cloud.com/deploy/open-translate | https://qwen-cloud.com/videos/open-translate-demo |
-| T5 EdgeAgent | skippy-concierge | https://qwen-cloud.com/deploy/skippy-concierge | https://qwen-cloud.com/videos/skippy-concierge-demo |
+| T1 MemoryAgent | memory-echo | NOT DEPLOYED — local only | NOT RECORDED |
+| T2 AI Showrunner | showrunner | NOT DEPLOYED — local only | NOT RECORDED |
+| T3 Agent Society | git-committer | NOT DEPLOYED — local only | NOT RECORDED |
+| T4 Autopilot | open-translate | NOT DEPLOYED — local only | NOT RECORDED |
+| T5 EdgeAgent | skippy-concierge | NOT DEPLOYED — local only | NOT RECORDED |
 | Blog Post Award | submission-kit (`blogger.py`, `blog.html`, `viewer.html`) | n/a | n/a |
