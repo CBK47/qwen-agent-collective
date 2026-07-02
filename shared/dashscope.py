@@ -221,7 +221,24 @@ class DashScopeClient:
         metadata: Mapping[str, Any] | None = None,
         **extra: Any,
     ) -> Iterator[str]:
-        """Stream a chat completion as text chunks."""
+        """Stream a chat completion as text chunks.
+
+        Args:
+            prompt: The user's input text. Either `prompt` or `messages` must be provided.
+            messages: A sequence of message dictionaries. Each message should have a 'role' and 'content' key.
+            model: The model to use for the chat. If not specified, uses the default chat model from config.
+            temperature: Controls randomness. Lower values make the model more deterministic. Defaults to config's temperature.
+            max_tokens: The maximum number of tokens to generate in the response. Defaults to config's max_tokens.
+            timeout: Request timeout in seconds. Defaults to config's timeout_seconds.
+            metadata: Additional metadata for the request, such as request_id.
+            **extra: Additional keyword arguments to pass to the underlying API call.
+
+        Yields:
+            Text chunks from the model's response as they become available.
+
+        Raises:
+            DashScopeError: If the request fails after retries.
+        """
         request_messages = _normalize_messages(prompt, messages)
         stream = self._with_retries(
             operation="chat_stream",
@@ -256,7 +273,20 @@ class DashScopeClient:
         timeout: float | None = None,
         metadata: Mapping[str, Any] | None = None,
     ) -> list[float] | list[list[float]]:
-        """Embed one string or a batch of strings."""
+        """Embed one or more strings into vectors.
+
+        Args:
+            text: A single string or a sequence of strings to embed.
+            model: The embedding model to use. If not specified, uses the default embed model from config.
+            timeout: Request timeout in seconds. Defaults to config's timeout_seconds.
+            metadata: Additional metadata for the request, such as request_id.
+
+        Returns:
+            A list of floats for a single string input, or a list of lists of floats for multiple strings.
+
+        Raises:
+            DashScopeError: If the request fails after retries.
+        """
         response = self._with_retries(
             operation="embed",
             model=model or self.config.embed_model,
@@ -271,7 +301,14 @@ class DashScopeClient:
         return vectors[0] if isinstance(text, str) else vectors
 
     def list_models(self) -> list[str]:
-        """Return model IDs visible to the configured key."""
+        """List all available models visible to the configured API key.
+
+        Returns:
+            A list of model IDs that are accessible with the current configuration.
+
+        Raises:
+            DashScopeError: If the request fails after retries.
+        """
         response = self._with_retries(
             operation="models.list",
             model=None,
@@ -281,7 +318,14 @@ class DashScopeClient:
         return [model.id for model in response.data]
 
     def diagnose(self, *, network: bool = True) -> dict[str, Any]:
-        """Validate config and, optionally, live credentials."""
+        """Run diagnostics on the DashScope configuration and credentials.
+
+        Args:
+            network: Whether to perform network-based diagnostics (e.g., checking API connectivity). If False, only checks local configuration.
+
+        Returns:
+            A dictionary containing the diagnostic results, including configuration details and check results.
+        """
         report: dict[str, Any] = {
             "ok": False,
             "config": self.config.redacted(),
