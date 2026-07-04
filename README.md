@@ -114,6 +114,14 @@ for result in results:
 
 ## Developer Commands
 
+Create a local Python environment before running tests:
+
+```bash
+python3 -m venv .venv
+. .venv/bin/activate
+python3 -m pip install -r requirements.txt
+```
+
 ```bash
 make doctor   # live DashScope/Qwen credential diagnostics
 make test     # offline unit tests

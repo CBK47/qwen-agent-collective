@@ -1,14 +1,12 @@
 import os
 import time
 from aliyunsdkcore.client import AcsClient
-from aliyunsdkcore.request import CommonRequest
 from aliyunsdkecs.request.v20140526 import (
     CreateSecurityGroupRequest,
     CreateSecurityGroupRuleRequest,
     CreateInstanceRequest,
     DescribeInstancesRequest
 )
-from aliyunsdkcore.acs_exception.exceptions import ClientException, ServerException
 import subprocess
 
 # Get Alibaba Cloud credentials from environment variables
@@ -30,7 +28,12 @@ acr_registry = 'registry.cn-hangzhou.aliyuncs.com/open-translate/open-translate-
 print(f"Pushing image to ACR: {acr_registry}")
 
 # Login to ACR using AccessKey
-subprocess.run(['docker', 'login', '-u', access_key_id, '-p', access_key_secret, 'registry.cn-hangzhou.aliyuncs.com'], check=True)
+subprocess.run(
+    ['docker', 'login', '-u', access_key_id, '--password-stdin', 'registry.cn-hangzhou.aliyuncs.com'],
+    input=access_key_secret,
+    text=True,
+    check=True,
+)
 subprocess.run(['docker', 'tag', 'open-translate-agent', acr_registry], check=True)
 subprocess.run(['docker', 'push', acr_registry], check=True)
 
@@ -62,9 +65,12 @@ client.do_action_with_exception(https_rule_request)
 # Create ECS instance with startup script
 print("Creating ECS instance...")
 startup_script = f"""#!/bin/bash
+set -euo pipefail
 apt-get update
 apt-get install -y docker.io
-docker login -u {access_key_id} -p {access_key_secret} registry.cn-hangzhou.aliyuncs.com
+# Do not embed long-lived AccessKey secrets in ECS user-data. Configure the
+# instance with a RAM role / ACR pull permission, or make the image pullable by
+# the deployment identity before launching this script.
 docker pull {acr_registry}
 docker run -d -p 80:80 -p 443:443 {acr_registry}
 """

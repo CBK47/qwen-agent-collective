@@ -61,10 +61,32 @@ class Segment:
 
 def load_glossary(target_language: str) -> dict[str, str]:
     brain_client = BrainClient()
-    glossary_data = brain_client.retrieve('shared.glossary')
+    glossary_data: Any = brain_client.retrieve('shared.glossary', namespace='shared.glossary')
+
+    if isinstance(glossary_data, str):
+        glossary_data = glossary_data.strip()
+        if glossary_data:
+            try:
+                glossary_data = json.loads(glossary_data)
+            except json.JSONDecodeError:
+                glossary_data = {}
+        else:
+            glossary_data = {}
+
+    if not isinstance(glossary_data, dict):
+        glossary_data = {}
+
+    glossary_data = glossary_data.get('translation_memory', glossary_data)
+    if not glossary_data:
+        fallback = pathlib.Path(__file__).with_name('glossary.json')
+        try:
+            glossary_data = json.loads(fallback.read_text(encoding='utf-8')).get('translation_memory', {})
+        except (OSError, json.JSONDecodeError):
+            glossary_data = {}
+
     for lang, pairs in glossary_data.items():
-        if lang.lower() == target_language.lower():
-            return {k.lower(): v for k, v in pairs.items()}
+        if lang.lower() == target_language.lower() and isinstance(pairs, dict):
+            return {str(k).lower(): str(v) for k, v in pairs.items()}
     return {}
 
 

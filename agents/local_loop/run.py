@@ -1,20 +1,18 @@
 #!/usr/bin/env python3
 """
 Local autonomous coding loop agent.
-Called by n8n every 15 minutes. Does: review → code → safety → run → commit.
+Called by n8n every 15 minutes. Does: review → propose edit → validate → commit.
 All output goes to stdout so n8n can capture it.
 """
 import json, subprocess, urllib.request, sys, os, re, datetime
+from pathlib import Path
 
-REPO = "/home/cbk/qwen-agent-collective"
+REPO = os.environ.get("REPO_PATH", str(Path(__file__).resolve().parents[2]))
 OLLAMA = "http://172.20.0.1:11434/api/chat"
 MODEL = os.environ.get("OLLAMA_CODE_MODEL", "qwen3-next-cbk:latest")
 
-BLOCKED_PATTERNS = [
-    "rm -rf", "rm -r", " rm ", "git push", "git reset --hard",
-    "git commit", "apt-get", "pip install", "> /etc/", "> /usr/",
-    "> /bin/", ":(){", "mkfs", "/dev/", "eval $(", "chmod 777",
-]
+ALLOWED_EDIT_ROOTS = ("agents/", "shared/", "brain/demo/")
+MAX_APPEND_CHARS = 1200
 
 def ollama(messages, temperature=0.2, num_predict=4000):
     payload = {
@@ -33,15 +31,51 @@ def ollama(messages, temperature=0.2, num_predict=4000):
         raw = raw.split("</think>")[-1]
     return raw.strip()
 
-def extract_script(text):
-    """Find the last code fence or shebang block in text."""
-    fences = re.findall(r'```(?:sh|bash|shell)?\n?([\s\S]*?)```', text)
-    if fences:
-        return fences[-1].strip()
-    idx = text.rfind("#!/")
-    if idx != -1:
-        return text[idx:].strip()
-    return ""
+def extract_json_object(text):
+    """Return the first JSON object from model output, including fenced JSON."""
+    fences = re.findall(r'```(?:json)?\n?([\s\S]*?)```', text)
+    candidates = fences + [text]
+    for candidate in candidates:
+        candidate = candidate.strip()
+        start = candidate.find("{")
+        end = candidate.rfind("}")
+        if start == -1 or end == -1 or end <= start:
+            continue
+        try:
+            return json.loads(candidate[start:end + 1])
+        except json.JSONDecodeError:
+            continue
+    return None
+
+
+def validate_append_edit(payload):
+    """Validate the model's narrow edit contract and return (path, content)."""
+    if not isinstance(payload, dict):
+        raise ValueError("model did not return a JSON object")
+
+    rel_path = str(payload.get("path", "")).strip().lstrip("./")
+    append_text = payload.get("append", "")
+
+    if not rel_path.endswith(".py"):
+        raise ValueError("only Python files can be edited by local-loop")
+    if os.path.isabs(rel_path) or ".." in rel_path.split(os.sep):
+        raise ValueError("edit path must stay inside the repository")
+    if not rel_path.startswith(ALLOWED_EDIT_ROOTS):
+        raise ValueError(f"edit path must start with one of {ALLOWED_EDIT_ROOTS}")
+    if not isinstance(append_text, str) or not append_text.strip():
+        raise ValueError("append content is empty")
+    if len(append_text) > MAX_APPEND_CHARS:
+        raise ValueError(f"append content exceeds {MAX_APPEND_CHARS} characters")
+
+    abs_path = os.path.realpath(os.path.join(REPO, rel_path))
+    repo_root = os.path.realpath(REPO) + os.sep
+    if not abs_path.startswith(repo_root):
+        raise ValueError("resolved edit path escaped the repository")
+    if not os.path.exists(abs_path):
+        raise ValueError("local-loop only edits existing files")
+
+    return rel_path, append_text.rstrip() + "\n"
+
 
 def extract_commit_msg(text):
     """Return first line matching Conventional Commits, else clean fallback."""
@@ -110,63 +144,52 @@ if os.path.exists(target_path):
 
 code_raw = ollama([
     {"role": "system", "content":
-     "You are an autonomous coding agent. Output a POSIX sh script.\n\n"
-     "RULES:\n"
-     "- First line MUST be: #!/bin/sh\n"
-     "- Use ONLY: echo, printf, cat, tee, mkdir -p\n"
-     "- Write/append to files with heredoc: cat >> path << 'HEREDOC' ... HEREDOC\n"
-     "- ALL paths relative to /home/cbk/qwen-agent-collective\n"
-     "- FORBIDDEN: rm, git push, git reset, git commit, pip install, apt-get, curl, wget\n"
-     "- Under 30 lines total\n"
-     "- Last line: echo 'DONE: <description>'\n"
-     "- Output ONLY the script. NO markdown fences. NO explanation. Start with #!/bin/sh"},
+     "You are an autonomous coding assistant. Output ONLY one JSON object.\n\n"
+     "Schema:\n"
+     "{\n"
+     "  \"path\": \"existing relative .py path under agents/, shared/, or brain/demo/\",\n"
+     "  \"append\": \"small Python comment/docstring/helper stub to append\",\n"
+     "  \"description\": \"short summary\"\n"
+     "}\n\n"
+     "Rules:\n"
+     "- Do not output shell, markdown, commands, or explanations.\n"
+     "- Append only; do not ask to rewrite or delete files.\n"
+     "- Keep append under 1200 characters.\n"
+     "- Prefer harmless docs, comments, or TODO stubs."},
     {"role": "user", "content":
      f"Review:\n{review}\n\n"
      f"Target file ({target_file}):\n```python\n{file_content}\n```\n\n"
-     "Write the sh script. Start immediately with #!/bin/sh on the first line."}
+     "Return the JSON edit object now."}
 ], temperature=0.1, num_predict=6000)
 
-script = extract_script(code_raw)
-if not script:
-    # Last resort: if model output starts with #!/ after stripping leading text
-    lines = code_raw.split("\n")
-    for i, line in enumerate(lines):
-        if line.startswith("#!/"):
-            script = "\n".join(lines[i:]).strip()
-            break
-
-print(f"Script extracted: {len(script)} chars, starts with: {script[:40]!r}")
+payload = extract_json_object(code_raw)
+edit_path = None
+run_output = ""
 
 # ── 5. Safety check ────────────────────────────────────────────────────────────
-if not script or not script.startswith("#!/"):
-    print("[5/7] No valid script — using no-op")
-    script = None
-else:
-    hits = [b for b in BLOCKED_PATTERNS if b in script]
-    if hits:
-        print(f"[5/7] BLOCKED: {hits}")
-        script = None
-    elif "/home/" in script and "/home/cbk/qwen-agent-collective" not in script:
-        print("[5/7] BLOCKED: path outside repo")
-        script = None
-    else:
-        print("[5/7] Safety PASSED")
+try:
+    edit_path, append_text = validate_append_edit(payload)
+    print(f"[5/7] Safety PASSED: append to {edit_path}")
+except Exception as exc:
+    print(f"[5/7] Edit rejected — using report-only commit: {exc}")
+    edit_path = None
 
-# ── 6. Run script ──────────────────────────────────────────────────────────────
-run_output = ""
-if script:
-    print("[6/7] Running script...")
-    run = subprocess.run(["sh", "-c", script], cwd=REPO, capture_output=True, text=True, timeout=60)
-    run_output = run.stdout.strip()
-    print(f"Exit: {run.returncode}, output: {run_output[:200]}")
-    if run.stderr:
-        print(f"Stderr: {run.stderr[:200]}")
+# ── 6. Apply edit directly ─────────────────────────────────────────────────────
+if edit_path:
+    print("[6/7] Applying validated append...")
+    with open(os.path.join(REPO, edit_path), "a", encoding="utf-8") as f:
+        f.write("\n" + append_text)
+    run_output = payload.get("description", f"append validated note to {edit_path}") if isinstance(payload, dict) else ""
+    print(f"Applied: {run_output[:200]}")
 else:
     print("[6/7] Skipped (no-op)")
 
 # ── 7. Commit everything (report + any code changes) ──────────────────────────
 print("[7/7] Committing...")
-subprocess.run(["git", "add", "-A"], cwd=REPO, check=True)  # -A includes new files
+paths_to_stage = [os.path.relpath(rpath, REPO)]
+if edit_path:
+    paths_to_stage.append(edit_path)
+subprocess.run(["git", "add", "--", *paths_to_stage], cwd=REPO, check=True)
 status = subprocess.check_output(["git", "diff", "--staged", "--stat"], cwd=REPO, text=True).strip()
 
 if not status:
