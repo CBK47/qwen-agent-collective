@@ -2,6 +2,12 @@
 
 One shared memory brain plus five specialist Qwen agents - one per hackathon track - built for the **Global AI Hackathon with Qwen Cloud**.
 
+> **🏆 Track 3 submission — start here:** [`agents/git-committer`](agents/git-committer/) — a
+> code-review agent society (task division → debate → negotiation) with a measurable
+> delta vs a single-agent baseline. Architecture:
+> [`docs/architecture/git-committer-track3.md`](docs/architecture/git-committer-track3.md) ·
+> Try it: `node webui/server.mjs` → http://localhost:4321/git-committer.html
+
 Every agent calls Qwen models on Alibaba Cloud Model Studio (DashScope) at runtime and reads/writes the shared brain. Build philosophy: breadth-first MVP - thin working skeletons across all five tracks first, polish later.
 
 ## Agents
