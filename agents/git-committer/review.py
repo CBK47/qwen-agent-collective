@@ -103,7 +103,7 @@ def _parse_issues(raw: str) -> list[dict]:
         return []
 
 
-def run_role_reviewers(diff: str, client: BrainClient, conventions: str) -> list[dict]:
+def run_role_reviewers(diff: str, client: BrainClient, conventions: str = "") -> list[dict]:
     """Run role-specific reviewers (correctness, security, style) over the provided diff.
 
     Parameters:
@@ -123,7 +123,7 @@ def run_role_reviewers(diff: str, client: BrainClient, conventions: str) -> list
                 {"role": "system", "content": system},
                 {"role": "user", "content": prompt},
             ],
-            model="qwen2.5-coder",
+            model=getattr(client.config, "coder_model", "qwen2.5-coder"),
             temperature=0,
         )
         results.append({"role": role, "issues": _parse_issues(raw)})
@@ -150,7 +150,7 @@ def run_negotiation(role_findings: list[dict], client: BrainClient) -> dict:
             {"role": "system", "content": _NEGOTIATION_SYSTEM},
             {"role": "user", "content": "Reviewer findings:\n" + json.dumps(merged)},
         ],
-        model="qwen2.5-coder",
+        model=getattr(client.config, "coder_model", "qwen2.5-coder"),
         temperature=0,
     )
     try:
@@ -163,7 +163,7 @@ def run_negotiation(role_findings: list[dict], client: BrainClient) -> dict:
         }
 
 
-def run_baseline(diff: str, client: BrainClient, conventions: str) -> list[dict]:
+def run_baseline(diff: str, client: BrainClient, conventions: str = "") -> list[dict]:
     """Run a single-agent baseline review over the same diff.
 
     Parameters:
@@ -180,7 +180,7 @@ def run_baseline(diff: str, client: BrainClient, conventions: str) -> list[dict]
             {"role": "system", "content": system},
             {"role": "user", "content": f"Diff:\n{diff}"},
         ],
-        model="qwen2.5-coder",
+        model=getattr(client.config, "coder_model", "qwen2.5-coder"),
         temperature=0,
     )
     return _parse_issues(raw)
@@ -232,6 +232,38 @@ def review_diff(diff: str, client: BrainClient | None = None) -> dict:
     }
 
 
+def format_review_report(result: dict) -> str:
+    """Render review output as a compact human-readable report for demos."""
+    if result.get("error"):
+        return result["error"]
+
+    verdict = result.get("verdict") or {}
+    metric = result.get("metric") or {}
+    lines = [
+        f"Verdict: {verdict.get('verdict', 'unknown')}",
+        f"Summary: {verdict.get('summary', '').strip() or 'No summary returned.'}",
+        "",
+        "Role findings:",
+    ]
+
+    for finding in result.get("role_findings", []):
+        issues = finding.get("issues") or []
+        lines.append(f"- {finding.get('role', 'unknown')}: {len(issues)} issue(s)")
+        for issue in issues:
+            severity = issue.get("severity", "unknown")
+            note = issue.get("note", "").strip()
+            lines.append(f"  [{severity}] {note}")
+
+    lines.extend([
+        "",
+        "Agent Society delta:",
+        f"- multi-role issue count: {metric.get('team_issue_count', 0)}",
+        f"- single-agent baseline count: {metric.get('baseline_issue_count', 0)}",
+        f"- delta: {metric.get('delta', 0)}",
+    ])
+    return "\n".join(lines)
+
+
 # ---------------------------------------------------------------------------
 # CLI entry point
 # ---------------------------------------------------------------------------
@@ -257,6 +289,12 @@ def main(argv: list[str] | None = None) -> int:
         metavar="PATH",
         help="Path to a unified diff file. Reads from stdin if omitted.",
     )
+    parser.add_argument(
+        "--format",
+        choices=("json", "text"),
+        default="json",
+        help="Output format. JSON is the judging/test default; text is for demo UI.",
+    )
     args = parser.parse_args(argv)
 
     if args.diff_file:
@@ -270,7 +308,10 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(result, indent=2), file=sys.stderr)
         return 1
 
-    print(json.dumps(result, indent=2))
+    if args.format == "text":
+        print(format_review_report(result))
+    else:
+        print(json.dumps(result, indent=2))
     return 0
 
 

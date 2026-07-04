@@ -6,3 +6,5 @@ python-dotenv>=1.0.0
 openai>=1.0.0
 psycopg2-binary>=2.9
 qdrant-client>=1.12
+aliyun-python-sdk-core>=2.16.0
+aliyun-python-sdk-ecs>=4.24.0

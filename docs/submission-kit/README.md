@@ -17,6 +17,12 @@ Latest edited post: [`blog-draft.md`](blog-draft.md). Re-run after each real mil
 lands in `HACKATHON.md`, then edit and publish the next part. The prompt's hard rule is
 "invent nothing that isn't in the inputs," so the post stays honest as the log grows.
 
+## Track 3 Submission Pack
+
+- [Devpost draft and demo script](git-committer-devpost.md)
+- [Architecture diagram](../architecture/git-committer-track3.md)
+- [Alibaba Cloud ECS proof file](../../agents/git-committer/deploy.py)
+
 ## Planned Contents
 
 - Demo video script and storyboard

@@ -6,13 +6,13 @@
    <a class="back" href="/">← all agents</a>
    <div class="hero" style="margin-top:18px"><span class="dot" style="background:#fdba74"></span>
      <strong style="font-size:20px">A debating society for your diffs.</strong></div>
-   <p style="color:var(--mut);max-width:62ch">Pedant, Architect, and Skeptic personas review a diff against shared code conventions, then synthesize one Conventional Commit message.</p>
-   <div><span class="pill">qwen3-coder-plus</span><span class="pill">qwen-plus</span></div>
+   <p style="color:var(--mut);max-width:62ch">Correctness, security, and style reviewers inspect the same diff, then a negotiation step merges their findings into one verdict with a single-agent baseline metric.</p>
+   <div><span class="pill">QWEN_CODER_MODEL</span><span class="pill">shared brain conventions</span><span class="pill">baseline delta</span></div>
    <div class="demo">
      <label for="in">Review a diff</label>
-     <textarea id="in" placeholder="def add(a,b): return a-b"></textarea>
+     <textarea id="in" placeholder="diff --git a/app.py b/app.py&#10;@@ -1,2 +1,4 @@&#10; def login(user):&#10;+    password = 'secret123'"></textarea>
      <div class="row"><button class="go" style="background:#fdba74" onclick="run()">Review</button>
-       <span class="note">calls <code>/api/git-committer</code> when the backend is wired</span></div>
+       <span class="note">calls <code>/api/git-committer</code></span></div>
      <div class="out" id="out"></div>
    </div>
    <script>
@@ -24,6 +24,6 @@
        const r=await fetch('/api/git-committer',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({input:q})});
        if(!r.ok) throw new Error('HTTP '+r.status);
        const j=await r.json(); out.textContent=j.output||JSON.stringify(j,null,2);
-     }catch(e){ out.textContent='[demo] backend not wired yet ('+e.message+').\nThis console is ready; connect /api/git-committer to the Committer agent.'; }
+     }catch(e){ out.textContent='Review failed: '+e.message+'. Check DASHSCOPE_API_KEY and server logs.'; }
    }
    </script><footer>qwen-agent-collective · five agents, one shared brain · <span class="note">Global AI Hackathon with Qwen Cloud</span></footer></div></body></html>

@@ -48,83 +48,53 @@ To deploy the git-committer agent to Alibaba Cloud infrastructure, follow these 
 
 4. **Verify Deployment**: After deployment, verify the agent is running by checking the instance status in the Alibaba Cloud Console or using SSH to connect to the instance and check the agent logs.
 
-## WebUI Frontend
+## Running the Track 3 Demo
 
-The git-committer now includes a WebUI for easier interaction. To start the WebUI:
+The canonical implementation is `review.py`. It runs three role-specific Qwen
+reviewers, a Qwen negotiation step, and a single-agent baseline over the same
+diff.
 
-1. Ensure the `.env` file is set up with your DashScope API key (as per Setup section).
+```bash
+# JSON output for judging
+python agents/git-committer/review.py --diff-file sample.patch
 
-2. Run the following command in the project root:
+# Human-readable demo output
+git diff HEAD~1 | python agents/git-committer/review.py --format text
+```
 
-   ```
-   python webui.py
-   ```
+Start the WebUI from the repository root:
 
-3. Open your browser to `http://localhost:5000` to access the interface.
+```bash
+node webui/server.mjs
+```
 
-### Usage
+Then open `http://localhost:4321/git-committer.html`. The page posts to
+`/api/git-committer`, which invokes `review.py` and returns the negotiated
+review report.
 
-Once the WebUI is running, follow these steps to interact with the agent:
+## Agent Society Metric
 
-- **View Staged Changes**: The interface displays all staged files with their diffs. Each file's changes are shown in a syntax-highlighted viewer, with additions in green and deletions in red.
+The result includes:
 
-- **Review Commit Suggestions**: The agent generates a conventional commit message based on the changes. This message appears in a dedicated text area where you can edit it if needed.
+- `team_issue_count`: total issues found by the specialist reviewers
+- `baseline_issue_count`: issues found by one holistic reviewer
+- `delta`: `team_issue_count - baseline_issue_count`
 
-- **Inspect Inline Suggestions**: For specific lines of code, the agent provides inline comments or suggestions. These are displayed as annotations next to the relevant lines in the diff viewer.
+This gives the Track 3 submission a measurable comparison between the
+multi-agent society and a single-agent baseline.
 
-- **Commit Changes**: After reviewing the changes and commit message, click the "Commit" button to finalize the commit. The WebUI will confirm the action and refresh the interface to show the updated repository state.
+## Alibaba Cloud Deployment
 
-This visual interface streamlines the commit process and helps ensure adherence to project conventions.
+`deploy.py` creates an Alibaba Cloud ECS instance and installs the WebUI service
+through ECS user-data. It deliberately does not embed `DASHSCOPE_API_KEY` in
+user-data; put secrets in `/etc/qwen-agent-collective.env` on the instance.
 
-## Video Upload
+```bash
+python agents/git-committer/deploy.py --dry-run
+```
 
-The git-committer agent now supports uploading and analyzing video files to generate commit messages based on visual content. This feature extends the agent's capabilities to handle multimedia assets alongside code changes.
-
-### Required Parameters
-
-- **Video File Path**: The local path to the video file to be processed (e.g., `/path/to/video.mp4`).
-
-- **DashScope API Key**: Must be configured in the `.env` file (see Setup section).
-
-### Usage Examples
-
-1. **WebUI Integration**:
-
-   - After starting the WebUI (`python webui.py`), navigate to the "Video Upload" tab.
-
-   - Select a video file from your system; the agent will automatically analyze it and display a suggested commit message.
-
-   - Review the message and click "Commit" to finalize the changes.
-
-2. **Command Line**:
-
-   ```
-   python review.py --video /path/to/video.mp4
-   ```
-
-   This command processes the video and generates a commit message. If there are staged code changes, the agent combines both the code and video analysis for the commit message.
-
-This feature enables comprehensive commit documentation for projects involving multimedia content, ensuring all changes are properly tracked and described.
-
-## Review Pipeline
-
-The `review.py` script is the core component of the review process. It follows these steps:
-
-1. **Collects Staged Changes**: Uses `git diff` to retrieve the current staged changes.
-
-2. **Loads Code Conventions**: Reads from the `shared.code-conventions` namespace in the brain.
-
-3. **Processes with Qwen Model**: Sends the diff and conventions to the Qwen model:
-
-   ```
-   Model: qwen2.5-coder-32b-instruct (QWEN_CODER_MODEL)
-   Input: git diff + shared.code-conventions context
-   Output: conventional commit message + optional inline review notes
-   ```
-
-4. **Applies Changes**: Writes the commit message to the repository and updates the `git-committer.private` namespace with learned preferences.
-
-This pipeline ensures that all commits adhere to the project's coding standards and maintain consistency across the codebase.
+For real deployment, set the required `ALIBABA_CLOUD_*` and `ALIYUN_*` resource
+variables listed in `deploy.py`, then run the same command without `--dry-run`.
 
 ## Brain Namespaces
 
