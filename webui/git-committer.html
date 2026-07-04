@@ -6,8 +6,8 @@
    <a class="back" href="/">← all agents</a>
    <div class="hero" style="margin-top:18px"><span class="dot" style="background:#fdba74"></span>
      <strong style="font-size:20px">A debating society for your diffs.</strong></div>
-   <p style="color:var(--mut);max-width:62ch">Correctness, security, and style reviewers inspect the same diff, then a negotiation step merges their findings into one verdict with a single-agent baseline metric.</p>
-   <div><span class="pill">QWEN_CODER_MODEL</span><span class="pill">shared brain conventions</span><span class="pill">baseline delta</span></div>
+   <p style="color:var(--mut);max-width:62ch">Correctness, security, and style reviewers inspect the same diff in parallel, debate each other's findings in a rebuttal round, then a negotiator merges the survivors into one verdict and a Conventional Commits message — measured against a single-agent baseline.</p>
+   <div><span class="pill">QWEN_CODER_MODEL</span><span class="pill">debate round</span><span class="pill">shared brain conventions</span><span class="pill">deduped baseline delta</span></div>
    <div class="demo">
      <label for="in">Review a diff</label>
      <textarea id="in" placeholder="diff --git a/app.py b/app.py&#10;@@ -1,2 +1,4 @@&#10; def login(user):&#10;+    password = 'secret123'"></textarea>

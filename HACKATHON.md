@@ -17,7 +17,7 @@ STATE ∈ not-started · in-progress · blocked · done. OWNER-CHAT = the code c
 | **Brain runtime** ⭐ keystone | **done** | `shared/brain.py` E2E verified: ingest→retrieve, Postgres+Qdrant, governance, token budget | — | — |
 | T1 · memory-echo | **in-progress** | `session_logger.py` + `brain/demo/track1_demo.py` work; WebUI renders | Fix cwd-relative import in demo; wire `/api/memory-echo` properly | chat:memory-echo |
 | T2 · showrunner | **in-progress** | `recap.py` imports OK (needs brain live); broken duplicates `main.py`/`script_generator.py` exist | Delete broken duplicates; confirm recap.py runs end-to-end against live brain | chat:showrunner |
-| T3 · git-committer | **in-progress** | `review.py` solid — multi-role + delta metric verified; WebUI renders | Fix `debate_prototype.py` import; wire `/api/git-committer` endpoint | chat:git-committer |
+| T3 · git-committer | **demo-ready** | Debate round added (task division → dialogue → negotiation), honest deduped delta, Conventional Commit output, `sample.patch`, WebUI verified E2E in browser, 34/34 tests | Deploy to ECS + record ~3 min video | chat:git-committer |
 | T4 · open-translate | **in-progress** | `translate.py` CLI verified (`--help` OK); broken duplicate `translator.py` exists | Delete `translator.py`; wire `/api/open-translate` endpoint | chat:open-translate |
 | T5 · skippy-concierge | **blocked** | `device_handler.py` broken (`from app import db`); `skippy_demo.py` broken (dashed pkg); no working entrypoint | Write a real single-file `skippy.py` (text→action via BrainClient, no `app`, no dashes) | chat:skippy |
 | Deploy + proof (×5 required) | **not-started** | `deploy.py` files all fail — missing `aliyunsdkcore`/`oss2` SDKs; **0/5 deployed** | Decision needed: genuinely deploy on Alibaba Cloud, OR pivot to honest local-first story | chat:infra |
@@ -46,6 +46,7 @@ converts them all to "a few hours each." Skip n8n — demo agents call `shared/b
 | 2026-06-26 | **Decision — scope cut:** n8n orchestrator removed from the critical path (demo agents call the brain client in-process); n8n is polish-if-time only. |
 | 2026-06-26 | **Decision — deploy:** one shared Alibaba Cloud harness for proof+video across all tracks, not 5 bespoke deploys. |
 | 2026-07-02 | **Loops PAUSED** — paused all 3 n8n coding-agent workflows (incl. 2 unguarded ones that were the root cause of keystone churn). Deep prod-readiness review → `REVIEW.md`. Reconciled all PLAN.md/HACKATHON.md checkboxes to reality. 0/5 deployed, 0/5 videos. Working: keystone, git-committer, translate.py CLI, T1 demo, WebUIs render. Blocked: skippy (no working entrypoint). |
+| 2026-07-05 | **Decision — all-in on T3.** git-committer polished to submission grade: debate/rebuttal round makes the Track 3 "dialogue" criterion literal; delta metric now counts **deduplicated** post-negotiation issues (was raw per-role sum — duplicate-inflated); negotiator writes the Conventional Commit message (name promise fulfilled); `sample.patch` added (docs referenced a file that didn't exist); JSON fence-tolerant parsing; role reviewers parallelized; WebUI 404 fixed (dead path-rewrite); test FakeClient repaired (last commit broke `make test`); live E2E verified in browser — delta +1 on sample.patch. |
 | _ongoing_ | Log real milestones here through 2026-07-09. |
 
 ---

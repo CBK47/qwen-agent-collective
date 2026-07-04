@@ -1,9 +1,10 @@
 # Track 3 Architecture: git-committer Agent Society
 
 `git-committer` is the Track 3 submission path for the Qwen Cloud hackathon.
-It turns a unified diff into a negotiated code-review verdict by running three
-specialist Qwen reviewers, then comparing the team result with a single-agent
-baseline.
+It turns a unified diff into a negotiated code-review verdict plus a
+Conventional Commits message by running three specialist Qwen reviewers, a
+debate round, and a negotiation step, then comparing the team result with a
+single-agent baseline.
 
 ## Agent Roles
 
@@ -12,7 +13,8 @@ baseline.
 | Correctness reviewer | Logic bugs, edge cases, behavioral regressions | JSON issue list |
 | Security reviewer | Secrets, injection, auth gaps, unsafe data handling | JSON issue list |
 | Style/test reviewer | Maintainability, naming, dead code, missing tests | JSON issue list |
-| Negotiator | Deduplicate, rank severity, resolve conflicts | Final verdict JSON |
+| Debate round (all three) | Each reviewer sees peers' findings; concedes, defends, or adds | Revised issue list + stance |
+| Negotiator | Deduplicate, rank severity, resolve conflicts, write commit message | Final verdict JSON |
 | Baseline reviewer | Single-pass holistic review for comparison | JSON issue list |
 
 ## Data Flow
@@ -27,9 +29,10 @@ flowchart LR
     CLI --> C[Qwen correctness reviewer]
     CLI --> S[Qwen security reviewer]
     CLI --> T[Qwen style/test reviewer]
-    C --> N[Qwen negotiation step]
-    S --> N
-    T --> N
+    C --> D[Debate round: peers' findings cross-examined]
+    S --> D
+    T --> D
+    D --> N[Qwen negotiation: verdict + commit message]
     CLI --> B[Qwen single-agent baseline]
     N --> Metric[Agent Society delta metric]
     B --> Metric
@@ -39,16 +42,26 @@ flowchart LR
 
 ## Why This Fits Track 3
 
-The project demonstrates multiple agents with distinct capabilities, explicit
-task division, a negotiation step, and a measurable efficiency signal. The
-`metric.delta` field compares multi-role issue discovery against a single-agent
-baseline over the same diff.
+The track brief asks for agents that collaborate through *task division,
+dialogue, and negotiation* — this pipeline has all three as explicit, separate
+steps:
+
+- **Task division**: three role reviewers with disjoint lanes run in parallel.
+- **Dialogue**: a rebuttal round where each reviewer reads its peers' findings
+  and revises its own — conceding duplicates, defending disputed calls, adding
+  what the discussion surfaced. Each reviewer reports a one-line `stance`.
+- **Negotiation**: a reconciliation agent merges the post-debate findings into
+  one verdict and a Conventional Commits message.
+
+The `metric.delta` field compares **deduplicated** team issue discovery
+against a single-agent baseline over the same diff, so the society has to beat
+the baseline on distinct findings, not volume.
 
 ## Runtime Entry Points
 
 ```bash
 # CLI: JSON output for judging and tests
-python agents/git-committer/review.py --diff-file sample.patch
+python agents/git-committer/review.py --diff-file agents/git-committer/sample.patch
 
 # CLI: text output for demos
 git diff HEAD~1 | python agents/git-committer/review.py --format text
