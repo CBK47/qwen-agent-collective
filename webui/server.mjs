@@ -72,11 +72,6 @@ const server = createServer(async (req, res) => {
 
   if (req.method === "POST" && url.pathname.startsWith("/api/")) {
     const agent = url.pathname.slice(5);
-    if (agent === 'memory-echo') {
-      const body = await readBody(req);
-      jsonResponse(res, 200, { ok: true, output: body });
-      return;
-    }
     if (agent === "git-committer") {
       try {
         const body = await readBody(req);
@@ -109,18 +104,6 @@ const server = createServer(async (req, res) => {
 
   let path = decodeURIComponent(url.pathname);
   if (path === "/") path = "/index.html";
-  if (path.startsWith('/git-committer')) {
-    path = '/agents/git-committer' + path.slice('/git-committer'.length);
-  }
-  if (path === '/agents/git-committer') {
-    path += '/index.html';
-  }
-  if (path.startsWith('/memory-echo')) {
-    path = '/agents/memory-echo' + path.slice('/memory-echo'.length);
-  }
-  if (path === '/agents/memory-echo') {
-    path += '/index.html';
-  }
   const file = join(DIR, normalize(path).replace(/^(\.\.[/\\])+/, ""));
   if (!file.startsWith(DIR)) { res.writeHead(403).end("forbidden"); return; }
   try {

@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "webui",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["webui/server.mjs"],
+      "port": 4321
+    }
+  ]
+}

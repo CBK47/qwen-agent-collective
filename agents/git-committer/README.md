@@ -4,7 +4,12 @@
 
 ## Purpose
 
-Reviews staged diffs and writes conventional commit messages, following shared code conventions from the brain. Demonstrates an agent that both reads shared context and contributes back to it.
+Reviews diffs through a society of specialist Qwen reviewers and writes a
+Conventional Commits message, following shared code conventions from the brain.
+The pipeline is task division → dialogue → negotiation: three role reviewers
+work the same diff in parallel, debate each other's findings in a rebuttal
+round, then a negotiator merges the surviving findings into one verdict and a
+suggested commit message.
 
 ## Setup
 
@@ -25,38 +30,16 @@ To use the git-committer agent with DashScope, follow these steps:
    DASHSCOPE_API_KEY=your_api_key_here
    ```
 
-## Alibaba Cloud Deployment
-
-To deploy the git-committer agent to Alibaba Cloud infrastructure, follow these steps:
-
-1. **Obtain Alibaba Cloud Credentials**: Log in to the [Alibaba Cloud RAM Console](https://ram.console.aliyun.com) and navigate to the AccessKey section to create an AccessKey ID and Secret. Ensure the account has necessary permissions for deploying resources.
-
-2. **Update .env File**: Add the following lines to your `.env` file in the project root:
-
-   ```
-   ALIBABA_CLOUD_ACCESS_KEY_ID=your_access_key_id
-   ALIBABA_CLOUD_ACCESS_KEY_SECRET=your_access_key_secret
-   ```
-
-3. **Run Deployment Script**: Execute the deployment command:
-
-   ```
-   python deploy.py --region cn-hangzhou --instance-type ecs.g7.large
-   ```
-
-   Replace `cn-hangzhou` with your desired region and `ecs.g7.large` with the appropriate instance type.
-
-4. **Verify Deployment**: After deployment, verify the agent is running by checking the instance status in the Alibaba Cloud Console or using SSH to connect to the instance and check the agent logs.
-
 ## Running the Track 3 Demo
 
 The canonical implementation is `review.py`. It runs three role-specific Qwen
-reviewers, a Qwen negotiation step, and a single-agent baseline over the same
-diff.
+reviewers in parallel, a rebuttal round where each reviewer revises its
+findings against its peers', a Qwen negotiation step that produces the verdict
+and commit message, and a single-agent baseline over the same diff.
 
 ```bash
-# JSON output for judging
-python agents/git-committer/review.py --diff-file sample.patch
+# JSON output for judging (sample.patch ships with the repo)
+python agents/git-committer/review.py --diff-file agents/git-committer/sample.patch
 
 # Human-readable demo output
 git diff HEAD~1 | python agents/git-committer/review.py --format text
@@ -76,12 +59,15 @@ review report.
 
 The result includes:
 
-- `team_issue_count`: total issues found by the specialist reviewers
-- `baseline_issue_count`: issues found by one holistic reviewer
+- `team_issue_count`: **deduplicated** issues surviving debate + negotiation —
+  three reviewers flagging the same secret count once
+- `first_pass_issue_count`: raw per-role findings before the debate round
+- `baseline_issue_count`: issues found by one holistic reviewer over the same diff
 - `delta`: `team_issue_count - baseline_issue_count`
 
-This gives the Track 3 submission a measurable comparison between the
-multi-agent society and a single-agent baseline.
+This gives the Track 3 submission an honest, measurable comparison between the
+multi-agent society and a single-agent baseline: the delta only counts distinct
+issues the team surfaced, not the same issue echoed by three roles.
 
 ## Alibaba Cloud Deployment
 

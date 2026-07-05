@@ -1,16 +1,21 @@
-"""GIT-Committer · Multi-Agent PR Review CLI (Track 3 MVP).
+"""GIT-Committer · Multi-Agent PR Review CLI (Track 3).
 
 Usage:
-    python agents/git-committer/review.py --diff-file path/to/diff.patch
+    python agents/git-committer/review.py --diff-file sample.patch
     git diff HEAD~1 | python agents/git-committer/review.py
 
-Mirrors the logic in brain/orchestrator/workflows/git-committer-pr-review.json:
-  3 role reviewers (correctness, security, style/test-coverage) run sequentially
-  here (the n8n version fans them out in parallel via Promise.all), then a
-  negotiation step merges findings into one verdict, and a single-agent baseline
-  reviewer over the same diff produces the Track-3 delta metric.
+Pipeline (task division → dialogue → negotiation, per the Track 3 brief):
+  1. Three role reviewers (correctness, security, style/test-coverage) review
+     the same diff in parallel.
+  2. Debate round: each reviewer sees its peers' findings and revises its own —
+     conceding duplicates, defending disputed calls, adding what the discussion
+     revealed.
+  3. A negotiation step merges the post-debate findings into one verdict plus a
+     Conventional Commits message.
+  4. A single-agent baseline reviews the same diff; the deduplicated team
+     finding count vs the baseline count is the Agent Society delta metric.
 
-Output: JSON to stdout with keys: verdict, role_findings, metric.
+Output: JSON to stdout with keys: verdict, role_findings, debate, metric.
 """
 
 from __future__ import annotations
@@ -19,6 +24,7 @@ import argparse
 import json
 import sys
 import pathlib
+from concurrent.futures import ThreadPoolExecutor
 
 # Allow `from shared.dashscope import ...` when called as a script from any cwd.
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2]))
@@ -64,14 +70,27 @@ _ISSUES_SUFFIX = (
     "If no issues, respond with: {\"issues\":[]}."
 )
 
+_REBUTTAL_SUFFIX = (
+    " You already reviewed this diff once. Now you can see your peers' findings. "
+    "Re-examine the diff in light of them: drop your findings that a peer covers "
+    "better or that you no longer stand by, keep the ones you defend, and add "
+    "anything the peer discussion revealed in YOUR lane only. "
+    'Respond as strict JSON: {"issues":[{"severity":"high|med|low","note":"..."}],'
+    '"stance":"one short line on what you conceded or defended"}.'
+)
+
 _NEGOTIATION_SYSTEM = (
     "You are the reconciliation step for a multi-reviewer code-review panel. "
-    "You receive JSON findings from a correctness reviewer, a security reviewer, "
-    "and a style/test reviewer. "
-    "Deduplicate, rank by severity, resolve disagreements, and produce ONE verdict. "
+    "You receive post-debate JSON findings from a correctness reviewer, a security "
+    "reviewer, and a style/test reviewer. "
+    "Merge duplicates (the SAME defect reported by multiple roles) into one entry, "
+    "but NEVER combine different defects into one entry — one ranked issue per "
+    "distinct defect. Rank by severity, resolve disagreements, and produce ONE verdict. "
+    "Also write a Conventional Commits message for the diff itself "
+    "(type(scope): subject, subject <= 72 chars, imperative mood). "
     'Respond as strict JSON: '
-    '{"verdict":"approve|request_changes","summary":"...","ranked_issues":'
-    '[{"severity":"high|med|low","note":"...","roles":["..."]}]}.'
+    '{"verdict":"approve|request_changes","summary":"...","commit_message":"...",'
+    '"ranked_issues":[{"severity":"high|med|low","note":"...","roles":["..."]}]}.'
 )
 
 _BASELINE_SYSTEM = (
@@ -87,6 +106,40 @@ _BASELINE_SYSTEM = (
 # ---------------------------------------------------------------------------
 
 
+def _extract_json(raw: str) -> dict:
+    """Parse a JSON object out of a model response, tolerating ``` fences and prose.
+
+    Scans for the first balanced {...} block rather than first-{ to last-},
+    which breaks when the response contains several JSON-looking fragments —
+    e.g. when the diff under review itself quotes JSON templates.
+    """
+    start = raw.find("{")
+    while start != -1:
+        depth = 0
+        in_string = False
+        escaped = False
+        for i in range(start, len(raw)):
+            ch = raw[i]
+            if escaped:
+                escaped = False
+            elif ch == "\\":
+                escaped = True
+            elif ch == '"':
+                in_string = not in_string
+            elif not in_string:
+                if ch == "{":
+                    depth += 1
+                elif ch == "}":
+                    depth -= 1
+                    if depth == 0:
+                        try:
+                            return json.loads(raw[start : i + 1])
+                        except json.JSONDecodeError:
+                            break  # not valid JSON; try the next candidate block
+        start = raw.find("{", start + 1)
+    raise ValueError("no JSON object in model response")
+
+
 def _parse_issues(raw: str) -> list[dict]:
     """Parse the model's JSON response into a list of issues.
 
@@ -97,9 +150,9 @@ def _parse_issues(raw: str) -> list[dict]:
         A list of issue dictionaries, or an empty list if parsing fails.
     """
     try:
-        data = json.loads(raw)
+        data = _extract_json(raw)
         return data.get("issues") or []
-    except (json.JSONDecodeError, AttributeError):
+    except (ValueError, json.JSONDecodeError, AttributeError):
         return []
 
 
@@ -114,20 +167,62 @@ def run_role_reviewers(diff: str, client: BrainClient, conventions: str = "") ->
     Returns:
         A list of dictionaries, each containing 'role' and 'issues' keys.
     """
-    results = []
-    for role, brief in _ROLE_BRIEFS:
+    def review_one(role: str, brief: str) -> dict:
         system = f"{_BASE_IDENTITY}\n\nYou are the {role} reviewer. {brief}\n\nCode Conventions:\n{conventions}\n{_ISSUES_SUFFIX}"
-        prompt = f"Diff:\n{diff}"
         raw = client.chat(
             messages=[
                 {"role": "system", "content": system},
-                {"role": "user", "content": prompt},
+                {"role": "user", "content": f"Diff:\n{diff}"},
             ],
             model=getattr(client.config, "coder_model", "qwen2.5-coder"),
             temperature=0,
         )
-        results.append({"role": role, "issues": _parse_issues(raw)})
-    return results
+        return {"role": role, "issues": _parse_issues(raw)}
+
+    with ThreadPoolExecutor(max_workers=len(_ROLE_BRIEFS)) as pool:
+        return list(pool.map(lambda rb: review_one(*rb), _ROLE_BRIEFS))
+
+
+def run_debate(diff: str, role_findings: list[dict], client: BrainClient, conventions: str = "") -> list[dict]:
+    """One rebuttal round: each reviewer sees its peers' findings and revises its own.
+
+    This is the 'dialogue' step of the Track 3 pipeline — reviewers concede
+    duplicates, defend disputed calls, or add issues the discussion surfaced.
+
+    Parameters:
+        diff: The unified diff string under review.
+        role_findings: First-pass findings from run_role_reviewers.
+        client: BrainClient instance for making API calls.
+        conventions: Code conventions string to guide the reviewers.
+
+    Returns:
+        A list of dicts with 'role', 'issues' (revised), and 'stance' keys.
+    """
+    def rebut(role: str, brief: str) -> dict:
+        own = next((f["issues"] for f in role_findings if f["role"] == role), [])
+        peers = {f["role"]: f["issues"] for f in role_findings if f["role"] != role}
+        system = f"{_BASE_IDENTITY}\n\nYou are the {role} reviewer. {brief}\n\nCode Conventions:\n{conventions}\n{_REBUTTAL_SUFFIX}"
+        user = (
+            f"Diff:\n{diff}\n\n"
+            f"Your first-pass findings:\n{json.dumps(own)}\n\n"
+            f"Peer findings:\n{json.dumps(peers)}"
+        )
+        raw = client.chat(
+            messages=[
+                {"role": "system", "content": system},
+                {"role": "user", "content": user},
+            ],
+            model=getattr(client.config, "coder_model", "qwen2.5-coder"),
+            temperature=0,
+        )
+        try:
+            data = _extract_json(raw)
+        except (ValueError, json.JSONDecodeError):
+            data = {"issues": own, "stance": "response unparseable — kept first-pass findings"}
+        return {"role": role, "issues": data.get("issues") or [], "stance": str(data.get("stance", ""))}
+
+    with ThreadPoolExecutor(max_workers=len(_ROLE_BRIEFS)) as pool:
+        return list(pool.map(lambda rb: rebut(*rb), _ROLE_BRIEFS))
 
 
 def run_negotiation(role_findings: list[dict], client: BrainClient) -> dict:
@@ -154,11 +249,12 @@ def run_negotiation(role_findings: list[dict], client: BrainClient) -> dict:
         temperature=0,
     )
     try:
-        return json.loads(raw)
-    except (json.JSONDecodeError, ValueError):
+        return _extract_json(raw)
+    except (ValueError, json.JSONDecodeError):
         return {
             "verdict": "request_changes",
             "summary": raw,
+            "commit_message": "",
             "ranked_issues": [],
         }
 
@@ -195,7 +291,7 @@ def review_diff(diff: str, client: BrainClient | None = None) -> dict:
 
     Returns:
         A dictionary with keys:
-            - 'verdict', 'role_findings', 'metric' for successful review
+            - 'verdict', 'role_findings', 'debate', 'metric' for successful review
             - 'error' if the diff is empty or invalid
     """
     client = client or BrainClient()
@@ -209,23 +305,30 @@ def review_diff(diff: str, client: BrainClient | None = None) -> dict:
     # Fetch code conventions from BrainClient
     conventions = client.get_code_conventions()
 
-    # --- Role reviewers (parallel in n8n; sequential here) ---
+    # --- Task division: parallel role reviewers ---
     role_findings = run_role_reviewers(diff, client, conventions)
 
-    # --- Negotiation ---
-    verdict = run_negotiation(role_findings, client)
+    # --- Dialogue: rebuttal round over peers' findings ---
+    debate = run_debate(diff, role_findings, client, conventions)
+
+    # --- Negotiation: merge post-debate findings into one verdict ---
+    verdict = run_negotiation(debate, client)
 
     # --- Baseline ---
     baseline_issues = run_baseline(diff, client, conventions)
 
-    team_count = sum(len(f["issues"]) for f in role_findings)
+    # Deduplicated team count: the negotiator's ranked issues, so three roles
+    # flagging the same secret count once — an honest delta vs the baseline.
+    team_count = len(verdict.get("ranked_issues") or [])
     baseline_count = len(baseline_issues)
 
     return {
         "verdict": verdict,
         "role_findings": role_findings,
+        "debate": debate,
         "metric": {
             "team_issue_count": team_count,
+            "first_pass_issue_count": sum(len(f["issues"]) for f in role_findings),
             "baseline_issue_count": baseline_count,
             "delta": team_count - baseline_count,
         },
@@ -242,22 +345,37 @@ def format_review_report(result: dict) -> str:
     lines = [
         f"Verdict: {verdict.get('verdict', 'unknown')}",
         f"Summary: {verdict.get('summary', '').strip() or 'No summary returned.'}",
-        "",
-        "Role findings:",
     ]
 
+    commit_message = (verdict.get("commit_message") or "").strip()
+    if commit_message:
+        lines.extend(["", f"Suggested commit: {commit_message}"])
+
+    lines.extend(["", "First-pass findings:"])
     for finding in result.get("role_findings", []):
         issues = finding.get("issues") or []
         lines.append(f"- {finding.get('role', 'unknown')}: {len(issues)} issue(s)")
-        for issue in issues:
+
+    debate = result.get("debate") or []
+    if debate:
+        lines.extend(["", "Debate round:"])
+        for entry in debate:
+            issues = entry.get("issues") or []
+            stance = (entry.get("stance") or "").strip()
+            lines.append(f"- {entry.get('role', 'unknown')} kept {len(issues)} issue(s): {stance}")
+
+    ranked = verdict.get("ranked_issues") or []
+    if ranked:
+        lines.extend(["", "Negotiated issues:"])
+        for issue in ranked:
             severity = issue.get("severity", "unknown")
             note = issue.get("note", "").strip()
             lines.append(f"  [{severity}] {note}")
 
     lines.extend([
         "",
-        "Agent Society delta:",
-        f"- multi-role issue count: {metric.get('team_issue_count', 0)}",
+        "Agent Society delta (deduplicated team vs single agent):",
+        f"- team issue count: {metric.get('team_issue_count', 0)}",
         f"- single-agent baseline count: {metric.get('baseline_issue_count', 0)}",
         f"- delta: {metric.get('delta', 0)}",
     ])

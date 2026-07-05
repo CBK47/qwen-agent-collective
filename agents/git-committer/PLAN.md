@@ -33,7 +33,10 @@ One real DashScope call + one brain read/write:
 ## Phase 2 — submission-grade (the real demoable track)
 - [x] Read `shared.code-conventions` via the brain client → one `qwen2.5-coder` review pass over a fixed diff (done: `review.py` pulls conventions via `BrainClient.get_code_conventions` and runs multi-role `qwen2.5-coder` passes with a negotiated verdict + delta metric)
 - [x] Custom WebUI front-end for this agent — branded, interactive demo surface (the public face for the video)
+- [x] Debate/rebuttal round — each reviewer sees peers' findings and revises with a stance (the Track 3 "dialogue" step); role reviewers parallelized
+- [x] Honest metric — `team_issue_count` is the deduplicated post-negotiation count; `first_pass_issue_count` kept for transparency
+- [x] Conventional Commit message emitted by the negotiator (fulfils the agent's name)
+- [x] `sample.patch` committed; `--diff-file` docs point at it; verified live E2E (CLI + browser), delta +1
+- [x] Fix `debate_prototype.py` (runs clean from repo root and agent dir)
 - [ ] Deploy proof on the shared Alibaba Cloud harness (required for submission) — NOT DONE
-- [ ] Record a 60–90s demo video (required for submission) — NOT RECORDED
-
-- [ ] Fix `debate_prototype.py`: still fails with `No module named 'review'` — NOT DONE
+- [ ] Record a ~3 min demo video (required for submission) — NOT RECORDED
