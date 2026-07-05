@@ -183,6 +183,21 @@ def test_json_fence_tolerated():
     assert len(issues) == 1, f"Fenced JSON not parsed: {issues}"
 
 
+def test_json_multiple_blocks_tolerated():
+    """_extract_json must parse the first balanced object, not first-{ to last-}.
+
+    Regression: reviewing a diff that itself quotes JSON templates made the
+    response contain several JSON-looking fragments; first-{..last-} spanned
+    them all, failed to parse, and findings were silently dropped.
+    """
+    noisy = "Here is my finding:\n" + ROLE_RESPONSE + '\nas required by {"issues":[...]} format.'
+    issues = review_mod._parse_issues(noisy)
+    assert len(issues) == 1, f"Multi-block response not parsed: {issues}"
+    # Braces and escaped quotes inside JSON strings must not confuse the scan.
+    tricky = json.dumps({"issues": [{"severity": "low", "note": 'say "hi" } and { \\ done'}]})
+    assert len(review_mod._parse_issues("x " + tricky + " y")) == 1
+
+
 def test_empty_diff_guarded():
     """review_diff must return an error object (not raise) for empty input."""
     fake = FakeClient()
@@ -217,6 +232,7 @@ if __name__ == "__main__":
         test_debate_round_in_output,
         test_commit_message_in_verdict,
         test_json_fence_tolerated,
+        test_json_multiple_blocks_tolerated,
         test_empty_diff_guarded,
         test_role_findings_in_output,
     ]

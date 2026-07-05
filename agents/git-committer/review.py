@@ -107,11 +107,37 @@ _BASELINE_SYSTEM = (
 
 
 def _extract_json(raw: str) -> dict:
-    """Parse a JSON object out of a model response, tolerating ``` fences and prose."""
-    start, end = raw.find("{"), raw.rfind("}")
-    if start == -1 or end <= start:
-        raise ValueError("no JSON object in model response")
-    return json.loads(raw[start : end + 1])
+    """Parse a JSON object out of a model response, tolerating ``` fences and prose.
+
+    Scans for the first balanced {...} block rather than first-{ to last-},
+    which breaks when the response contains several JSON-looking fragments —
+    e.g. when the diff under review itself quotes JSON templates.
+    """
+    start = raw.find("{")
+    while start != -1:
+        depth = 0
+        in_string = False
+        escaped = False
+        for i in range(start, len(raw)):
+            ch = raw[i]
+            if escaped:
+                escaped = False
+            elif ch == "\\":
+                escaped = True
+            elif ch == '"':
+                in_string = not in_string
+            elif not in_string:
+                if ch == "{":
+                    depth += 1
+                elif ch == "}":
+                    depth -= 1
+                    if depth == 0:
+                        try:
+                            return json.loads(raw[start : i + 1])
+                        except json.JSONDecodeError:
+                            break  # not valid JSON; try the next candidate block
+        start = raw.find("{", start + 1)
+    raise ValueError("no JSON object in model response")
 
 
 def _parse_issues(raw: str) -> list[dict]:
