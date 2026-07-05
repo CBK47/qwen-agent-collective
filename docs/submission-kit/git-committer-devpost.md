@@ -55,6 +55,23 @@ the Track 3 brief made literal — task division, dialogue, negotiation:
 - WebUI endpoint at `/api/git-committer` for the live demo
 - ECS deployment script that keeps secrets out of user-data
 
+## Case Study: The Society Caught a Frontier Model's Bug
+
+During development, the pipeline reviewed its own diff — code written by a
+frontier coding model (Claude Fable 5). The Qwen reviewer society flagged the
+JSON extraction as fragile: it grabbed first-`{` to last-`}`, which breaks
+when a response contains multiple JSON-looking fragments. The bug was not
+hypothetical — it was manifesting **in that very run**, silently dropping the
+panel's own first-pass findings. The single-agent baseline found **zero**
+issues on the same diff.
+
+The fix and regression tests are commit `2adc3d9` in the repo history.
+
+The panel then alleged a "critical" escaped-quote bug in the fix. A regression
+test disproved it. That is the intended workflow: panel findings are claims,
+tests are verdicts — the society surfaces more issues than one reviewer, and
+verification filters the false positives.
+
 ## Demo Script (~3 min)
 
 1. Open `webui/git-committer.html`; paste `agents/git-committer/sample.patch`
@@ -65,7 +82,12 @@ the Track 3 brief made literal — task division, dialogue, negotiation:
    the suggested commit message.
 3. Land on the delta metric: the deduplicated team count vs the single-agent
    baseline over the same diff.
-4. Show the architecture diagram and the ECS deployment.
+4. The case study: `git show 2adc3d9` — the society reviewed its own diff,
+   caught a real parser bug a frontier coding model (Claude Fable 5) wrote and
+   missed, while the single-agent baseline found nothing. Then the honesty
+   beat: the panel's follow-up "critical" finding was disproven by a test —
+   claims get verified, not trusted.
+5. Show the architecture diagram and the ECS deployment.
 
 ## Commands For Judges
 
