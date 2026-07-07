@@ -21,24 +21,38 @@ single-agent baseline.
 
 ```mermaid
 flowchart LR
-    User[Developer or judge] --> WebUI[webui/git-committer.html]
-    WebUI --> API[POST /api/git-committer]
-    API --> CLI[agents/git-committer/review.py]
-    CLI --> Brain[shared BrainClient]
-    Brain --> Conventions[shared/code_conventions.py]
-    CLI --> C[Qwen correctness reviewer]
-    CLI --> S[Qwen security reviewer]
-    CLI --> T[Qwen style/test reviewer]
-    C --> D[Debate round: peers' findings cross-examined]
+    subgraph Frontend
+        User[Developer or judge] --> WebUI[webui/git-committer.html]
+    end
+    subgraph Backend["Backend — Alibaba Cloud ECS (webui/server.mjs)"]
+        API[POST /api/git-committer] --> CLI[agents/git-committer/review.py]
+        CLI --> Brain[shared BrainClient]
+        Brain --> Conventions[(shared code conventions)]
+    end
+    subgraph QwenCloud["Qwen Cloud — Alibaba Cloud Model Studio / DashScope (qwen3-coder-plus)"]
+        C[Correctness reviewer]
+        S[Security reviewer]
+        T[Style/test reviewer]
+        D[Debate round: peers' findings cross-examined]
+        N[Negotiation: verdict + commit message]
+        B[Single-agent baseline]
+    end
+    WebUI --> API
+    CLI --> C
+    CLI --> S
+    CLI --> T
+    C --> D
     S --> D
     T --> D
-    D --> N[Qwen negotiation: verdict + commit message]
-    CLI --> B[Qwen single-agent baseline]
+    D --> N
+    CLI --> B
     N --> Metric[Agent Society delta metric]
     B --> Metric
     Metric --> API
     API --> WebUI
 ```
+
+Rendered copy for the Devpost form: [`git-committer-track3.png`](git-committer-track3.png)
 
 ## Why This Fits Track 3
 
